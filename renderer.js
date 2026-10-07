@@ -15,6 +15,8 @@
   let data = { groups: [], chats: [] };     // персистентные данные
   let settings = {
     selectedModel: null,
+    localAi: false,
+    modelPriceFilter: "all",
     thinkLevel: "medium",
     accessMode: "ask",
     appLanguage: "en",
@@ -66,6 +68,94 @@
   let localRuntimeState = {};
   let teamRows = [];
   let availableModels = [];          // установленные модели [{name,size,details}]
+  let allAvailableModels = [];
+  let providerUsage = {};
+  window.addEventListener('provider-usage', event => {
+    providerUsage[event.detail.model || event.detail.provider] = event.detail.usage;
+    renderModelDropdown();
+  });
+  const isCloudModel = name => String(name || '').startsWith('cloud:');
+  function modeModels() { return allAvailableModels.filter(model => settings.localAi ? !isCloudModel(model.name) : isCloudModel(model.name)); }
+  function applyModelMode() {
+    availableModels = modeModels();
+    if (!availableModels.some(model => model.name === settings.selectedModel)) {
+      const remembered = settings.localAi ? settings.lastLocalModel : settings.lastCloudModel;
+      const automatic = settings.localAi ? availableModels[0] : availableModels.find(model=>model.free===true || model.provider==='groq');
+      settings.selectedModel = availableModels.some(model => model.name === remembered) ? remembered : automatic?.name || null;
+    }
+    renderSelectedModel(settings.selectedModel);
+    renderModelDropdown();
+    $('localAiToggle')?.setAttribute('aria-checked', String(settings.localAi));
+    if ($('localAiDescription')) $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
+    $('localSetupCard').hidden = !settings.localAi || !MultiMind.shouldShowSetup(localRuntimeState, availableModels.length, settings.localSetupCompleted);
+    if (!settings.localAi) {
+      $('modelsModal').classList.remove('show');
+      welcomeHint.textContent = settings.appLanguage === 'ru' ? 'Подключите OpenRouter или Groq в настройках → Providers.' : 'Connect OpenRouter or Groq in Settings → Providers.';
+      if (availableModels.length) welcomeHint.textContent = settings.appLanguage === 'ru' ? 'Облачные модели готовы.' : 'Cloud models are ready.';
+    }
+    updateMultiMindControls();
+  }
+  function openProviderSettings() {
+    settingsModal.classList.add('show');
+    document.querySelector('[data-settings-tab="cloud"]').click();
+  }
+  $('localAiToggle').addEventListener('click', async () => {
+    if (isGenerating) return;
+    if (settings.selectedModel) settings[settings.localAi ? 'lastLocalModel' : 'lastCloudModel'] = settings.selectedModel;
+    settings.localAi = !settings.localAi;
+    applyModelMode();
+    await persist();
+    await checkOllama();
+  });
+  async function refreshProviderStatus() {
+    if (!window.api?.providersStatus) return;
+    const id = $('providerSelect').value;
+    const statuses = await window.api.providersStatus();
+    const configured = statuses.some(item => item.id === id && item.configured);
+    $('providerDisconnect').hidden = !configured;
+    $('providerStatus').textContent = settings.appLanguage === 'ru' ? (configured ? 'Подключено. Бесплатные модели имеют лимиты провайдера.' : 'Добавьте свой API-ключ. Ключ хранится зашифрованным на компьютере.') : (configured ? 'Connected. Free models are subject to provider limits.' : 'Add your API key. It is stored encrypted on this computer.');
+  }
+  $('providerSelect').addEventListener('change', () => { settings.preferredCloudProvider=$('providerSelect').value; persist(); $('providerKey').value = ''; refreshProviderStatus(); });
+  document.querySelector('[data-settings-tab="cloud"]').addEventListener('click', () => refreshProviderStatus());
+  $('providerGetKey').onclick = () => window.api?.providersOpen($('providerSelect').value);
+  $('providerForm').addEventListener('submit', async event => {
+    event.preventDefault(); $('providerConnect').disabled = true;
+    try {
+      await window.api.providersSave($('providerSelect').value, $('providerKey').value);
+      $('providerKey').value = '';
+      if (settings.selectedModel) settings[settings.localAi ? 'lastLocalModel' : 'lastCloudModel'] = settings.selectedModel;
+      settings.localAi = false;
+      await checkOllama(); await refreshProviderStatus();
+      await persist();
+    } catch (error) { $('providerStatus').textContent = error.message; }
+    finally { $('providerConnect').disabled = false; }
+  });
+  $('providerDisconnect').onclick = async () => {
+    try { await window.api.providersDisconnect($('providerSelect').value); await checkOllama(); await refreshProviderStatus(); }
+    catch (error) { $('providerStatus').textContent = error.message; }
+  };
+  function closeProviderPicker() {
+    $('providerPickerToggle').setAttribute('aria-expanded', 'false');
+    $('providerOptions').classList.remove('open'); $('providerOptions').inert = true;
+  }
+  $('providerPickerToggle').onclick = () => {
+    const open = $('providerPickerToggle').getAttribute('aria-expanded') !== 'true';
+    $('providerPickerToggle').setAttribute('aria-expanded', String(open));
+    $('providerOptions').classList.toggle('open', open); $('providerOptions').inert = !open;
+    if (open) $('providerOptions').querySelector('[aria-selected=true]').focus();
+  };
+  $('providerOptions').querySelectorAll('[data-provider]').forEach(button => button.onclick = () => {
+    $('providerSelect').value = button.dataset.provider;
+    $('providerPickerValue').textContent = button.textContent;
+    $('providerOptions').querySelectorAll('[data-provider]').forEach(option => option.setAttribute('aria-selected', String(option === button)));
+    $('providerSelect').dispatchEvent(new Event('change')); closeProviderPicker(); $('providerPickerToggle').focus();
+  });
+  $('providerOptions').addEventListener('keydown', event => {
+    const buttons = [...$('providerOptions').querySelectorAll('button')];
+    if (event.key === 'Escape') { event.stopPropagation(); closeProviderPicker(); $('providerPickerToggle').focus(); }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); buttons[(buttons.indexOf(document.activeElement) + (event.key === 'ArrowDown' ? 1 : buttons.length - 1)) % buttons.length].focus(); }
+  });
+  document.addEventListener('click', event => { if (!event.target.closest('.provider-picker')) closeProviderPicker(); });
   let pullingModels = {};            // { modelName: percent }
   let fluxStatus = null;
   let pullingFluxModels = {};
@@ -830,6 +920,12 @@
     migrateBrandNamesInData();
     const s = await window.api.settingsGet();
     if (s) settings = Object.assign(settings, s);
+    if (['openrouter','groq','gemini','cerebras'].includes(settings.preferredCloudProvider)) {
+      $('providerSelect').value=settings.preferredCloudProvider;
+      $('providerPickerValue').textContent=$('providerSelect').selectedOptions[0].textContent;
+      $('providerOptions').querySelectorAll('[data-provider]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.provider===settings.preferredCloudProvider)));
+    }
+    if (typeof s?.localAi !== 'boolean') settings.localAi = !!s?.selectedModel && !isCloudModel(s.selectedModel);
     if (!settings.appLanguage) settings.appLanguage = "en";
     if (!settings.theme) settings.theme = "dark";
     if (!settings.multimindThemeApplied) { settings.theme = "dark"; settings.multimindThemeApplied = true; }
@@ -1159,7 +1255,8 @@
       const models=await window.api.cloudModels(force);const list=$('cloudModelsList');list.replaceChildren();
       models.forEach(model=>{const button=document.createElement('button');button.type='button';button.className='cloud-model-row';button.textContent=model.cloudName+'  ·  Cloud';
         button.onclick=async()=>{const status=await window.api.cloudStatus();if(!status.configured){$('cloudApiKey').focus();$('cloudError').textContent=settings.appLanguage==='ru'?'Сначала подключите аккаунт с API-ключом.':'Connect your account with an API key first.';return;}
-          if(!availableModels.some(m=>m.name===model.name))availableModels.push(model);selectModel(model.name);settingsModal.classList.remove('show');};list.append(button);
+          if(settings.localAi){$('cloudError').textContent=settings.appLanguage==='ru'?'Выключите Local AI в общих настройках, чтобы выбрать облачную модель.':'Turn off Local AI in General settings to select a cloud model.';return;}
+          if(!allAvailableModels.some(m=>m.name===model.name))allAvailableModels.push(model);availableModels=modeModels();selectModel(model.name);settingsModal.classList.remove('show');};list.append(button);
       });
     }catch(error){$('cloudError').textContent=error.message;}finally{$('cloudRefresh').disabled=false;}
   }
@@ -1182,7 +1279,7 @@
   document.querySelectorAll('[data-cloud-plan]').forEach(button=>button.onclick=()=>window.api.cloudOpen('pricing'));
   $('cloudGetKey').onclick=()=>window.api.cloudOpen('keys');
   $('cloudRefresh').onclick=()=>refreshCloudModels(true);
-  document.querySelector('[data-settings-tab="cloud"]').addEventListener('click',()=>{refreshCloudStatus();refreshCloudModels();});
+  document.querySelector('[data-settings-tab="ollama-cloud"]').addEventListener('click',()=>{refreshCloudStatus();refreshCloudModels();});
   $('cloudAccountForm').addEventListener('submit',async event=>{
     event.preventDefault();$('cloudConnect').disabled=true;
     try{await window.api.cloudSave($('cloudApiKey').value);$('cloudApiKey').value='';await refreshCloudStatus();await checkOllama();await refreshCloudModels();}
@@ -1190,10 +1287,33 @@
   });
   $('cloudDisconnect').onclick=async()=>{await window.api.cloudDisconnect();$('cloudApiKey').value='';if(settings.selectedModel?.startsWith('cloud:'))settings.selectedModel=null;await checkOllama();renderSelectedModel(settings.selectedModel);await persist();await refreshCloudStatus();};
   window.addEventListener('ollama-cloud-problem',event=>{
+    if (['rate','billing','overloaded'].includes(event.detail.kind) && ['openrouter','groq','gemini','cerebras'].includes(event.detail.provider)) {
+      showProviderLimit(event.detail); return;
+    }
     const {kind,message}=event.detail;
     if(kind==='billing')openCloudPlans(message);
     else if(kind==='auth'){settingsModal.classList.add('show');document.querySelector('[data-settings-tab="cloud"]').click();$('cloudError').textContent=message;}
     else $('cloudError').textContent=message;
+  });
+  let limitedProvider = 'openrouter';
+  let limitReturnFocus = null;
+  function showProviderLimit(detail) {
+    limitedProvider = detail.provider;
+    $('providerLimitTitle').textContent=detail.kind==='overloaded'?'Model temporarily unavailable':'You reached the limit';
+    const modal=$('providerLimitModal');
+    if (!modal.classList.contains('show'))limitReturnFocus=document.activeElement;
+    $('providerLimitDescription').textContent = detail.upstream
+      ? 'This model is temporarily rate-limited. Adding credits may not remove this temporary restriction.'
+      : 'Your provider has limited this request. Open your account to manage credits and usage limits.';
+    modal.classList.add('show'); $('providerLimitAdd').focus();
+  }
+  function closeProviderLimit() { $('providerLimitModal').classList.remove('show');limitReturnFocus?.focus(); }
+  $('providerLimitClose').onclick=closeProviderLimit;
+  $('providerLimitModal').onclick=event=>{if(event.target===$('providerLimitModal'))closeProviderLimit();};
+  $('providerLimitAdd').onclick=async()=>{await window.api.providersLimitsOpen(limitedProvider);};
+  $('providerLimitModal').addEventListener('keydown',event=>{
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeProviderLimit();}
+    if(event.key==='Tab'){event.preventDefault();(document.activeElement===$('providerLimitAdd')?$('providerLimitClose'):$('providerLimitAdd')).focus();}
   });
   function renderPlugins(entries) {
     const list=$('pluginsList');const signature=JSON.stringify(entries);if(list.dataset.signature===signature)return;list.dataset.signature=signature;list.replaceChildren();renderPluginPresets(entries);
@@ -1289,7 +1409,7 @@
     applyAppLanguageBasics();
     const russian = settings.appLanguage === "ru";
     settingsModal.querySelectorAll('[data-settings-tab]').forEach(button => {
-      button.textContent = ({general: russian ? 'Общие' : 'General', models: russian ? 'Модели' : 'Models', skills: 'Skills', plugins: 'Plugins', cloud: 'Ollama Cloud', discord: 'Discord Activity'})[button.dataset.settingsTab];
+      button.textContent = ({general: russian ? 'Общие' : 'General', models: russian ? 'Модели' : 'Models', skills: 'Skills', plugins: 'Plugins', cloud: 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: 'Discord Activity'})[button.dataset.settingsTab];
     });
     if (languagePackList) {
       languagePackList.innerHTML = '';
@@ -1318,6 +1438,8 @@
     document.title = "MultiMind";
     updateMultiMindControls();
     updateComposerModeToggles();
+    $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
+    document.querySelector('[data-settings-tab="cloud"]').textContent = 'Providers';
     const textById = {
       setupTitle: t("setupTitle"),
       groupModalTitle: t("newFolder"),
@@ -1638,14 +1760,20 @@
   // ============================================================
   async function checkOllama() {
     if (!window.api) return;
+    const previousModel=settings.selectedModel;
     const [res, local] = await Promise.all([window.api.ollamaStatus(), window.api.localStatus()]);
     localRuntimeState = local;
     ollamaRunning = res.running || local.running || local.installed;
-    availableModels = res.models || [];
-    availableModels.unshift(...(local.models || (local.running ? [{ name: local.model, size: 1117320736, details: {}, backend: "embedded" }] : [])));
-    if(window.api.cloudStatus){const cloud=await window.api.cloudStatus();if(cloud.configured){try{availableModels.push(...await window.api.cloudModels(false));}catch(error){$('cloudError').textContent=error.message;}}}
+    allAvailableModels = res.models || [];
+    allAvailableModels.unshift(...(local.models || (local.running ? [{ name: local.model, size: 1117320736, details: {}, backend: "embedded" }] : [])));
+    if(window.api.cloudStatus){const cloud=await window.api.cloudStatus();if(cloud.configured){try{allAvailableModels.push(...await window.api.cloudModels(false));}catch(error){$('cloudError').textContent=error.message;}}}
+    if (window.api.providersModels) {
+      try { allAvailableModels.push(...await window.api.providersModels()); }
+      catch (error) { $('providerStatus').textContent = error.message; }
+      if(window.api.providersUsage)providerUsage=await window.api.providersUsage().catch(()=>providerUsage);
+    }
+    availableModels = modeModels();
     statusDot.className = ollamaRunning ? "status-dot online" : res.installing ? "status-dot loading" : "status-dot offline";
-    if (availableModels.length && !availableModels.some(model => model.name === settings.selectedModel)) selectModel(availableModels[0].name);
     welcomeHint.textContent = availableModels.length
       ? (settings.appLanguage === "ru" ? "Модели готовы к работе." : "Local models are ready.")
       : (settings.appLanguage === "ru" ? "Нажми «Быстрая настройка» — приложение подготовит модель само." : "Choose Quick setup to prepare your first model automatically.");
@@ -1654,9 +1782,13 @@
     renderModelDropdown();
     updateMultiMindControls();
     if(settings.selectedModel?.startsWith('cloud:'))welcomeHint.textContent=settings.appLanguage==='ru'?'Ollama Cloud: сообщения отправляются в облако.':'Ollama Cloud: messages are sent to the cloud.';
+    applyModelMode();
+    if(previousModel!==settings.selectedModel)await persist();
   }
 
   function updateMultiMindControls() {
+    $('localAiToggle').disabled = isGenerating;
+    $('localAiToggle').setAttribute('aria-checked', String(settings.localAi));
     const ru = settings.appLanguage === "ru";
     $("skillsHint").textContent = ru ? "Импортируй инструкции из Markdown и включи нужные для следующих запросов." : "Import Markdown instructions and enable them for your next requests.";
     $("importSkillBtn").textContent = ru ? "Импорт .md" : "Import .md";
@@ -1797,6 +1929,7 @@
   //  MODEL SELECTOR
   // ============================================================
   function modelSupportsVision(name) {
+    if (isCloudModel(name)) return availableModels.find(model => model.name === name)?.capabilities?.includes('vision') || false;
     const n = name.toLowerCase();
     const cat = MODEL_CATALOG.find(m => m.name === name);
     if (cat && cat.vision) return true;
@@ -1824,8 +1957,13 @@
 
   function getModelsByLevel() {
     const levels = { "Light (<4GB)": [], "Standard (4-8GB)": [], "Powerful (>8GB)": [], "Ollama Cloud": [] };
+    for(const label of ['Up to 8B','8–32B','32B+','Other models'])levels[label]=[];
     availableModels.forEach(m => {
-      if(m.name.startsWith("cloud:")){levels["Ollama Cloud"].push(m);return;}
+      if(m.name.startsWith("cloud:")){
+        const size=modelParameters(m);
+        const label=size ? (size<=8?'Up to 8B':size<=32?'8–32B':'32B+') : 'Other models';
+        (levels[label] ||= []).push(m);return;
+      }
       const gb = (m.size || 0) / 1e9;
       const key = gb >= 8 ? "Powerful (>8GB)" : gb >= 4 ? "Standard (4-8GB)" : "Light (<4GB)";
       levels[key].push(m);
@@ -1833,9 +1971,71 @@
     Object.keys(levels).forEach(k => { if (levels[k].length === 0) delete levels[k]; });
     return levels;
   }
+  function modelParameters(model) {
+    if (model.parametersB > 0) return model.parametersB;
+    const match = [...String(model.name).matchAll(/(?:^|[^a-z0-9])(\d+(?:\.\d+)?)b(?=[^a-z0-9]|$)/gi)];
+    return match.length ? Math.max(...match.map(value=>Number(value[1]))) : null;
+  }
+  function modelParameterMarkup(model) {
+    const details = [];
+    const size = modelParameters(model); if(size)details.push(size+'B');
+    if(model.contextLength)details.push(Math.round(model.contextLength/1024)+'K context');
+    if(model.provider)details.push(({groq:'Groq',openrouter:'OpenRouter',gemini:'Gemini',cerebras:'Cerebras'})[model.provider]||model.provider);
+    if(model.provider==='openrouter'){
+      details.push(model.free?'Free':'Paid');
+      if(!model.free && model.pricing){
+        const cost=value=>Number.isFinite(Number(value))?('$'+(Number(value)*1000000).toLocaleString('en',{maximumFractionDigits:4})):'—';
+        details.push(cost(model.pricing.prompt)+' in / '+cost(model.pricing.completion)+' out per 1M tokens');
+      }
+    }
+    return details.length ? `<span class="model-parameter-meta">${escapeHtml(details.join(' · '))}</span>` : '';
+  }
+
+  function buildModelLimits(model) {
+    const root = document.createElement('div'); root.className = 'model-limits';
+    const ru = settings.appLanguage === 'ru';
+    const usage = providerUsage[model.name] || (model.provider !== 'openrouter' ? {} : providerUsage[model.provider]) || {};
+    const limits = usage.limits || {};
+    const rows = Object.values(limits).map(value => [value.label, value]);
+    for (const [label, limit] of rows) {
+      const row = document.createElement('div'); row.className = 'model-limit-row';
+      const known = limit && limit.total > 0 && Number.isFinite(limit.remaining);
+      const percentage = known ? Math.round(Math.max(0, Math.min(1, limit.remaining / limit.total)) * 100) : null;
+      row.innerHTML = `<span>${escapeHtml(label)}</span><span>${known ? percentage + '%' : '—'}</span><div class="model-limit-track"><span class="model-limit-fill" style="width:${known ? percentage : 0}%"></span></div>`;
+      if(known){
+        const count=document.createElement('small');count.className='model-limit-count';count.textContent=`${limit.remaining} / ${limit.total} ${ru?'осталось':'remaining'}`;row.append(count);
+        const track=row.querySelector('.model-limit-track');track.setAttribute('role','meter');track.setAttribute('aria-label',label);track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.setAttribute('aria-valuenow',String(percentage));
+      }
+      row.title = known ? `${limit.remaining} / ${limit.total}${limit.reset ? ' · Reset: ' + limit.reset : ''}` : (ru ? 'Провайдер не сообщает лимит за этот период.' : 'The provider does not report a limit for this period.');
+      root.append(row);
+    }
+    const note = document.createElement('p'); note.className = 'model-limit-note';
+    note.textContent = rows.length ? (ru ? 'Осталось' : 'Remaining') + (usage.updatedAt ? ' · ' + new Date(usage.updatedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '') : (ru ? 'Провайдер пока не сообщил остаток лимита.' : 'Quota has not been reported yet.');
+    root.append(note);
+    if (usage.exhausted) {
+      const alert = document.createElement('div'); alert.className = 'model-limit-alert'; alert.setAttribute('role', 'status');
+      alert.textContent = (ru ? 'Лимит провайдера исчерпан.' : 'Provider limit reached.') + (usage.retryAt ? (ru ? ' Повторите после ' : ' Retry after ') + new Date(usage.retryAt).toLocaleTimeString() : ''); root.append(alert);
+    }
+    return root;
+  }
 
   function renderModelDropdown() {
     modelDropdown.innerHTML = "";
+    const selected = availableModels.find(model => model.name === settings.selectedModel);
+    if (selected) {
+      const card = document.createElement('div'); card.className = 'model-active-card';
+      card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check">Selected</span></div>`;
+      if (isCloudModel(selected.name)) card.append(buildModelLimits(selected));
+      modelDropdown.append(card);
+    }
+    if (!settings.localAi && !availableModels.length) {
+      const button = document.createElement('button');
+      button.className = 'model-empty-btn';
+      button.textContent = settings.appLanguage === 'ru' ? 'Подключить облачного провайдера' : 'Connect a cloud provider';
+      button.onclick = () => { modelDropdown.classList.remove('show'); openProviderSettings(); };
+      modelDropdown.append(button);
+      return;
+    }
     if (availableModels.length === 0) {
       modelDropdown.innerHTML = `
         <div class="model-empty">
@@ -1847,13 +2047,46 @@
       return;
     }
 
+    const priceFilter = ['all', 'free', 'paid'].includes(settings.modelPriceFilter) ? settings.modelPriceFilter : 'all';
+    if (!settings.localAi) {
+      const filters = document.createElement('div');
+      filters.className = 'model-price-filters';
+      filters.setAttribute('role', 'group');
+      filters.setAttribute('aria-label', 'Model pricing');
+      for (const [value, title] of [['all', 'Show all'], ['free', 'Only free'], ['paid', 'Only paid']]) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.priceFilter = value;
+        button.textContent = title;
+        button.setAttribute('aria-pressed', String(priceFilter === value));
+        button.addEventListener('click', event => {
+          event.stopPropagation();
+          settings.modelPriceFilter = value;
+          window.api?.settingsSave(settings);
+          renderModelDropdown();
+          modelDropdown.querySelector(`[data-price-filter="${value}"]`).focus();
+        });
+        filters.append(button);
+      }
+      modelDropdown.append(filters);
+    }
+    let visibleCount = 0;
     const levels = getModelsByLevel();
     Object.entries(levels).forEach(([level, models]) => {
+      const visibleModels = models.filter(model => {
+        if (model.name === settings.selectedModel) return false;
+        if (settings.localAi || priceFilter === 'all') return true;
+        if (priceFilter === 'free') return model.free === true;
+        return model.free !== true && model.pricing && Object.values(model.pricing).some(price => Number(price) > 0);
+      });
+      if (!visibleModels.length) return;
+      visibleCount += visibleModels.length;
       const label = document.createElement("div");
       label.className = "model-group-label";
       label.textContent = level;
       modelDropdown.appendChild(label);
-      models.forEach(m => {
+      visibleModels.forEach(m => {
+        if (m.name === settings.selectedModel) return;
         const item = document.createElement("div");
         item.className = "model-item" + (m.name === settings.selectedModel ? " selected" : "");
         const flags = [];
@@ -1861,7 +2094,8 @@
         if (modelSupportsThink(m.name)) flags.push("Think");
         item.innerHTML = `
           <span class="model-item-icon" aria-hidden="true">${providerIconMarkup(m)}</span>
-          <span class="model-item-name">${m.name} ${flags.length ? `<span style="opacity:0.6">${flags.join(" ")}</span>` : ""}</span>
+          <span class="model-item-name">${escapeHtml(m.cloudName || m.name)}${modelParameterMarkup(m)}</span>
+          ${flags.length ? `<span class="model-capability-badge">${flags.join(' · ')}</span>` : ''}
           ${m.size ? `<span class="model-item-size">${formatSize(m.size)}</span>` : ""}
         `;
         item.addEventListener("click", () => {
@@ -1874,6 +2108,15 @@
     });
 
     // кнопка "ещё модели" → модалка
+    if (!settings.localAi) {
+      if (!visibleCount && priceFilter !== 'all') {
+        const empty = document.createElement('div');
+        empty.className = 'model-empty';
+        empty.textContent = priceFilter === 'free' ? 'No other free models' : 'No other paid models';
+        modelDropdown.append(empty);
+      }
+      return;
+    }
     const moreRow = document.createElement("div");
     moreRow.className = "model-download-row";
     moreRow.innerHTML = `<span>${escapeHtml(t("needMoreModels"))}</span>`;
@@ -1888,7 +2131,7 @@
   }
 
   function renderSelectedModel(name) {
-    if (modelLabel) modelLabel.textContent = name || t("chooseModel");
+    if (modelLabel) modelLabel.textContent = availableModels.find(model => model.name === name)?.cloudName || name || t("chooseModel");
     if (modelBtnIcon) {
       modelBtnIcon.innerHTML = name ? providerIconMarkup({ name }) : "";
       modelBtnIcon.hidden = !name;
@@ -1896,7 +2139,9 @@
   }
 
   function selectModel(name) {
+    if (name && (settings.localAi === isCloudModel(name))) return;
     settings.selectedModel = name;
+    if (name) settings[settings.localAi ? 'lastLocalModel' : 'lastCloudModel'] = name;
     renderSelectedModel(name);
     welcomeHint.textContent = settings.appLanguage === "ru" ? `\u041c\u043e\u0434\u0435\u043b\u044c: ${name} - \u0433\u043e\u0442\u043e\u0432\u0430.` : `Model: ${name} - ready.`;
     persist();
@@ -1911,6 +2156,10 @@
     modelDropdown.classList.toggle("show");
     renderModelDropdown();
     syncComposerExpanded();
+    const selected = availableModels.find(model => model.name === settings.selectedModel);
+    if (selected?.provider && window.api?.providersUsage) {
+      window.api.providersUsage(selected.provider).then(usage => { providerUsage = usage; if (modelDropdown.classList.contains('show')) renderModelDropdown(); }).catch(() => {});
+    }
   });
 
   // ============================================================
@@ -2083,6 +2332,7 @@
   }));
   settingsBtn?.addEventListener("click", () => {
     renderSettings();
+    refreshProviderStatus();
     settingsModal?.classList.add("show");
   });
   closeSettingsBtn?.addEventListener("click", () => settingsModal?.classList.remove("show"));
@@ -3248,8 +3498,7 @@
   // ============================================================
   //  SYSTEM PROMPT (общий ассистент, не только код)
   // ============================================================
-  function buildSystemPrompt() {
-    const base = `\u0422\u044b ? MultiMind, \u0434\u0440\u0443\u0436\u0435\u043b\u044e\u0431\u043d\u044b\u0439 \u0438 \u043f\u043e\u043b\u0435\u0437\u043d\u044b\u0439 AI-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442. \u0422\u044b \u043f\u043e\u043c\u043e\u0433\u0430\u0435\u0448\u044c \u043b\u044e\u0434\u044f\u043c \u0441 \u0440\u0430\u0437\u043d\u044b\u043c\u0438 \u0437\u0430\u0434\u0430\u0447\u0430\u043c\u0438: \u043e\u0442\u0432\u0435\u0442\u0430\u043c\u0438 \u043d\u0430 \u0432\u043e\u043f\u0440\u043e\u0441\u044b, \u043e\u0431\u044a\u044f\u0441\u043d\u0435\u043d\u0438\u044f\u043c\u0438, \u043f\u0438\u0441\u044c\u043c\u043e\u043c, \u043f\u0435\u0440\u0435\u0432\u043e\u0434\u0430\u043c\u0438, \u0438\u0434\u0435\u044f\u043c\u0438, \u043d\u0430\u0443\u043a\u043e\u0439, \u0443\u0447\u0451\u0431\u043e\u0439, \u0431\u044b\u0442\u043e\u0432\u044b\u043c\u0438 \u0434\u0435\u043b\u0430\u043c\u0438 \u0438 \u043f\u0440\u043e\u0433\u0440\u0430\u043c\u043c\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435\u043c. \u041d\u0435 \u0441\u0447\u0438\u0442\u0430\u0439, \u0447\u0442\u043e \u043b\u044e\u0431\u0430\u044f \u043f\u0440\u043e\u0441\u044c\u0431\u0430 \u00ab\u0441\u043e\u0437\u0434\u0430\u0439\u00bb \u043e\u0437\u043d\u0430\u0447\u0430\u0435\u0442 \u043a\u043e\u0434. \u041f\u0438\u0448\u0438 \u043a\u043e\u0434 \u0442\u043e\u043b\u044c\u043a\u043e \u0435\u0441\u043b\u0438 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u044f\u0432\u043d\u043e \u043f\u0440\u043e\u0441\u0438\u0442 \u043a\u043e\u0434, \u0441\u0430\u0439\u0442, \u0438\u043d\u0442\u0435\u0440\u0444\u0435\u0439\u0441, \u0438\u0433\u0440\u0443 \u0438\u043b\u0438 \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435. \u041e\u0442\u0432\u0435\u0447\u0430\u0439 \u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u043e \u0438 \u043f\u043e\u043d\u044f\u0442\u043d\u043e. \u0412\u0441\u0435\u0433\u0434\u0430 \u043e\u0442\u0432\u0435\u0447\u0430\u0439 \u043d\u0430 \u044f\u0437\u044b\u043a\u0435 \u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044f.`;
+  function buildSystemPrompt(userText) {
 
     const think = settings.thinkLevel;
     let thinkHint = "";
@@ -3264,8 +3513,7 @@
     } else if (think === "max") {
       thinkHint = "\u0420\u0430\u0437\u043c\u044b\u0448\u043b\u044f\u0439 \u043c\u0430\u043a\u0441\u0438\u043c\u0430\u043b\u044c\u043d\u043e \u0433\u043b\u0443\u0431\u043e\u043a\u043e \u0438 \u0440\u0430\u0441\u0441\u043c\u0430\u0442\u0440\u0438\u0432\u0430\u0439 \u0437\u0430\u0434\u0430\u0447\u0443 \u0441 \u0440\u0430\u0437\u043d\u044b\u0445 \u0441\u0442\u043e\u0440\u043e\u043d.";
     }
-    const appBuildHint = "When the user explicitly asks to build an app, page, UI, game, interface, website, script, or code, produce complete runnable code. Put the main file in a fenced code block with the language and filename, for example ```html index.html or ```python main.py. For ordinary creative or general requests, do not produce code unless asked.";
-    return `${base}\n\n${appBuildHint}\n\n${thinkHint}`;
+    return `${MultiMindIntent.prompt(userText)}\n\n${thinkHint}`;
   }
 
   async function maybeInstallNodePackages(activity, folderName) {
@@ -3329,26 +3577,12 @@
   }
 
   function providerIconMarkup(model) {
-    const kind = providerKindForModel(model);
-    const logoMap = {
-      openai: "https://commons.wikimedia.org/wiki/Special:FilePath/OpenAI_Logo.svg",
-      gemini: "https://commons.wikimedia.org/wiki/Special:FilePath/Google_Gemini_logo.svg",
-      qwen: "https://commons.wikimedia.org/wiki/Special:FilePath/Qwen_Logo.svg",
-      mistral: "https://commons.wikimedia.org/wiki/Special:FilePath/Mistral_AI_logo_(2025%E2%80%93).svg",
-      deepseek: "https://commons.wikimedia.org/wiki/Special:FilePath/DeepSeek_logo.svg",
-      meta: "https://commons.wikimedia.org/wiki/Special:FilePath/Meta_Platforms_Inc._logo.svg",
-      microsoft: "https://commons.wikimedia.org/wiki/Special:FilePath/Microsoft_logo.svg",
-      huggingface: "https://huggingface.co/front/assets/huggingface_logo-noborder.svg",
-      moondream: "https://www.google.com/s2/favicons?domain=moondream.ai&sz=128",
-      starcoder: "https://www.google.com/s2/favicons?domain=bigcode-project.org&sz=128",
-      llava: "https://www.google.com/s2/favicons?domain=llava-vl.github.io&sz=128",
-      ollama: "https://cdn.simpleicons.org/ollama/ffffff",
-    };
-    const src = logoMap[kind] || "";
-    const initial = escapeHtml(providerInitial(model));
-    return src
-      ? `<img class="provider-logo-img provider-${kind}" src="${src}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex'"><span style="display:none">${initial}</span>`
-      : `<span>${initial}</span>`;
+    const value = (model.cloudName || '') + ' ' + (model.name || '');
+    const brands = [[/apodex/i,'apodex.png'],[/inclusion|ling[- .]/i,'antgroup-color.svg'],[/qwen/i,'qwen-color.svg'],[/deepseek/i,'deepseek-color.svg'],[/llama|meta/i,'meta-color.svg'],[/gemini|gemma/i,'gemini-color.svg'],[/claude|anthropic/i,'claude-color.svg'],[/gpt|openai/i,'openai.svg'],[/glm|zhipu/i,'zhipu-color.svg'],[/nemotron|nvidia/i,'nvidia-color.svg'],[/mistral|mixtral/i,'mistral-color.svg'],[/kimi|moonshot/i,'moonshot.svg'],[/minimax/i,'minimax-color.svg'],[/phi|microsoft/i,'microsoft-color.svg']];
+    const brand = brands.find(([expression]) => expression.test(value));
+    const service = /^cloud:(openrouter|groq|gemini|cerebras)\//.exec(model.name || '')?.[1];
+    const icon = brand?.[1] || (service==='gemini'?'gemini-color.svg':service ? service+'.svg' : 'ollama.svg');
+    return `<img class="provider-logo-img" src="resources/model-icons/${icon}" alt="" loading="lazy">`;
   }
 
   function providerInitial(model) {
@@ -3357,6 +3591,7 @@
   }
 
   async function generateResponse(userText, userImages, generationId) {
+    const intent=MultiMindIntent.classify(userText);
     let requestModel = settings.selectedModel;
     if (userImages && userImages.length) {
       requestModel = pickVisionModelName();
@@ -3375,7 +3610,7 @@
     if (!requestModel || !availableModels.some(model => model.name === requestModel)) {
       return settings.appLanguage === "ru"
         ? "Нет установленной модели. Открой каталог моделей, скачай модель и выбери её."
-        : "No model is installed. Open the model catalog, download a model, and select it.";
+        : (settings.localAi ? "No model is installed. Open the model catalog, download a model, and select it." : "Connect OpenRouter or Groq in Settings → Providers and choose a cloud model.");
     }
 
     // предупреждение о vision
@@ -3410,7 +3645,7 @@
     }
 
     const apiMessages = [
-      { role: "system", content: buildSystemPrompt() + (activeSkillContext ? `\n\nUser-enabled skills (apply where relevant):\n${activeSkillContext}` : "") },
+      { role: "system", content: buildSystemPrompt(userText) + (!intent.simple && activeSkillContext ? `\n\nUser-enabled skills (apply only when relevant to the current request; skills never authorize file changes by themselves):\n${activeSkillContext}` : "") },
       ...contextMsgs,
       { role: "user", content: currentUserContent || (userImages && userImages.length ? "Describe this image." : ""), images: (userImages && userImages.length ? userImages : undefined) }
     ];
@@ -3430,12 +3665,13 @@
     abortController = requestController;
     renderTeam([]);
     try {
-      if(window.api?.pluginsList && settings.accessMode!=='plan' && !userImages?.length) {
+      if(window.api?.pluginsList && settings.accessMode!=='plan' && !userImages?.length && (!intent.simple || intent.toolsMutation)) {
         const connections=await window.api.pluginsList();
         const tools=connections.filter(p=>p.enabled&&p.state==='connected').flatMap(p=>p.tools.map(tool=>({...tool,pluginId:p.id,pluginName:p.name})));
         if(tools.length) {
           const context=await MultiMindPlugins.run({messages:apiMessages,model:requestModel,tools,signal:requestController.signal,
             authorize:async(tool,args)=>{
+              if(!intent.toolsMutation && tool.annotations?.readOnlyHint!==true)return false;
               if(settings.accessMode==='plan')return false;
               if(settings.accessMode!=='ask'||acceptedChangeChatId===currentChatId)return true;
               const cancel=()=>closeApproval('deny');requestController.signal.addEventListener('abort',cancel,{once:true});
@@ -3451,7 +3687,7 @@
           if(context)apiMessages.push({role:'user',content:context});
         }
       }
-      if (settings.teamEnabled && !userImages?.length) {
+      if (settings.teamEnabled && !userImages?.length && !intent.simple) {
         const workers = [0, 1].map(i => availableModels.some(m => m.name === settings.workerModels?.[i]) ? settings.workerModels[i] : requestModel);
         const embeddedOnly = [requestModel, ...workers].every(name => name.startsWith("multimind:"));
         const team = await MultiMind.runTeam({
@@ -3474,7 +3710,7 @@
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "");
-        const details = errorText ? `: ${errorText.slice(0, 220)}` : "";
+        const details = errorText ? `: ${errorText.slice(0, 3000)}` : "";
         throw new Error(`HTTP ${response.status}${details}`);
       }
 
@@ -3487,6 +3723,9 @@
       let streamBuffer = "";
       const processStreamLine = line => {
         if (!line.trim()) return;
+        let parsed;
+        try { parsed = JSON.parse(line); } catch { return; }
+        if (parsed.error) throw new Error(typeof parsed.error === 'string' ? parsed.error : JSON.stringify(parsed.error));
         try {
           const json = JSON.parse(line);
           const content = json.message?.content || "";
@@ -3551,13 +3790,13 @@
         }
       }
 
-      const finalActivity = getLatestCodeActivity(fullText);
+      const finalActivity = intent.files ? getLatestCodeActivity(fullText) : null;
       if (finalActivity) {
         lastCodeActivity = Object.assign({}, finalActivity, { state: "edited" });
       }
       setNeuralProgressStep(2);
 
-      if (lastCodeActivity) {
+      if (lastCodeActivity && intent.files) {
         lastCodeActivity = Object.assign({}, lastCodeActivity, { state: "edited" });
         await writeLatestCodeActivity();
         addProgressItem(`Finished ${lastCodeActivity.file}`);
@@ -3572,9 +3811,9 @@
       renderTeam(teamRows.map(row => row.id === "synthesis" ? { ...row, status: "done", elapsed: Date.now() - row.started, output: fullText } : row));
       return fullText || "(пустой ответ)";
     } catch (err) {
-      if (generationId === activeGenerationId) renderTeam(teamRows.map(row => row.status === "working" || row.status === "queued" ? { ...row, status: requestController.signal.aborted ? "stopped" : "error", output: err.message } : row));
+      if (generationId === activeGenerationId) renderTeam(teamRows.map(row => row.status === "working" || row.status === "queued" ? { ...row, status: requestController.signal.aborted ? "stopped" : "error", output: MultiMindErrors.format(err,settings.appLanguage) } : row));
       if (requestController.signal.aborted || err.name === "AbortError") return "_STOPPED_";
-      return `Ошибка: ${err.message}`;
+      return MultiMindErrors.format(err, settings.appLanguage);
     } finally {
       if (abortController === requestController) abortController = null;
     }
@@ -4748,7 +4987,7 @@
   function loadChat(id) {
     currentChatId = id;
     const c = getCurrentChat();
-    if (c && c.model && c.model !== settings.selectedModel) {
+    if (c && c.model && c.model !== settings.selectedModel && availableModels.some(model => model.name === c.model)) {
       // подгружаем модель чата
       settings.selectedModel = c.model;
       renderSelectedModel(c.model);
@@ -4778,6 +5017,7 @@
   //  MODELS MODAL
   // ============================================================
   function openModelsModal() {
+    if (!settings.localAi) { openProviderSettings(); return; }
     $("modelsModal").classList.add("show");
     if (modelsSearch) {
       modelsSearch.value = "";

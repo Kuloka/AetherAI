@@ -2,7 +2,7 @@
   <img src="resources/branding/multimind-github.png" alt="MultiMind - your ideas, your models, your machine" width="100%">
 </p>
 <p align="center">
-  <a href="https://github.com/Kuloka/MultiMind/releases/tag/v1.20.0">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
+  <a href="https://github.com/Kuloka/MultiMind/releases/tag/v1.21.0">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
   <a href="#development">Development</a>
 </p>
 
@@ -14,6 +14,16 @@ Local desktop AI studio built with Electron. MultiMind can prepare a compact mod
 
 ## Windows installation
 
+### Cloud or Local AI
+
+Open **Settings → General → Local AI** to switch between cloud and local models. With Local AI off, the model picker shows connected cloud providers and hides the download catalog. With Local AI on, it shows downloaded Ollama and built-in models and restores the installation catalog. The app remembers the setting and the last model selected in each mode. Existing local-model users keep local mode on upgrade.
+
+Connect a personal API key in **Settings → Providers**. OpenRouter lists text models available under your account preferences and guardrails using `/models/user`, including paid models with their current input/output prices. Free models are marked Free; paid models are marked Paid. Paid models are used only when explicitly selected (or restored from your saved selection), with no automatic fallback from a free model to a paid one. Groq exposes chat models using your account limits. Keys are validated and encrypted using Electron secure storage. Messages and attached context go to the selected provider. Subagents make additional API requests. Ollama Cloud remains an optional separate connection. API errors are converted into readable messages in Russian or English, including mid-stream errors, upstream overload, request limits, insufficient balance, authentication, context length and connection failures.
+
+For the installation steps below, turn **Local AI** on first.
+
+Connecting a provider automatically turns Local AI off; toggle it back on to restore downloaded models and the catalog. Ollama Cloud has a separate settings section. The compact 300px model picker pins the selected model above the standard rows with a Selected badge, real brand icons, and shorter 7px quota bars. Cloud models group by advertised parameter count (up to 8B, 8–32B, 32B+, or unknown), with context lengths shown when supplied. Groq counters use per-model response headers; OpenRouter counters use `/api/v1/key`. Percentages and counts mean remaining quota. Only reported periods are displayed; no arbitrary 5-hour allowance is assumed. The provider selection, model selection and latest timestamped quota snapshots persist across restarts. Quota snapshots are refreshed on opening the model picker when the provider offers a quota endpoint.
+
 Run the generated MultiMind Setup executable, then choose **Quick setup** in the welcome screen. It downloads a pinned llama.cpp CPU runtime (18.6 MB) and Qwen2.5 1.5B Instruct Q4_K_M (1.12 GB), verifies both using SHA256, and starts the model automatically. Interrupted downloads can resume. If Microsoft Visual C++ runtime libraries are missing, setup downloads their signed 25.6 MB installer from Microsoft and launches it; Windows may request administrator confirmation. This prerequisite path was inspected but not exercised on a clean Windows installation. No Node.js, Python, API key, or Ollama installation is needed for this path.
 
 Quick setup currently supports **Windows x64** and text conversations. The small starter model is intended for getting started; it is not a replacement for a larger coding model. The runtime binds only to loopback and stops when MultiMind exits. Models need an internet connection to download; generation with the prepared model works locally. The existing optional web search feature can still make internet requests.
@@ -22,11 +32,15 @@ Existing Ollama installations are detected and started automatically. **Install 
 
 ## macOS and Linux installation
 
-Release 1.20 includes macOS DMGs for **Apple Silicon (arm64)** and **Intel (x64)**, plus Linux x64 **AppImage** and **Ubuntu/Debian .deb** packages. On Mac, open the DMG and drag MultiMind to Applications. These builds are unsigned and not notarized by Apple; macOS may require approval in Privacy & Security. On Linux, install the .deb or make the AppImage executable before launching it; AppImage may require FUSE.
+Release 1.21 includes macOS DMGs for **Apple Silicon (arm64)** and **Intel (x64)**, plus Linux x64 **AppImage** and **Ubuntu/Debian .deb** packages. On Mac, open the DMG and drag MultiMind to Applications. These builds are unsigned and not notarized by Apple; macOS may require approval in Privacy & Security. On Linux, install the .deb or make the AppImage executable before launching it; AppImage may require FUSE.
 
 For local models on these platforms, install Ollama and select the **Ollama** tab in the model catalog. The **Without Ollama / Quick setup** engine is Windows x64 only. Ollama Cloud is also available through settings. All four native CI jobs run the automated suite and check that the packaged app launches; inference on every platform and clean-machine installer flows have not been tested.
 
 ## Agent team
+
+MultiMind also connects Google Gemini (Google AI Studio key) and Cerebras (Cerebras Cloud key) through their OpenAI-compatible endpoints. The provider's current model list is loaded when connected; availability, limits and billing depend on that account. Real inference with these new providers requires your keys and has not been exercised against live accounts in the automated tests.
+
+The assistant now uses a general-purpose conversation prompt. Greetings, single letters, creative writing and explanations do not authorize project creation or file writes. File handling is gated by an explicit technical/file request, even if a model mistakenly returns a code fence. Short ordinary messages skip the subagent and plugin planners. Programming examples can remain in chat without being saved. This changes prompts and application behavior; it does not fine-tune model weights.
 
 **Agents - Auto** enables a coordinator that proposes up to two independent subtasks. Specialists receive the conversation context and assigned task, and the main model combines their drafts. Simple or indivisible requests skip the specialists. Image requests use the existing vision path.
 
@@ -102,7 +116,15 @@ On text requests, the main model can select tools through a bounded JSON plannin
 
 Validation includes real stdio and HTTP MCP servers, approval denial, disabled connections, project path boundaries, and a Qwen 1.5B smoke run that selected a tool and used its result in the final answer. Other models may be less reliable at selecting tools.
 
-## Ollama Cloud
+## OpenRouter limits
+
+Free model variants normally allow 20 requests per minute and 50 per UTC day. Purchasing at least $10 in credits over the account's lifetime raises the daily ceiling to 1,000; the current documentation notes a rounding allowance starting at 9 credits. The authoritative daily limit and remaining requests are returned by `GET /api/v1/key` in `free_model_daily_requests`; `is_free_tier` alone does not determine that ceiling. Limits are shared across keys/accounts rather than replenished for each model. Provider capacity restrictions may apply separately.
+
+Paid variants have no OpenRouter platform request cap of this kind, but balance, API key spending limits, upstream provider capacity and transient in-flight spending holds still apply. Temporary holds should be retried after `Retry-After`, not mistaken for an empty balance. A negative balance can also block free requests. Unknown quota values are not estimated from token or dollar usage.
+
+Reference checked October 7, 2026: [OpenRouter limits](https://openrouter.ai/docs/api_reference/limits). Cloud model filters offer Show all, Only free and Only paid; models with unknown pricing appear under Show all. Your selected model remains pinned and the filter is saved locally.
+
+## Ollama Cloud connection
 
 Settings > Ollama Cloud connects through an Ollama API key created on the official account page. Keys are encrypted with Electron safeStorage (Windows DPAPI) in a separate local credential file and never returned to the chat renderer after saving. Saving a key does not verify the account or reveal its subscription; access is checked on model requests.
 

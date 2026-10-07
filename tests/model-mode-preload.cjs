@@ -1,0 +1,22 @@
+const { contextBridge, ipcRenderer } = require('electron');
+let cloudListener;
+contextBridge.exposeInMainWorld('api', {
+  dataGet: async () => ({ groups: [], chats: [] }), dataSave: async () => ({}),
+  settingsGet: () => ipcRenderer.invoke('mode:settings'), settingsSave: value => ipcRenderer.invoke('mode:save', value),
+  ollamaStatus: async () => ({ running: true, models: [{ name: 'llama3.2:1b', size: 1300000000 }] }),
+  localStatus: async () => ({ supported: true, installed: true, stage: 'idle', models: [{ name: 'multimind:qwen', size: 1000000000 }] }),
+  providersModels: async () => [{ name: 'cloud:openrouter/test/free', cloudName: 'Free test', provider: 'openrouter', backend: 'cloud',free:true },{name:'cloud:openrouter/apodex/apodex-1.1',cloudName:'Apodex 1.1',provider:'openrouter',contextLength:131072,free:false,pricing:{prompt:'0.000001',completion:'0.000002'}},{name:'cloud:openrouter/meta/llama-8b',cloudName:'Llama 8B',provider:'openrouter',contextLength:32768,free:true}],
+  providersStatus: async () => [{ id: 'openrouter', configured: true }],
+  providersSave: (id, key) => ipcRenderer.invoke('mode:provider-save', id, key),
+  providersLimitsOpen: id => ipcRenderer.invoke('mode:limits-open', id),
+  onCloudEvent: callback => { cloudListener=callback;return()=>{cloudListener=null;}; },
+  cloudCancel: async()=>{},
+  cloudRequest: async(id,body)=>{const reply=await ipcRenderer.invoke('mode:chat',body);cloudListener?.({id,type:'headers',status:200});cloudListener?.({id,type:'chunk',text:JSON.stringify({message:{content:reply}})+'\n'});cloudListener?.({id,type:'done'});},
+  ensureProjectFolder: async()=>({folderName:'test'}),
+  writeProjectFile:()=>ipcRenderer.invoke('mode:write'),
+  providersUsage: async () => ({ openrouter: { limits: { daily: { total: 50, remaining: 25, label: 'Daily free requests' } }, exhausted: true } }),
+  cloudStatus: async () => ({ configured: false }), cloudModels: async () => [],
+  fluxStatus: async () => ({ ok: true, variants: [] }),
+  getProjectsRoot: async () => ({}),
+  onPullProgress: () => () => {}, onLocalProgress: () => () => {}, onFluxProgress: () => () => {}, onFluxGenerateProgress: () => () => {}
+});

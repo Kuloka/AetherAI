@@ -48,3 +48,5 @@ temp/
 *.tmp
 *.bak
 *.swp
+__pycache__/
+*.py[cod]

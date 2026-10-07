@@ -1,6 +1,13 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  providersStatus: () => ipcRenderer.invoke('providers:status'),
+  providersLimitsOpen: id => ipcRenderer.invoke('providers:limits-open', id),
+  providersUsage: id => ipcRenderer.invoke('providers:usage', id),
+  providersSave: (id, key) => ipcRenderer.invoke('providers:save', id, key),
+  providersModels: force => ipcRenderer.invoke('providers:models', force),
+  providersDisconnect: id => ipcRenderer.invoke('providers:disconnect', id),
+  providersOpen: id => ipcRenderer.invoke('providers:open', id),
   cloudStatus: () => ipcRenderer.invoke('cloud:status'),
   cloudSave: key => ipcRenderer.invoke('cloud:save', key),
   cloudDisconnect: () => ipcRenderer.invoke('cloud:disconnect'),

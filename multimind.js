@@ -15,7 +15,8 @@
           if(event.kind)root.dispatchEvent?.(new CustomEvent('ollama-cloud-problem',{detail:event}));
           resolve(new Response(stream,{status:event.status}));
         } else if(event.type==='chunk')controller.enqueue(new TextEncoder().encode(event.text));
-        else if(event.type==='problem') {root.dispatchEvent?.(new CustomEvent('ollama-cloud-problem',{detail:event}));root.api.cloudCancel(id);fail(new Error(event.message));}
+        else if(event.type==='usage')root.dispatchEvent?.(new CustomEvent('provider-usage',{detail:event}));
+        else if(event.type==='problem') {root.dispatchEvent?.(new CustomEvent('ollama-cloud-problem',{detail:event}));root.api.cloudCancel(id);fail(new Error(event.messages?JSON.stringify(event):event.message));}
         else if(event.type==='done'){ended=true;controller.close();cleanup();}
         else if(event.type==='failed')fail(event.aborted?new DOMException(event.message,'AbortError'):new Error(event.message));
       });
@@ -88,7 +89,7 @@
           method: 'POST', headers: { 'Content-Type': 'application/json' }, signal,
           body: JSON.stringify({ model: row.model, messages: job, stream: !json, ...(json ? { format: planSchema } : {}), options: { num_predict: json ? 700 : 900, num_ctx: 8192, temperature: json ? 0 : 0.5 } })
         });
-        if (!response.ok) throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 180)}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${(await response.text()).slice(0, 3000)}`);
         if (json) {
           const result = await response.json();
           if (result.error) throw new Error(result.error);
@@ -116,7 +117,7 @@
         row.status = 'done';
         return row.output;
       } catch (error) {
-        row.status = signal.aborted ? 'stopped' : 'error'; row.output = error.message;
+        row.status = signal.aborted ? 'stopped' : 'error'; row.output = root.MultiMindErrors ? root.MultiMindErrors.format(error, root.document?.documentElement.lang || 'en') : error.message;
         if (signal.aborted) throw error;
         return null;
       } finally { clearInterval(ticker); row.elapsed = Date.now() - row.started; emit(); }

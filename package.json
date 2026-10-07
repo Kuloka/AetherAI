@@ -1,15 +1,17 @@
 {
   "name": "multimind",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "description": "MultiMind - local AI workspace with collaborative agents",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node --check electron/main.js && node --check electron/preload.js && node --check renderer.js && node --check multimind.js && node --check gateway-flow.js && node --check electron/local-runtime.js && node --check electron/storage-migration.js && node --check electron/app-skills.js && node --check electron/discord-activity.js && node --check electron/discord-media.js && node --check electron/mcp-plugins.js && node --check electron/workspace-mcp.js && node --check plugins-chat.js && node --check electron/ollama-cloud.js && node --check electron/model-catalog.js && node --check electron/model-download.js && node --check electron/managed-models.js",
+    "check": "node scripts/check-syntax.cjs",
     "fix:encoding": "node scripts/fix-mojibake.js --write",
     "dist:win": "electron-builder --win nsis portable",
-    "test": "node --test tests/*.test.js"
+    "test": "node --test tests/*.test.js",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:linux": "electron-builder --linux AppImage deb"
   },
   "productName": "MultiMind",
   "private": true,
@@ -24,7 +26,10 @@
       "!resources/nevo-*",
       "!artifacts/**",
       "!docs/**",
-      "!.github/**"
+      "!.github/**",
+      "!resources/branding/**",
+      "!scripts/**",
+      "scripts/sd_turbo_generate.py"
     ],
     "directories": {
       "buildResources": "build",
@@ -50,7 +55,7 @@
       "target": [
         "dmg"
       ],
-      "artifactName": "MultiMind-macOS-1.20.0-${arch}.${ext}"
+      "artifactName": "MultiMind-macOS-${version}-${arch}.${ext}"
     },
     "linux": {
       "category": "Utility",
@@ -59,7 +64,7 @@
         "AppImage",
         "deb"
       ],
-      "artifactName": "MultiMind-Linux-1.20.0-${arch}.${ext}",
+      "artifactName": "MultiMind-Linux-${version}-${arch}.${ext}",
       "maintainer": "MultiMind"
     },
     "asarUnpack": [

@@ -277,8 +277,17 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <nav class="settings-nav" aria-label="Settings sections"><button type="button" data-settings-tab="general" class="active">General</button><button type="button" data-settings-tab="models">Models</button><button type="button" data-settings-tab="skills">Skills</button><button type="button" data-settings-tab="cloud">Ollama Cloud</button><button type="button" data-settings-tab="plugins">Plugins</button><button type="button" data-settings-tab="discord">Discord Activity</button></nav>
+    <nav class="settings-nav" aria-label="Settings sections"><button type="button" data-settings-tab="general" class="active">General</button><button type="button" data-settings-tab="models">Models</button><button type="button" data-settings-tab="skills">Skills</button><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button><button type="button" data-settings-tab="plugins">Plugins</button><button type="button" data-settings-tab="discord">Discord Activity</button></nav>
     <div class="modal-body settings-body">
+      <section class="settings-block" data-settings-panel="general">
+        <div class="discord-heading"><div><h3>Local AI</h3><p id="localAiDescription">Use downloaded models on your computer.</p></div><button id="localAiToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Local AI"><span></span></button></div>
+      </section>
+      <section class="settings-block cloud-settings" data-settings-panel="cloud" hidden>
+        <h3>Providers</h3>
+        <p id="providerPrivacy">Cloud requests send your messages and attached context to the selected provider.</p>
+<form id="providerForm"><label id="providerLabel">Provider</label><div class="provider-picker"><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button><button class="catalog-btn" type="button" id="providerDisconnect">Disconnect</button></div></form>
+        <p id="providerStatus" role="status"></p>
+      </section>
       <section class="settings-section" data-settings-panel="general">
         <div>
           <div class="settings-title">Theme</div>
@@ -311,7 +320,7 @@
         <label>Agent 1 <select id="workerModel0"></select></label>
         <label>Agent 2 <select id="workerModel1"></select></label>
       </section>
-      <section class="settings-block cloud-settings" data-settings-panel="cloud" hidden>
+      <section class="settings-block cloud-settings" data-settings-panel="ollama-cloud" hidden>
         <div class="discord-heading"><h3>Ollama Cloud</h3><button id="cloudPlansBtn" type="button" class="catalog-btn">View plans</button></div>
         <p id="cloudPrivacy">Cloud models send your messages and attached context to Ollama. Local models continue to run on your machine.</p>
         <p id="cloudAccountStatus" role="status"></p>
@@ -355,6 +364,9 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="providerLimitModal" role="dialog" aria-modal="true" aria-labelledby="providerLimitTitle" aria-describedby="providerLimitDescription">
+  <div class="modal provider-limit-modal"><button type="button" class="modal-close" id="providerLimitClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button><h2 id="providerLimitTitle">You reached the limit</h2><p id="providerLimitDescription"></p><button type="button" class="catalog-btn primary" id="providerLimitAdd">Add limit</button></div>
+</div>
 <div class="modal-overlay" id="cloudPlansModal" role="dialog" aria-modal="true" aria-labelledby="cloudPlansTitle">
   <div class="modal cloud-plans-modal"><div class="modal-header"><h2 id="cloudPlansTitle">More room for your ideas</h2><button class="modal-close" type="button" id="cloudPlansClose" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="modal-body">
     <p id="cloudPlansReason">Choose your Ollama Cloud plan. Payment is completed on ollama.com.</p>
@@ -432,6 +444,8 @@
 
 <script src="gateway-flow.js"></script>
 <script src="multimind.js"></script>
+<script src="response-errors.js"></script>
+<script src="chat-intent.js"></script>
 <script src="plugins-chat.js"></script>
 <script src="renderer.js"></script>
 </body>

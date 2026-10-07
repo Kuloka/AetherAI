@@ -46,6 +46,13 @@ jobs:
       - run: npm run check
       - run: npm test
 
+      - name: Check model selection and provider interface (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron --no-sandbox tests/model-mode-smoke.cjs
+      - name: Check model selection and provider interface
+        if: runner.os != 'Linux'
+        run: npx electron tests/model-mode-smoke.cjs
+
       - name: Build native packages
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
 
@@ -73,6 +80,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Generate release description and exact line statistics
+        run: node scripts/release-notes.cjs v1.20.0 > release-description.md
       - uses: actions/download-artifact@v4
         with:
           path: release-files
@@ -104,6 +119,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: MultiMind ${{ github.ref_name }}
           generate_release_notes: true
+          body_path: release-description.md
           prerelease: false
           replacesArtifacts: true
           files: |

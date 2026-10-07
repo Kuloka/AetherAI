@@ -15,6 +15,18 @@ const { dataDir: DATA_DIR, projectsDir: PROJECTS_DIR } = initializeStorage(os.ho
 const CHATS_FILE = path.join(DATA_DIR, 'data.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const cloud = require('./ollama-cloud').createCloud(DATA_DIR, require('electron').safeStorage);
+const providers = require('./cloud-providers').createProviders(DATA_DIR, require('electron').safeStorage);
+ipcMain.handle('providers:status', () => providers.status());
+ipcMain.handle('providers:usage', async (_event, id) => id ? providers.refreshUsage(id) : providers.usage());
+ipcMain.handle('providers:save', (_event, id, key) => providers.save(id, key));
+ipcMain.handle('providers:models', (_event, force) => providers.models(force));
+ipcMain.handle('providers:disconnect', (_event, id) => { for (const request of cloudRequests.values()) request.abort(); return providers.disconnect(id); });
+ipcMain.handle('providers:open', (_event, id) => shell.openExternal(providers.keys(id)));
+ipcMain.handle('providers:limits-open', (_event, id) => {
+  const url = { openrouter:'https://openrouter.ai/settings/credits', groq:'https://console.groq.com/settings/billing',gemini:'https://aistudio.google.com/usage',cerebras:'https://cloud.cerebras.ai' }[id];
+  if (!url) throw new Error('Unknown provider');
+  return shell.openExternal(url);
+});
 const cloudRequests = new Map();
 ipcMain.handle('cloud:status', () => cloud.status());
 ipcMain.handle('cloud:save', (_event, key) => cloud.save(key));
@@ -30,7 +42,7 @@ ipcMain.handle('cloud:request', async (event, id, body) => {
   const controller = new AbortController(); cloudRequests.set(requestId, controller);
   const timeout = setTimeout(() => controller.abort(), 180000);
   const send = data => { if (!event.sender.isDestroyed()) event.sender.send('cloud:event', { id, ...data }); else controller.abort(); };
-  try { await cloud.chat(body, controller.signal, send); }
+  try { await (/^cloud:(openrouter|groq|gemini|cerebras)\//.test(body?.model || '') ? providers : cloud).chat(body, controller.signal, send); }
   catch (error) { send({ type:'failed', message:error.message, aborted:controller.signal.aborted }); }
   finally { clearTimeout(timeout); cloudRequests.delete(requestId); }
 });
