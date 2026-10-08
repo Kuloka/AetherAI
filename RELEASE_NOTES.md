@@ -1,4 +1,6 @@
-MultiMind 1.23.0
+MultiMind 1.23.1
+
+- Rejected dangling symbolic links/junctions and checked file boundaries before creating parent directories.
 
 - Added account sign-in with Google, email/password registration and six-digit email confirmation, plus a styled Google completion page.
 - Added response Presets, an upward profile menu, account initials and custom avatars; presets require explicit consent for the selected model.
@@ -6,7 +8,7 @@ MultiMind 1.23.0
 - Hardened IPC, navigation, renderer CSP, external links, project file boundaries and account-session races.
 - Updated Electron and dependencies; dependency audits reported zero known vulnerabilities. Packages use an explicit file allowlist and private files/templates are excluded from Git and installers.
 - Added repeatable RLS setup and database audit SQL. The live app table is currently missing/not exposed; production sync requires applying and verifying the server policies.
-- Updated six website download links to 1.23.0. Windows installer/portable, macOS Intel/Apple Silicon DMGs, Linux AppImage/deb are built by CI. Packages remain unsigned; macOS is not notarized.
+- Updated six website download links to 1.23.1. Windows installer/portable, macOS Intel/Apple Silicon DMGs, Linux AppImage/deb are built by CI. Packages remain unsigned; macOS is not notarized.
 
 Previous 1.21.0 changes:
 

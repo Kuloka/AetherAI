@@ -282,6 +282,7 @@ function writeProjectFile(folderName, filePath, content) {
     throw new Error('Invalid project file path.');
   }
   const existed = fs.existsSync(targetPath);
+  projectBoundary(PROJECTS_DIR,targetPath);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
   projectBoundary(PROJECTS_DIR,targetPath);
   fs.writeFileSync(targetPath, String(content || ''), 'utf-8');

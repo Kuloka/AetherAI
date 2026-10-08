@@ -23,7 +23,7 @@ ipcMain.handle('mode:provider-save', (_event, id, key) => { assert.equal(id, 'op
 ipcMain.handle('mode:settings', () => settings);
 ipcMain.handle('mode:save', (_event, value) => { settings = value; return {}; });
 const motion=process.argv.includes('--motion');
-if(!motion)app.commandLine.appendSwitch('force-prefers-reduced-motion', 'reduce');
+if(!motion){app.disableHardwareAcceleration();app.commandLine.appendSwitch('force-prefers-reduced-motion', 'reduce');}
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 1200, height: 800, show: false, webPreferences: { offscreen: true, preload: path.join(__dirname, 'model-mode-preload.cjs') } });
   const errors = [];

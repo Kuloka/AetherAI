@@ -1,4 +1,4 @@
-# MultiMind 1.23.0 security review
+# MultiMind 1.23.1 security review
 
 Reviewed 2026-10-08. This is a scoped source/dependency review, not a guarantee against all vulnerabilities or a penetration test of the deployed database.
 

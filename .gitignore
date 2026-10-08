@@ -52,6 +52,14 @@ docs/auth-email-template.html
 **/*.dump
 .supabase/
 supabase/.temp/
+.aws/
+.ssh/
+.codex/
+.netrc
+.git-credentials
+credentials
+credentials.*
+!.env.example
 release-description.md
 
 # OS and editor noise

@@ -126,13 +126,13 @@ Validation includes real stdio and HTTP MCP servers, approval denial, disabled c
 
 ## Profile, memory and model details
 
-The bottom sidebar profile opens optional Google/email-code sign-in and a memory editor. Guest memory is local; signed-in account memory is kept separately. Add personal or project notes, edit them, disable them or delete them. Deletion clears note text and retains an ID/timestamp tombstone for sync. Syncing account memory is an explicit action; API keys, projects, files and chat histories are not uploaded by this integration.
+The bottom sidebar profile opens sign-in for guests and an upward account menu for signed-in users. Sign in with Google or email/password; registration confirms email with a six-digit code. Choose an avatar or use your email initial. Presets define response language, length, tone and style across chats, without a Personal/Project selector. Edit, disable or delete presets; deletion clears their text and retains a sync tombstone. Sync is explicit; provider keys, projects, files and chat histories are not uploaded by this integration.
 
-Memory is off for chat requests by default. In Manage memory, explicitly enable its use for the named selected model/provider. Switching models or accounts clears this consent. Project notes are only included for matching project chats; personal notes apply across chats. Memory is reference data and never authorizes file changes or tools.
+Presets are off for chat requests by default. Explicitly enable their use for the named selected model/provider. Switching models or accounts clears this consent. Existing legacy project notes retain their scope until edited. Presets do not authorize file changes or tools. Local presets and chat history are not encrypted; do not store secrets in presets.
 
 Model details show reported context, image support, size, quantization and known language information, with unknown values stated explicitly. Run quick check sends one English greeting and records elapsed time and a response sample on this device; it is not a general benchmark and a paid model can charge for that request.
 
-Sign-in remains unavailable until the developer configures Supabase. See [account setup](docs/account-setup.md), [public configuration template](auth-config.example.json) and [memory RLS schema](docs/memory-schema.sql). Google uses the system browser and PKCE; sessions are encrypted in the Electron main process. Email delivery for ordinary users requires a configured SMTP service. Tests simulate account responses; live delivery and an actual Google account still need verification after backend setup.
+Release builds contain shared public Supabase client configuration; backend Google/SMTP settings remain operator-managed. See [account setup](docs/account-setup.md), [RLS setup](docs/memory-schema.sql), and the [security review](SECURITY_AUDIT.md). Apply and verify RLS in Supabase before enabling production sync. Google uses the system browser and PKCE; sessions and provider keys use OS encryption in the main process and reject unencrypted Linux storage. Tests simulate authentication responses; a successful request does not prove email delivery.
 
 ## SambaNova
 
