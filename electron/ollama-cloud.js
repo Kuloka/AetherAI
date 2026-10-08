@@ -1,3 +1,4 @@
+const {secureStorageAvailable}=require('./security');
 const fs=require('fs');
 const path=require('path');
 function classify(status,message='') {
@@ -14,8 +15,8 @@ function createCloud(directory,safeStorage,request=fetch) {
   function key(){if(!configured())return '';return safeStorage.decryptString(fs.readFileSync(file));}
   function save(value){
     if(typeof value!=='string'||value.trim().length<8||value.length>4096||/[\r\n]/.test(value))throw new Error('Enter a valid Ollama API key.');
-    if(!safeStorage.isEncryptionAvailable())throw new Error('Secure credential storage is unavailable.');
-    fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(file,safeStorage.encryptString(value.trim()));return {configured:true};
+    if(!secureStorageAvailable(safeStorage))throw new Error('Secure credential storage is unavailable.');
+    fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(file,safeStorage.encryptString(value.trim()),{mode:0o600});return {configured:true};
   }
   async function models(force=false){
     if(cached.length&&!force&&Date.now()-checked<300000)return cached;

@@ -1,0 +1,1 @@
+Pattern Waves and Pixel Blast thumbnails are screenshots of the actual component previews at https://reactbits.dev/backgrounds/pattern-waves and https://reactbits.dev/backgrounds/pixel-blast, captured October 8, 2026 with demo content hidden. Gateway Flow is captured from MultiMind's own canvas implementation. React Bits attribution/license: ../reactbits-license.txt.

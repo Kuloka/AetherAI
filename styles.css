@@ -423,7 +423,7 @@ html, body {
   pointer-events: none;
   opacity: .52;
 }
-.main-area > :not(.gateway-flow-bg) { z-index: 1; }
+.main-area > :not(.gateway-flow-bg):not(#appBackgroundEffects) { z-index: 1; }
 .workspace { position: relative; }
 .app-toolbar {
   height: 34px;
@@ -741,7 +741,7 @@ html, body {
 }
 .side-panel.show { display: flex; }
 @keyframes sidePanelIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
-.panel-header, .terminal-tabs {
+.panel-header {
   height: 32px;
   display: flex;
   align-items: center;
@@ -752,7 +752,7 @@ html, body {
   font-size: 12px;
   font-weight: 650;
 }
-.panel-close, .terminal-close {
+.panel-close {
   border: none; background: transparent; color: var(--text-muted);
   cursor: pointer; font-size: 18px;
 }
@@ -982,53 +982,6 @@ html, body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.terminal-panel {
-  height: clamp(128px, 28vh, 180px);
-  min-height: 128px;
-  display: none;
-  flex-direction: column;
-  border-top: 1px solid var(--border);
-  background: var(--bg-main);
-  flex-shrink: 0;
-  order: 4;
-  overflow: hidden;
-}
-.main-area.home-mode .terminal-panel {
-  order: 2;
-}
-.terminal-panel.show { display: flex; animation: terminalIn 0.18s ease; }
-@keyframes terminalIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-.terminal-tabs {
-  flex: 0 0 auto;
-}
-.terminal-output {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: auto;
-  padding: 8px 10px;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-}
-.terminal-prompt {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 10px 9px;
-  font-family: var(--mono);
-  color: var(--text-primary);
-}
-.terminal-prompt input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-bright);
-  font-family: var(--mono);
-}
-
 .welcome-screen {
   display: flex; flex-direction: column;
   align-items: center; justify-content: flex-start;

@@ -1,6 +1,7 @@
-import { Component, useEffect, useRef } from 'react';
+import { Component, useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import GatewayFlow from '../../gateway-flow.js';
+import ShapeWaves from './backgrounds/ShapeWaves';
 import './BorderGlow.css';
 import './effects.css';
 
@@ -35,11 +36,11 @@ class QuietFallback extends Component {
 function Background(){
   const canvas=useRef(null);
   useEffect(()=>{
-    const heroTitle=document.querySelector('.hero h1');
-    const titleDocumentY=heroTitle.getBoundingClientRect().top+scrollY+heroTitle.getBoundingClientRect().height/2;
+    const heroTitle=()=>document.querySelector('.hero h1');
     const scrollFocus={getBoundingClientRect(){
       const progress=Math.min(1,Math.max(0,scrollY/(innerHeight*.42)));
-      const titleViewportY=titleDocumentY-scrollY;
+      const title=heroTitle()?.getBoundingClientRect();
+      const titleViewportY=title ? title.top+title.height/2 : innerHeight/2;
       const y=titleViewportY+(innerHeight/2-titleViewportY)*progress;
       return {left:innerWidth/2-.5,right:innerWidth/2+.5,top:y-.5,bottom:y+.5,width:1,height:1};
     }};
@@ -55,7 +56,9 @@ function Background(){
       focusY:.3
     });
     canvas.current.gatewayFlow=flow;
-    return ()=>flow.destroy();
+    const refresh=()=>flow.refresh();
+    document.addEventListener('site:render',refresh);
+    return ()=>{document.removeEventListener('site:render',refresh);flow.destroy();};
   },[]);
   return <canvas ref={canvas}/>;
 }
@@ -63,3 +66,20 @@ const layer=document.createElement('div');
 layer.id='gateway-flow';layer.setAttribute('aria-hidden','true');
 document.body.prepend(layer);
 createRoot(layer).render(<QuietFallback><Background/></QuietFallback>);
+
+// The product wordmark gets its own Shape Waves field; the accessible title stays HTML.
+function AnimatedWordmark(){
+  const [failed,setFailed]=useState(false);
+  return failed || reduced.matches ? <span className="shape-wordmark-fallback">MultiMind</span> :
+    <ShapeWaves text="MultiMind" color="#bbbbbb" hoverColor="#ffffff" backgroundColor="#101010" textSize={.72} cellSize={5} brightness={.7} interactive onError={()=>setFailed(true)}/>;
+}
+let wordmarkRoot=null;
+function mountWordmark(){
+  const title=document.querySelector('.hero h1');
+  if(!title || document.querySelector('.shape-wordmark'))return;
+  const host=document.createElement('div');host.className='shape-wordmark';host.setAttribute('aria-label','MultiMind');
+  wordmarkRoot?.unmount();
+  title.before(host);wordmarkRoot=createRoot(host);wordmarkRoot.render(<QuietFallback><AnimatedWordmark/></QuietFallback>);
+}
+mountWordmark();
+document.addEventListener('site:render',mountWordmark);

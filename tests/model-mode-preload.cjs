@@ -1,6 +1,18 @@
 const { contextBridge, ipcRenderer } = require('electron');
 let cloudListener;
 contextBridge.exposeInMainWorld('api', {
+  accountStatus:()=>ipcRenderer.invoke('mode:account-status'),
+  accountSendCode:email=>ipcRenderer.invoke('mode:account-send',email),
+  accountSignIn:(email,password)=>ipcRenderer.invoke('mode:account-sign-in',email,password),
+  accountSignUp:(email,password)=>ipcRenderer.invoke('mode:account-sign-up',email,password),
+  accountResendConfirmation:email=>ipcRenderer.invoke('mode:account-send',email),
+  accountGoogle:async()=>({waiting:true}),
+  accountCancel:async()=>({ok:true}),
+  accountVerify:(email,code)=>ipcRenderer.invoke('mode:account-verify',email,code),
+  memoryList:()=>ipcRenderer.invoke('mode:memory-list'),
+  memorySave:value=>ipcRenderer.invoke('mode:memory-save',value),
+  memoryRemove:id=>ipcRenderer.invoke('mode:memory-remove',id),
+  memoryContext:project=>ipcRenderer.invoke('mode:memory-context',project),
   dataGet: async () => ({ groups: [], chats: [] }), dataSave: async () => ({}),
   settingsGet: () => ipcRenderer.invoke('mode:settings'), settingsSave: value => ipcRenderer.invoke('mode:save', value),
   ollamaStatus: async () => ({ running: true, models: [{ name: 'llama3.2:1b', size: 1300000000 }] }),

@@ -1,0 +1,6 @@
+const {app,BrowserWindow}=require('electron');
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {authResultPage}=require('../electron/auth-result-page');
+app.whenReady().then(async()=>{const win=new BrowserWindow({show:false,width:1200,height:800,webPreferences:{offscreen:true}});const folder=path.join(__dirname,'../artifacts');fs.mkdirSync(folder,{recursive:true});
+ for(const success of [true,false]){await win.loadURL('data:text/html;charset=utf-8,'+encodeURIComponent(authResultPage(success).html));await new Promise(resolve=>setTimeout(resolve,650));assert.equal(await win.webContents.executeJavaScript("document.querySelector('h1').textContent"),success?"You're signed in.":"Let's try that again.");assert.equal(await win.webContents.executeJavaScript("(()=>{const r=document.querySelector('main').getBoundingClientRect();return Math.abs(r.x+r.width/2-innerWidth/2)<2 && r.width<=440;})()"),true);fs.writeFileSync(path.join(folder,success?'google-signin-success.png':'google-signin-failure.png'),(await win.webContents.capturePage()).toPNG());}
+ win.destroy();console.log('PASS: Google completion and failure pages render centered');app.quit();}).catch(error=>{console.error(error);app.exit(1);});

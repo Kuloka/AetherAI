@@ -1,9 +1,13 @@
 ﻿const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
+const {trustedSender,externalUrl,projectBoundary}=require('./security');
+const trustedContents=new Set();
+const appEntry=path.join(__dirname,'..','index.html');
+function handleIpc(channel,handler){ipcMain.handle(channel,(event,...args)=>{if(!trustedSender(event,trustedContents,appEntry))throw Error('Untrusted IPC sender');return handler(event,...args);});}
 const { dialog } = require('electron');
 const fs = require('fs');
 const os = require('os');
-const { spawn, execSync, exec } = require('child_process');
+const { spawn, execSync } = require('child_process');
 const { getFluxStatus, downloadFluxVariant, runFluxGenerate } = require('./flux-backend');
 const { createLocalRuntime } = require('./local-runtime');
 
@@ -16,59 +20,59 @@ const CHATS_FILE = path.join(DATA_DIR, 'data.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const cloud = require('./ollama-cloud').createCloud(DATA_DIR, require('electron').safeStorage);
 const providers = require('./cloud-providers').createProviders(DATA_DIR, require('electron').safeStorage);
-ipcMain.handle('providers:status', () => providers.status());
-ipcMain.handle('providers:usage', async (_event, id) => id ? providers.refreshUsage(id) : providers.usage());
-ipcMain.handle('providers:save', (_event, id, key) => providers.save(id, key));
-ipcMain.handle('providers:models', (_event, force) => providers.models(force));
-ipcMain.handle('providers:disconnect', (_event, id) => { for (const request of cloudRequests.values()) request.abort(); return providers.disconnect(id); });
-ipcMain.handle('providers:open', (_event, id) => shell.openExternal(providers.keys(id)));
-ipcMain.handle('providers:limits-open', (_event, id) => {
-  const url = { openrouter:'https://openrouter.ai/settings/credits', groq:'https://console.groq.com/settings/billing',gemini:'https://aistudio.google.com/usage',cerebras:'https://cloud.cerebras.ai' }[id];
+handleIpc('providers:status', () => providers.status());
+handleIpc('providers:usage', async (_event, id) => id ? providers.refreshUsage(id) : providers.usage());
+handleIpc('providers:save', (_event, id, key) => providers.save(id, key));
+handleIpc('providers:models', (_event, force) => providers.models(force));
+handleIpc('providers:disconnect', (_event, id) => { for (const request of cloudRequests.values()) request.abort(); return providers.disconnect(id); });
+handleIpc('providers:open', (_event, id) => shell.openExternal(providers.keys(id)));
+handleIpc('providers:limits-open', (_event, id) => {
+  const url = { openrouter:'https://openrouter.ai/settings/credits', groq:'https://console.groq.com/settings/billing',gemini:'https://aistudio.google.com/usage',cerebras:'https://cloud.cerebras.ai',sambanova:'https://cloud.sambanova.ai/plans/billing' }[id];
   if (!url) throw new Error('Unknown provider');
   return shell.openExternal(url);
 });
 const cloudRequests = new Map();
-ipcMain.handle('cloud:status', () => cloud.status());
-ipcMain.handle('cloud:save', (_event, key) => cloud.save(key));
-ipcMain.handle('cloud:disconnect', () => { for (const request of cloudRequests.values()) request.abort(); return cloud.disconnect(); });
-ipcMain.handle('cloud:models', (_event, force) => cloud.models(force));
-ipcMain.handle('cloud:open', (_event, page) => {
+handleIpc('cloud:status', () => cloud.status());
+handleIpc('cloud:save', (_event, key) => cloud.save(key));
+handleIpc('cloud:disconnect', () => { for (const request of cloudRequests.values()) request.abort(); return cloud.disconnect(); });
+handleIpc('cloud:models', (_event, force) => cloud.models(force));
+handleIpc('cloud:open', (_event, page) => {
   const url = { keys:'https://ollama.com/settings/keys', pricing:'https://ollama.com/pricing', account:'https://ollama.com/settings' }[page];
   if (url) return shell.openExternal(url);
 });
-ipcMain.handle('cloud:request', async (event, id, body) => {
+handleIpc('cloud:request', async (event, id, body) => {
   const requestId = `${event.sender.id}:${id}`;
   if (cloudRequests.has(requestId)) throw new Error('Duplicate cloud request.');
   const controller = new AbortController(); cloudRequests.set(requestId, controller);
   const timeout = setTimeout(() => controller.abort(), 180000);
   const send = data => { if (!event.sender.isDestroyed()) event.sender.send('cloud:event', { id, ...data }); else controller.abort(); };
-  try { await (/^cloud:(openrouter|groq|gemini|cerebras)\//.test(body?.model || '') ? providers : cloud).chat(body, controller.signal, send); }
+  try { await (/^cloud:(openrouter|groq|gemini|cerebras|sambanova)\//.test(body?.model || '') ? providers : cloud).chat(body, controller.signal, send); }
   catch (error) { send({ type:'failed', message:error.message, aborted:controller.signal.aborted }); }
   finally { clearTimeout(timeout); cloudRequests.delete(requestId); }
 });
-ipcMain.handle('cloud:cancel', (event, id) => cloudRequests.get(`${event.sender.id}:${id}`)?.abort());
+handleIpc('cloud:cancel', (event, id) => cloudRequests.get(`${event.sender.id}:${id}`)?.abort());
 const plugins = require('./mcp-plugins').createPlugins(DATA_DIR, PROJECTS_DIR);
-ipcMain.handle('plugins:list', () => plugins.list());
-ipcMain.handle('plugins:add', (_e, config) => plugins.add(config));
-ipcMain.handle('plugins:toggle', (_e, id, enabled) => plugins.toggle(id, enabled));
-ipcMain.handle('plugins:remove', (_e, id) => plugins.remove(id));
-ipcMain.handle('plugins:call', (event, id, name, args, requestId) => {
+handleIpc('plugins:list', () => plugins.list());
+handleIpc('plugins:add', (_e, config) => plugins.add(config));
+handleIpc('plugins:toggle', (_e, id, enabled) => plugins.toggle(id, enabled));
+handleIpc('plugins:remove', (_e, id) => plugins.remove(id));
+handleIpc('plugins:call', (event, id, name, args, requestId) => {
   if (loadSettings().accessMode === 'plan') throw new Error('Tools are disabled in Plan mode.');
   return plugins.call(id, name, args, `${event.sender.id}:${requestId}`);
 });
-ipcMain.handle('plugins:cancel', (event, requestId) => plugins.cancel(`${event.sender.id}:${requestId}`));
+handleIpc('plugins:cancel', (event, requestId) => plugins.cancel(`${event.sender.id}:${requestId}`));
 const discordActivity = require('./discord-activity').createDiscordActivity();
 const discordMedia = require('./discord-media');
 const DISCORD_MEDIA_DIR = path.join(DATA_DIR, 'discord-media');
-ipcMain.handle('discord:status', () => discordActivity.status());
-ipcMain.handle('discord:media', () => discordMedia.readMedia(DISCORD_MEDIA_DIR));
-ipcMain.handle('discord:import', async event => {
+handleIpc('discord:status', () => discordActivity.status());
+handleIpc('discord:media', () => discordMedia.readMedia(DISCORD_MEDIA_DIR));
+handleIpc('discord:import', async event => {
   const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), { title: 'Activity image', properties: ['openFile'], filters: [{ name: 'Image or GIF', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }] });
   if (result.canceled) return { canceled: true };
   try { return { media: await discordMedia.prepareMedia(result.filePaths[0], DISCORD_MEDIA_DIR) }; }
   catch (error) { return { error: error.message }; }
 });
-ipcMain.handle('discord:export', async event => {
+handleIpc('discord:export', async event => {
   const media = await discordMedia.readMedia(DISCORD_MEDIA_DIR);
   if (!media) return { canceled: true };
   const result = await dialog.showSaveDialog(BrowserWindow.fromWebContents(event.sender), { defaultPath: media.filename });
@@ -86,12 +90,33 @@ const FLUX_MODELS_DIR = path.join(DATA_DIR, 'models', 'flux');
 const FLUX_OUTPUT_DIR = path.join(DATA_DIR, 'generated-images');
 const localRuntime = createLocalRuntime(DATA_DIR);
 const skillsStore = require('./app-skills').createSkillsStore(DATA_DIR);
-ipcMain.handle('skills:list', () => skillsStore.list());
-ipcMain.handle('skills:presets', () => skillsStore.presets());
-ipcMain.handle('skills:install-preset', (_event, id) => skillsStore.installPreset(id));
-ipcMain.handle('skills:toggle', (_event, name, active) => skillsStore.toggle(name, active));
-ipcMain.handle('skills:folder', () => shell.openPath(skillsStore.directory));
-ipcMain.handle('skills:import', async event => {
+let accountConfig=require('./account-config');
+const accountConfigFile=path.join(__dirname,'..','auth-config.json');
+if(!app.isPackaged&&fs.existsSync(accountConfigFile))accountConfig=JSON.parse(fs.readFileSync(accountConfigFile,'utf8'));
+const accountAuth=require('./account-auth').createAccountAuth(DATA_DIR,require('electron').safeStorage,accountConfig);
+const userMemory=require('./user-memory').createMemoryStore(DATA_DIR);
+async function memoryOwner(){return (await accountAuth.status()).user?.id||'local';}
+handleIpc('account:status',()=>accountAuth.status());
+handleIpc('account:send-code',(_e,email)=>accountAuth.sendCode(email));
+handleIpc('account:verify',(_e,email,code)=>accountAuth.verify(email,code));
+handleIpc('account:sign-in',(_e,email,password)=>accountAuth.signIn(email,password));
+handleIpc('account:sign-up',(_e,email,password)=>accountAuth.signUp(email,password));
+handleIpc('account:resend-confirmation',(_e,email)=>accountAuth.resendConfirmation(email));
+handleIpc('account:google',event=>accountAuth.google(url=>shell.openExternal(url),status=>{if(!event.sender.isDestroyed())event.sender.send('account:changed',status);}));
+handleIpc('account:cancel',()=>{accountAuth.cancelGoogle();return {ok:true};});
+handleIpc('account:logout',()=>accountAuth.logout());
+handleIpc('memory:list',async()=>userMemory.list(await memoryOwner()));
+handleIpc('memory:save',async(_e,value)=>userMemory.save(await memoryOwner(),value));
+handleIpc('memory:remove',async(_e,id)=>userMemory.remove(await memoryOwner(),id));
+handleIpc('memory:context',async(_e,projectId)=>userMemory.context(await memoryOwner(),projectId));
+handleIpc('memory:sync',async()=>userMemory.sync(await memoryOwner(),accountAuth));
+app.on('before-quit',()=>accountAuth.cancelGoogle());
+handleIpc('skills:list', () => skillsStore.list());
+handleIpc('skills:presets', () => skillsStore.presets());
+handleIpc('skills:install-preset', (_event, id) => skillsStore.installPreset(id));
+handleIpc('skills:toggle', (_event, name, active) => skillsStore.toggle(name, active));
+handleIpc('skills:folder', () => shell.openPath(skillsStore.directory));
+handleIpc('skills:import', async event => {
   const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), { title: 'Import skill', properties: ['openFile'], filters: [{ name: 'Markdown skill', extensions: ['md'] }] });
   return result.canceled ? skillsStore.list() : skillsStore.importFile(result.filePaths[0]);
 });
@@ -144,6 +169,7 @@ function ensureProjectFolder(name, preferredFolderName = null) {
   const folderName = getUniqueProjectFolderName(preferredFolderName || name, preferredFolderName);
   const folderPath = path.join(PROJECTS_DIR, folderName);
   if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath, { recursive: true });
+  projectBoundary(PROJECTS_DIR,folderPath);
   return { folderName, path: folderPath };
 }
 
@@ -257,6 +283,7 @@ function writeProjectFile(folderName, filePath, content) {
   }
   const existed = fs.existsSync(targetPath);
   fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+  projectBoundary(PROJECTS_DIR,targetPath);
   fs.writeFileSync(targetPath, String(content || ''), 'utf-8');
   return { folderName: folder.folderName, path: targetPath, existed };
 }
@@ -439,18 +466,28 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true
     },
     backgroundColor: '#0a0a0a',
     show: false
   });
 
+  trustedContents.add(win.webContents.id);
+  win.webContents.once('destroyed',()=>trustedContents.delete(win.webContents.id));
+  win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
+  win.webContents.on('will-navigate',event=>event.preventDefault());
+  win.webContents.on('will-frame-navigate',event=>event.preventDefault());
+  win.webContents.on('will-attach-webview',event=>event.preventDefault());
+  win.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
+  win.webContents.session.setPermissionCheckHandler(()=>false);
   win.once('ready-to-show', () => { win.show(); win.focus(); });
   win.loadFile(path.join(__dirname, '..', 'index.html'));
   return win;
 }
 
-ipcMain.handle('window:action', (event, action) => {
+handleIpc('window:action', (event, action) => {
   const win = BrowserWindow.fromWebContents(event.sender);
   if (!win) return;
   if (action === 'minimize') win.minimize();
@@ -681,23 +718,23 @@ app.on('before-quit', event => {
   for (const request of cloudRequests.values()) request.abort();
   if (!closingPlugins) { event.preventDefault(); closingPlugins = true; plugins.close().finally(() => app.quit()); }
 });
-ipcMain.handle('local:status', () => localRuntime.status());
-ipcMain.handle('local:setup', event => localRuntime.setup(progress => {
+handleIpc('local:status', () => localRuntime.status());
+handleIpc('local:setup', event => localRuntime.setup(progress => {
   if (!event.sender.isDestroyed()) event.sender.send('local:progress', progress);
 }));
-ipcMain.handle('local:cancel', () => { localRuntime.cancel(); return { ok: true }; });
-ipcMain.handle('local:activate', async (_event, model) => {
+handleIpc('local:cancel', () => { localRuntime.cancel(); return { ok: true }; });
+handleIpc('local:activate', async (_event, model) => {
   try { return { ok: await localRuntime.start(model) }; }
   catch (error) { return { ok: false, error: error.message }; }
 });
-ipcMain.handle('local:pull', (event, model) => localRuntime.setup(progress => {
+handleIpc('local:pull', (event, model) => localRuntime.setup(progress => {
   if (!event.sender.isDestroyed()) event.sender.send('pull-progress', { model, status: progress.stage, percent: progress.total ? Math.round(progress.completed / progress.total * 100) : 0 });
 }, model));
-ipcMain.handle('local:start', async () => {
+handleIpc('local:start', async () => {
   try { return { ok: await localRuntime.start() }; }
   catch (error) { return { ok: false, error: error.message }; }
 });
-ipcMain.handle('ollama:install', async () => ({ ok: await ensureOllamaRunning(true) }));
+handleIpc('ollama:install', async () => ({ ok: await ensureOllamaRunning(true) }));
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
@@ -709,11 +746,11 @@ app.on('activate', () => {
 // ============================================================
 //  IPC: ЧАТЫ / ГРУППЫ
 // ============================================================
-ipcMain.handle('data:get', async () => {
+handleIpc('data:get', async () => {
   return loadData();
 });
 
-ipcMain.handle('data:save', async (_e, data) => {
+handleIpc('data:save', async (_e, data) => {
   saveData(data);
   return { ok: true };
 });
@@ -721,13 +758,13 @@ ipcMain.handle('data:save', async (_e, data) => {
 // ============================================================
 //  IPC: НАСТРОЙКИ
 // ============================================================
-ipcMain.handle('settings:get', async () => loadSettings());
-ipcMain.handle('settings:save', async (_e, s) => { saveSettings(s); discordActivity.configure(s.discordActivity); return { ok: true }; });
+handleIpc('settings:get', async () => loadSettings());
+handleIpc('settings:save', async (_e, s) => { saveSettings(s); discordActivity.configure(s.discordActivity); return { ok: true }; });
 
 // ============================================================
 //  IPC: OLLAMA
 // ============================================================
-ipcMain.handle('ollama:status', async () => {
+handleIpc('ollama:status', async () => {
   try {
     const resp = await fetch(`${OLLAMA_HOST}/api/tags`, { signal: AbortSignal.timeout(2000) });
     if (!resp.ok) return {
@@ -762,19 +799,19 @@ ipcMain.handle('ollama:status', async () => {
   }
 });
 
-ipcMain.handle('ollama:ensure-running', async () => {
+handleIpc('ollama:ensure-running', async () => {
   const ok = await ensureOllamaRunning();
   return { ok, running: ok };
 });
 
 // Скачать модель с прогрессом
 const ollamaPullControllers = new Map();
-ipcMain.handle('model:cancel-pull', (event, modelName) => {
+handleIpc('model:cancel-pull', (event, modelName) => {
   if (String(modelName).startsWith('multimind:')) localRuntime.cancel();
   else ollamaPullControllers.get(`${event.sender.id}:${modelName}`)?.abort();
   return { ok:true };
 });
-ipcMain.handle('ollama:pull', async (event, modelName) => {
+handleIpc('ollama:pull', async (event, modelName) => {
   const key = `${event.sender.id}:${modelName}`;
   const controller = new AbortController(); ollamaPullControllers.set(key, controller);
   try {
@@ -827,7 +864,7 @@ ipcMain.handle('ollama:pull', async (event, modelName) => {
 });
 
 // Удалить модель
-ipcMain.handle('ollama:delete', async (_e, modelName) => {
+handleIpc('ollama:delete', async (_e, modelName) => {
   try {
     const resp = await fetch(`${OLLAMA_HOST}/api/delete`, {
       method: 'DELETE',
@@ -844,7 +881,7 @@ ipcMain.handle('ollama:delete', async (_e, modelName) => {
   }
 });
 
-ipcMain.handle('flux:status', async () => {
+handleIpc('flux:status', async () => {
   try {
     return await getFluxStatus(FLUX_MODELS_DIR);
   } catch (err) {
@@ -852,7 +889,7 @@ ipcMain.handle('flux:status', async () => {
   }
 });
 
-ipcMain.handle('flux:download', async (event, variantId) => {
+handleIpc('flux:download', async (event, variantId) => {
   try {
     return await downloadFluxVariant(FLUX_MODELS_DIR, variantId, progress => {
       if (event.sender.isDestroyed && event.sender.isDestroyed()) return;
@@ -863,7 +900,7 @@ ipcMain.handle('flux:download', async (event, variantId) => {
   }
 });
 
-ipcMain.handle('flux:generate', async (event, payload = {}) => {
+handleIpc('flux:generate', async (event, payload = {}) => {
   try {
     return await runFluxGenerate({
       modelsDir: FLUX_MODELS_DIR,
@@ -882,7 +919,7 @@ ipcMain.handle('flux:generate', async (event, payload = {}) => {
 });
 
 // Путь к ollama.exe (для подсказок в UI)
-ipcMain.handle('node:install-packages', async (_e, packages, folderName) => {
+handleIpc('node:install-packages', async (_e, packages, folderName) => {
   try {
     return await installNodePackages(packages, folderName);
   } catch (err) {
@@ -890,9 +927,9 @@ ipcMain.handle('node:install-packages', async (_e, packages, folderName) => {
   }
 });
 
-ipcMain.handle('ollama:path', async () => findOllamaExe());
+handleIpc('ollama:path', async () => findOllamaExe());
 
-ipcMain.handle('internet:search', async (event, query, preferredDomains) => {
+handleIpc('internet:search', async (event, query, preferredDomains) => {
   try {
     return await internetSearch(query, preferredDomains, progress => {
       event.sender.send('internet-search-progress', progress);
@@ -902,7 +939,7 @@ ipcMain.handle('internet:search', async (event, query, preferredDomains) => {
   }
 });
 
-ipcMain.handle('image:generate-online', async (_event, prompt) => {
+handleIpc('image:generate-online', async (_event, prompt) => {
   try {
     const text = String(prompt || '').trim().slice(0, 1200);
     if (!text) return { ok: false, error: 'Empty image prompt.' };
@@ -921,12 +958,12 @@ ipcMain.handle('image:generate-online', async (_event, prompt) => {
 });
 
 // Открыть ссылку во внешнем браузере
-ipcMain.handle('shell:open', async (_e, url) => {
+handleIpc('shell:open', async (_e, url) => {
   shell.openExternal(url);
   return { ok: true };
 });
 
-ipcMain.handle('projects:open-folder', async () => {
+handleIpc('projects:open-folder', async () => {
   try {
     ensureProjectsDir();
     const error = await shell.openPath(PROJECTS_DIR);
@@ -936,33 +973,12 @@ ipcMain.handle('projects:open-folder', async () => {
   }
 });
 
-ipcMain.handle('projects:get-root', async () => {
+handleIpc('projects:get-root', async () => {
   ensureProjectsDir();
   return { ok: true, path: PROJECTS_DIR };
 });
 
-ipcMain.handle('terminal:run', async (_e, command) => {
-  const input = String(command || '').trim();
-  if (!input) return { ok: false, error: 'Command is empty.' };
-  ensureProjectsDir();
-  return new Promise(resolve => {
-    exec(input, {
-      cwd: PROJECTS_DIR,
-      windowsHide: true,
-      timeout: 120000,
-      maxBuffer: 1024 * 1024
-    }, (error, stdout, stderr) => {
-      resolve({
-        ok: !error,
-        stdout: String(stdout || ''),
-        stderr: String(stderr || ''),
-        error: error ? error.message : ''
-      });
-    });
-  });
-});
-
-ipcMain.handle('projects:ensure-folder', async (_e, name, preferredFolderName = null) => {
+handleIpc('projects:ensure-folder', async (_e, name, preferredFolderName = null) => {
   try {
     const folder = ensureProjectFolder(name, preferredFolderName);
     return { ok: true, ...folder };
@@ -971,7 +987,7 @@ ipcMain.handle('projects:ensure-folder', async (_e, name, preferredFolderName = 
   }
 });
 
-ipcMain.handle('projects:rename-folder', async (_e, oldFolderName, newName) => {
+handleIpc('projects:rename-folder', async (_e, oldFolderName, newName) => {
   try {
     const folder = renameProjectFolder(oldFolderName, newName);
     return { ok: true, ...folder };
@@ -980,7 +996,7 @@ ipcMain.handle('projects:rename-folder', async (_e, oldFolderName, newName) => {
   }
 });
 
-ipcMain.handle('projects:write-file', async (_e, folderName, filePath, content) => {
+handleIpc('projects:write-file', async (_e, folderName, filePath, content) => {
   try {
     const file = writeProjectFile(folderName, filePath, content);
     return { ok: true, ...file };
@@ -989,7 +1005,7 @@ ipcMain.handle('projects:write-file', async (_e, folderName, filePath, content) 
   }
 });
 
-ipcMain.handle('projects:file-exists', async (_e, folderName, filePath) => {
+handleIpc('projects:file-exists', async (_e, folderName, filePath) => {
   try {
     const file = projectFileExists(folderName, filePath);
     return { ok: true, ...file };
@@ -998,7 +1014,7 @@ ipcMain.handle('projects:file-exists', async (_e, folderName, filePath) => {
   }
 });
 
-ipcMain.handle('python:install-packages', async (_e, packages, folderName) => {
+handleIpc('python:install-packages', async (_e, packages, folderName) => {
   try {
     return await installPythonPackages(packages, folderName);
   } catch (err) {

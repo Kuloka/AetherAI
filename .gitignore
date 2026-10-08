@@ -33,6 +33,27 @@ pnpm-debug.log*
 .env.*
 !.env.example
 
+# Private configuration, sessions, backups and local email drafts
+auth-config.json
+docs/auth-email-template.html
+**/*email-template*.html
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/credentials*.json
+**/service-account*.json
+**/*session*.enc
+**/*secrets*.json
+**/*.sqlite
+**/*.sqlite3
+**/*.db
+**/*.sql.gz
+**/*.dump
+.supabase/
+supabase/.temp/
+release-description.md
+
 # OS and editor noise
 .DS_Store
 Thumbs.db

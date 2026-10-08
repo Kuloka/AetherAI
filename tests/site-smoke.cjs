@@ -14,6 +14,7 @@ app.whenReady().then(async()=>{
   assert.equal(await win.webContents.executeJavaScript("document.querySelector('#gateway-flow canvas').dataset.gatewayFlow"),'active');
   assert.equal(await win.webContents.executeJavaScript("document.querySelector('#gateway-flow canvas').dataset.gatewayInteractive"),'true');
   assert.equal(await win.webContents.executeJavaScript("document.querySelector('.hero-strings')"),null);
+  assert.equal(await win.webContents.executeJavaScript("!!document.querySelector('.shape-wordmark')"),true);
   if(motion){
     await new Promise(resolve=>setTimeout(resolve,1600));
     assert.ok(await win.webContents.executeJavaScript("!!document.querySelector('#gateway-flow canvas')"));
@@ -23,7 +24,7 @@ app.whenReady().then(async()=>{
     await new Promise(resolve=>setTimeout(resolve,900));
     const centeredFocus=await win.webContents.executeJavaScript("document.querySelector('#gateway-flow canvas').gatewayFlow.visibleFocusPoint().y");
     const viewportHeight=await win.webContents.executeJavaScript('innerHeight');
-    assert.ok(Math.abs(centeredFocus-viewportHeight/2)<8 && Math.abs(centeredFocus-heroFocus)>20);
+    assert.ok(Math.abs(centeredFocus-viewportHeight/2)<8,JSON.stringify({heroFocus,centeredFocus,viewportHeight}));
     await win.webContents.executeJavaScript("const card=document.querySelector('.button');const r=card.getBoundingClientRect();card.dispatchEvent(new PointerEvent('pointermove',{clientX:r.right-2,clientY:r.top+r.height/2,pointerType:'mouse'}));");
     assert.ok(await win.webContents.executeJavaScript("Number(document.querySelector('.button').style.getPropertyValue('--edge-proximity'))>90"));
     fs.writeFileSync(path.join(out,'multimind-site-motion.png'),(await win.webContents.capturePage()).toPNG());

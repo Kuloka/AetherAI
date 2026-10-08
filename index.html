@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' http://127.0.0.1:* http://localhost:*; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
 <title>MultiMind</title>
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="multimind.css">
+<link rel="stylesheet" href="background-effects.css">
 </head>
 <body>
 <header class="window-titlebar" id="windowTitlebar">
@@ -72,6 +74,9 @@
     <div class="tab-section-title">Recent</div>
     <div class="chat-history-list" id="chatHistoryList"></div>
     </div>
+    <div id="profileMenu" class="profile-menu" hidden><button type="button" id="profileAccount">Account</button><button type="button" id="profilePresets">Presets</button><button type="button" id="profileChangeAvatar">Change avatar</button><button type="button" id="profileResetAvatar" hidden>Use initial</button><button type="button" id="profileSignOut" hidden>Sign out</button></div>
+    <input type="file" id="profileAvatarFile" accept="image/png,image/jpeg,image/webp" hidden>
+    <button type="button" class="profile-btn" id="profileBtn" aria-expanded="false" aria-controls="profileMenu"><span class="profile-avatar" id="profileAvatar">L</span><span><strong id="profileName">Local profile</strong><small id="profileStatus">Presets &amp; account</small></span></button>
     <div class="sidebar-mini-scroll" id="sidebarMiniScroll" aria-hidden="true">
       <div class="sidebar-mini-thumb" id="sidebarMiniThumb"></div>
     </div>
@@ -79,6 +84,7 @@
 
   <!-- Main Area -->
   <main class="main-area">
+    <div id="appBackgroundEffects" aria-hidden="true"></div>
     <canvas class="gateway-flow-bg" id="gatewayFlowBg" aria-hidden="true"></canvas>
     <div class="app-toolbar">
       <div class="toolbar-brand" aria-hidden="true"><span class="toolbar-n">M</span></div>
@@ -86,11 +92,6 @@
         <button class="toolbar-btn" id="toolbarExplorerBtn" title="Explorer" aria-label="Explorer" data-tooltip="Explorer">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round">
             <path d="M3 6.5A2.5 2.5 0 015.5 4H10l2 2h6.5A2.5 2.5 0 0121 8.5v8A2.5 2.5 0 0118.5 19h-13A2.5 2.5 0 013 16.5v-10z"/>
-          </svg>
-        </button>
-        <button class="toolbar-btn" id="toolbarTerminalBtn" title="Toggle terminal" aria-label="Toggle terminal" data-tooltip="Toggle terminal">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="m7 8 4 4-4 4"/><path d="M13 16h4"/><rect x="3" y="4" width="18" height="16" rx="3"/>
           </svg>
         </button>
         <button class="toolbar-btn" id="toolbarPanelBtn" title="Toggle panel" aria-label="Toggle panel" data-tooltip="Toggle panel">
@@ -140,14 +141,6 @@
         </div>
       </div>
       <div class="messages" id="messages"></div>
-    </section>
-    <section class="terminal-panel terminal-panel-old" id="terminalPanel">
-      <div class="terminal-tabs">
-        <span>Terminal</span>
-        <button class="terminal-close" id="closeTerminalBtn" title="Close terminal" aria-label="Close terminal" data-tooltip="Close terminal">&times;</button>
-      </div>
-      <div class="terminal-output" id="terminalOutput"></div>
-      <div class="terminal-prompt"><span id="terminalCwd">PS</span><span>&gt;</span><input id="terminalInput" autocomplete="off" spellcheck="false"></div>
     </section>
 
     <!-- Composer -->
@@ -277,7 +270,7 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <nav class="settings-nav" aria-label="Settings sections"><button type="button" data-settings-tab="general" class="active">General</button><button type="button" data-settings-tab="models">Models</button><button type="button" data-settings-tab="skills">Skills</button><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button><button type="button" data-settings-tab="plugins">Plugins</button><button type="button" data-settings-tab="discord">Discord Activity</button></nav>
+    <nav class="settings-nav" aria-label="Settings sections"><button type="button" data-settings-tab="general" class="active">General</button><button type="button" data-settings-tab="customization">Customization</button><button type="button" data-settings-tab="models">Models</button><button type="button" data-settings-tab="skills">Skills</button><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button><button type="button" data-settings-tab="plugins">Plugins</button><button type="button" data-settings-tab="discord">Discord Activity</button></nav>
     <div class="modal-body settings-body">
       <section class="settings-block" data-settings-panel="general">
         <div class="discord-heading"><div><h3>Local AI</h3><p id="localAiDescription">Use downloaded models on your computer.</p></div><button id="localAiToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Local AI"><span></span></button></div>
@@ -285,7 +278,7 @@
       <section class="settings-block cloud-settings" data-settings-panel="cloud" hidden>
         <h3>Providers</h3>
         <p id="providerPrivacy">Cloud requests send your messages and attached context to the selected provider.</p>
-<form id="providerForm"><label id="providerLabel">Provider</label><div class="provider-picker"><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button><button class="catalog-btn" type="button" id="providerDisconnect">Disconnect</button></div></form>
+<form id="providerForm"><label id="providerLabel">Provider</label><div class="provider-picker"><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button><button type="button" role="option" data-provider="sambanova" aria-selected="false">SambaNova · Free tier</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option><option value="sambanova">SambaNova · Free tier</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button><button class="catalog-btn" type="button" id="providerDisconnect">Disconnect</button></div></form>
         <p id="providerStatus" role="status"></p>
       </section>
       <section class="settings-section" data-settings-panel="general">
@@ -297,6 +290,18 @@
           <button type="button" data-theme="dark">Dark</button>
           <button type="button" data-theme="light">Light</button>
         </div>
+      </section>
+      <section class="settings-block appearance-settings" data-settings-panel="customization" hidden>
+        <h3 id="appearanceTitle">Customization</h3><p id="appearanceHint">Make MultiMind feel like yours.</p>
+        <h4 id="backgroundTitle">Background animation</h4><div class="background-options" role="group" aria-labelledby="backgroundTitle">
+        <button type="button" data-background="none"><span class="background-preview no-background"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m6 6 12 12"/></svg></span><span>None</span></button>
+        <button type="button" data-background="gateway"><span class="background-preview"><img src="resources/background-previews/gateway.png" alt="" loading="lazy"></span><span>Gateway Flow</span></button>
+        <button type="button" data-background="pattern"><span class="background-preview"><img src="resources/background-previews/pattern.png" alt="" loading="lazy"></span><span>Pattern Waves</span></button>
+        <button type="button" data-background="pixel"><span class="background-preview"><img src="resources/background-previews/pixel.png" alt="" loading="lazy"></span><span>Pixel Blast</span></button></div>
+        <p id="backgroundMotionNote">Animations pause when the app is hidden. Reduced motion uses a still background.</p>
+        <h4 id="paletteTitle">Color palette</h4><div class="appearance-swatches" role="group" aria-labelledby="paletteTitle"></div>
+        <div class="appearance-colors"><label><span id="accentColorLabel">Accent color</span><input type="color" id="accentColor" value="#c3c3c3"></label><label><span id="surfaceColorLabel">Application color</span><input type="color" id="surfaceColor" value="#121212"></label></div>
+        <button type="button" id="resetAppearance" class="catalog-btn">Reset appearance</button>
       </section>
       <section class="settings-section" data-settings-panel="models" hidden>
         <div>
@@ -442,11 +447,43 @@
   </div>
 </div>
 
+<div class="modal-overlay auth-screen show" id="accountModal" data-loading="true">
+  <section class="auth-layout" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+    <div class="auth-brand"><svg viewBox="0 0 256 256" aria-hidden="true"><path d="M40 141h19l23-68 46 112 46-112 23 68h19"/></svg><span>MultiMind</span></div>
+    <div class="auth-loading-note" role="status">Opening your workspace…</div>
+    <div class="auth-content">
+      <div id="accountSignedOut">
+        <header class="auth-heading"><h1 id="accountTitle">Welcome to MultiMind</h1><p>Sign in or create an account to sync your presets.</p></header>
+        <p id="accountSetupNote">Sign-in is not available yet. You can continue without an account.</p>
+        <div id="accountEntry">
+          <form id="accountEmailForm"><label class="auth-sr-only" for="loginEmail">Email address</label><input id="loginEmail" type="email" autocomplete="email" required maxlength="254" placeholder="Email address"><label class="auth-sr-only" for="loginPassword">Password</label><input id="loginPassword" type="password" autocomplete="current-password" required maxlength="1024" placeholder="Password"><button id="accountSubmit" type="submit" class="auth-primary">Sign in</button></form>
+          <button type="button" class="auth-text-button" id="accountSwitchMode">Create an account</button>
+          <button type="button" class="auth-text-button" id="accountSendCode" hidden>Use an email code instead</button>
+          <div class="auth-divider"><span>or</span></div>
+          <button type="button" class="auth-google" id="accountGoogle"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.04.97-3.38.97-2.6 0-4.8-1.76-5.59-4.12H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.93a6 6 0 0 1 0-3.86V7.48H3.07a10 10 0 0 0 0 9.04l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.5 3.83 1.5l2.87-2.87A9.63 9.63 0 0 0 12 2a10 10 0 0 0-8.93 5.48l3.34 2.59C7.2 7.71 9.4 5.95 12 5.95Z"/></svg>Continue with Google</button>
+        </div>
+        <form id="accountVerifyForm" hidden><p id="accountCodeHint"></p><label class="auth-sr-only" for="loginCode">Six-digit verification code</label><input id="loginCode" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required><button class="auth-primary" id="accountVerifyCode" type="submit">Verify &amp; continue</button><div class="auth-code-actions"><button type="button" id="accountBack">Change email</button><button type="button" id="accountResend">Resend code</button></div></form>
+        <button type="button" class="auth-text-button" id="accountCancel" hidden>Cancel browser sign-in</button>
+      </div>
+      <div id="accountSignedIn" hidden><header class="auth-heading"><h2>Your account</h2><p id="accountEmail"></p></header><button type="button" class="auth-text-button" id="accountLogout">Sign out</button></div>
+      <p id="accountError" class="auth-status" role="status" aria-live="polite"></p>
+      <button type="button" class="auth-text-button" id="openMemory" hidden>Presets</button>
+      <button type="button" class="auth-guest" id="accountClose">Continue without an account <span aria-hidden="true">→</span></button>
+      <p class="auth-footnote" id="accountFootnote">Local models and presets work without an account.</p>
+    </div>
+  </section>
+</div>
+<div class="modal-overlay" id="memoryModal"><section class="modal account-dialog" role="dialog" aria-modal="true" aria-labelledby="memoryTitle"><header class="modal-header"><h2 id="memoryTitle">Presets</h2><button class="modal-close" id="memoryClose" aria-label="Close presets">&times;</button></header><div class="modal-body"><p id="memoryScopeNote">Tell MultiMind how you want it to respond.</p><form id="memoryForm"><label for="memoryText">Your response preferences</label><textarea id="memoryText" maxlength="1500" rows="4" placeholder="Keep answers short, explain things simply, and reply in English…" required></textarea><div><button class="catalog-btn primary" type="submit">Save preset</button><button class="catalog-btn" type="button" id="memoryCancelEdit">Cancel edit</button></div></form><div id="memoryList"></div><button type="button" class="catalog-btn" id="memorySync">Sync presets</button><p id="memoryError" role="status"></p></div></section></div>
+<div class="modal-overlay" id="modelInfoModal"><section class="modal account-dialog" role="dialog" aria-modal="true" aria-labelledby="modelInfoTitle"><header class="modal-header"><h2 id="modelInfoTitle">Model details</h2><button class="modal-close" id="modelInfoClose" aria-label="Close model details">&times;</button></header><div class="modal-body"><div id="modelInfoFacts"></div><h3>Response check</h3><p>Checks that the model answers an English greeting. Uses one API request; paid models may charge for it. This is not a general quality score.</p><button class="catalog-btn primary" type="button" id="modelCheckBtn">Run quick check</button><p id="modelCheckResult" role="status"></p></div></section></div>
 <script src="gateway-flow.js"></script>
+<script src="appearance.js"></script>
+<script src="background-effects.js"></script>
 <script src="multimind.js"></script>
 <script src="response-errors.js"></script>
 <script src="chat-intent.js"></script>
 <script src="plugins-chat.js"></script>
+<script src="account-memory.js"></script>
+<script src="model-info.js"></script>
 <script src="renderer.js"></script>
 </body>
 </html>

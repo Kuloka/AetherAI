@@ -1,3 +1,4 @@
+const {secureStorageAvailable}=require('./security');
 const fs = require('fs');
 const path = require('path');
 const {describe}=require('../response-errors');
@@ -5,7 +6,8 @@ const PROVIDERS = {
   openrouter: { base: 'https://openrouter.ai/api/v1', keys: 'https://openrouter.ai/settings/keys' },
   groq: { base: 'https://api.groq.com/openai/v1', keys: 'https://console.groq.com/keys' },
   gemini: { base:'https://generativelanguage.googleapis.com/v1beta/openai', keys:'https://aistudio.google.com/apikey' },
-  cerebras: { base:'https://api.cerebras.ai/v1', keys:'https://cloud.cerebras.ai/platform/api-keys' }
+  cerebras: { base:'https://api.cerebras.ai/v1', keys:'https://cloud.cerebras.ai/platform/api-keys' },
+  sambanova: { base:'https://api.sambanova.ai/v1', keys:'https://cloud.sambanova.ai/apis' }
 };
 
 function createProviders(directory, safeStorage, request = fetch) {
@@ -14,7 +16,7 @@ function createProviders(directory, safeStorage, request = fetch) {
   const quotaFile = path.join(directory, 'provider-usage.json');
   try {
     const saved = JSON.parse(fs.readFileSync(quotaFile, 'utf8'));
-    for (const [id, value] of Object.entries(saved)) if ((Object.hasOwn(PROVIDERS,id) || /^cloud:(groq|gemini|cerebras)\//.test(id)) && value && Number.isFinite(value.updatedAt)) quota.set(id,value);
+    for (const [id, value] of Object.entries(saved)) if ((Object.hasOwn(PROVIDERS,id) || /^cloud:(groq|gemini|cerebras|sambanova)\//.test(id)) && value && Number.isFinite(value.updatedAt)) quota.set(id,value);
   } catch {}
   function persistUsage() { fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(quotaFile,JSON.stringify(Object.fromEntries(quota))); }
   function usage() { return Object.fromEntries(quota); }
@@ -46,13 +48,14 @@ function createProviders(directory, safeStorage, request = fetch) {
     const data = await response.json();
     if (!Array.isArray(data.data)) throw new Error('Invalid provider model list');
     return data.data.filter(model => typeof model.id === 'string' && /^[a-zA-Z0-9_.:/-]{1,200}$/.test(model.id))
+      .filter(model => id !== 'sambanova' || !/embed|rerank|whisper|tts|speech|audio/i.test(model.id))
       .filter(model => id === 'openrouter' ? model.architecture?.output_modalities?.includes('text') !== false : id==='gemini' ? /gemini/i.test(model.id)&&!/embedding|tts|image|live|audio|robotic/i.test(model.id) : !/whisper|tts|guard/i.test(model.id))
       .map(model => ({ name: 'cloud:' + id + '/' + model.id, cloudName: model.name || model.id, contextLength: model.context_length || model.context_window || null, provider: id, backend: 'cloud', size: 0, details: {}, pricing:model.pricing||null, free: id==='openrouter' && Number(model.pricing?.prompt)===0 && Number(model.pricing?.completion)===0 && Object.values(model.pricing||{}).every(price=>Number(price)===0), capabilities: model.architecture?.input_modalities?.includes('image') ? ['completion', 'vision'] : ['completion'] }));
   }
   async function save(id, value) {
     config(id);
     if (typeof value !== 'string' || value.trim().length < 8 || value.length > 4096 || /[\r\n]/.test(value)) throw new Error('Enter a valid API key');
-    if (!safeStorage.isEncryptionAvailable()) throw new Error('Secure credential storage is unavailable');
+    if (!secureStorageAvailable(safeStorage)) throw new Error('Secure credential storage is unavailable');
     const token = value.trim();
     let keyData;
     if (id === 'openrouter') {
@@ -65,7 +68,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     const models = await list(id, token);
     if (token !== key(id)) for (const name of quota.keys()) if (name === id || name.startsWith('cloud:' + id + '/')) quota.delete(name);
     fs.mkdirSync(directory, { recursive: true });
-    fs.writeFileSync(file(id), safeStorage.encryptString(token));
+    fs.writeFileSync(file(id), safeStorage.encryptString(token),{mode:0o600});
     if (keyData) recordKeyUsage(keyData); else persistUsage();
     cache.set(id, { time: Date.now(), models });
     return status();
@@ -86,7 +89,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     return successful.flatMap(result => result.value);
   }
   async function chat(body, signal, emit) {
-    const match = /^cloud:(openrouter|groq|gemini|cerebras)\/(.+)$/.exec(body?.model || '');
+    const match = /^cloud:(openrouter|groq|gemini|cerebras|sambanova)\/(.+)$/.exec(body?.model || '');
     if (!match || !Array.isArray(body.messages)) throw new Error('Invalid provider request');
     const [, id, model] = match, token = key(id);
     if (!token) throw new Error('Connect ' + id + ' in Settings → Providers');
@@ -100,7 +103,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     }
     const response = await request(config(id).base + '/chat/completions', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal, redirect: 'error' });
     const limits = {};
-    for (const [type, label] of [['requests', 'Daily requests'], ['tokens', 'Tokens per minute']]) {
+    for (const [type, label] of [['requests', id === 'groq' ? 'Daily requests' : 'Requests per minute'], ['requests-day', 'Daily requests'], ['tokens', 'Tokens per minute'], ['tokens-day', 'Daily tokens']]) {
       const total = response.headers.get('x-ratelimit-limit-' + type);
       const remaining = response.headers.get('x-ratelimit-remaining-' + type);
       if (total !== null && remaining !== null && Number.isFinite(Number(total)) && Number.isFinite(Number(remaining))) limits[type] = { total: Number(total), remaining: Number(remaining), label, reset: response.headers.get('x-ratelimit-reset-' + type) };

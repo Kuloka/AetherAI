@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   package:
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -36,15 +38,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
 
       - run: npm ci
       - run: npm run check
       - run: npm test
+      - run: npm run check:security
 
       - name: Check model selection and provider interface (Linux)
         if: runner.os == 'Linux'
@@ -55,6 +60,9 @@ jobs:
 
       - name: Build native packages
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
+
+      - name: Check packaged file boundaries
+        run: node tests/package-security.cjs
 
       - name: Smoke test packaged application (Linux)
         if: runner.os == 'Linux'
@@ -83,11 +91,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
       - name: Generate release description and exact line statistics
-        run: node scripts/release-notes.cjs v1.20.0 > release-description.md
+        run: node scripts/release-notes.cjs v1.21.0 > release-description.md
       - uses: actions/download-artifact@v4
         with:
           path: release-files
@@ -121,7 +130,7 @@ jobs:
           generate_release_notes: true
           body_path: release-description.md
           prerelease: false
-          replacesArtifacts: true
+          overwrite_files: true
           files: |
             release-files/**/*.exe
             release-files/**/*.AppImage

@@ -94,6 +94,14 @@ To extend the catalog, add an entry to `models-catalog.json` and restart/rebuild
 
 The built-in engine loads one model at a time. Specialists sharing that model can use its parallel slots; specialists assigned different built-in models run sequentially to avoid replacing a model during an active response.
 
+## Customization
+
+Settings > Customization (the pen icon) offers None, Gateway Flow, Pattern Waves and Pixel Blast. Choose an accent from the swatches or use the native color picker; a second picker changes the application's surface color with automatically contrasting text. Reset restores the default monochrome appearance. Settings are saved across restarts, and color changes apply immediately. Backgrounds stop when the window is hidden; reduced-motion preferences use a static field for GPU effects. Desktop backgrounds do not intercept chat interactions.
+
+React Bits sources are bundled locally rather than loaded from a CDN. Pattern Waves uses OGL and Pixel Blast uses Three.js; the desktop includes their dependencies in a standalone bundle. The website product wordmark uses Shape Waves (WebGPU) and falls back to HTML text when unsupported. The shared sources and license are in `docs/source/backgrounds` and `resources/reactbits-license.txt`.
+
+The experimental terminal panel and its command-execution IPC endpoint have been removed. Project files and MCP Workspace tools remain available.
+
 ## Local skills
 
 Settings > Skills imports Markdown instruction files. Enable each skill explicitly; enabled instructions apply to the main model on subsequent requests. Imported files live in ~/.multimind-data/skills. Each imported skill is limited to 12,000 characters and the enabled set to 24,000. Skills are instructions, not executable plugins.
@@ -115,6 +123,22 @@ The built-in Workspace connection ships with the app and exposes `list_projects`
 On text requests, the main model can select tools through a bounded JSON planning loop (at most four calls, at most 40 advertised tools). Ask mode prompts before calls, Full access runs without those prompts, and Plan mode disables tool execution. Stop cancels pending calls. Text results are passed to the main model and subagents as context. Unsupported model output does not execute a tool. OAuth, a plugin marketplace, and plugin UI extensions are not included.
 
 Validation includes real stdio and HTTP MCP servers, approval denial, disabled connections, project path boundaries, and a Qwen 1.5B smoke run that selected a tool and used its result in the final answer. Other models may be less reliable at selecting tools.
+
+## Profile, memory and model details
+
+The bottom sidebar profile opens optional Google/email-code sign-in and a memory editor. Guest memory is local; signed-in account memory is kept separately. Add personal or project notes, edit them, disable them or delete them. Deletion clears note text and retains an ID/timestamp tombstone for sync. Syncing account memory is an explicit action; API keys, projects, files and chat histories are not uploaded by this integration.
+
+Memory is off for chat requests by default. In Manage memory, explicitly enable its use for the named selected model/provider. Switching models or accounts clears this consent. Project notes are only included for matching project chats; personal notes apply across chats. Memory is reference data and never authorizes file changes or tools.
+
+Model details show reported context, image support, size, quantization and known language information, with unknown values stated explicitly. Run quick check sends one English greeting and records elapsed time and a response sample on this device; it is not a general benchmark and a paid model can charge for that request.
+
+Sign-in remains unavailable until the developer configures Supabase. See [account setup](docs/account-setup.md), [public configuration template](auth-config.example.json) and [memory RLS schema](docs/memory-schema.sql). Google uses the system browser and PKCE; sessions are encrypted in the Electron main process. Email delivery for ordinary users requires a configured SMTP service. Tests simulate account responses; live delivery and an actual Google account still need verification after backend setup.
+
+## SambaNova
+
+Connect a SambaNova key in Settings > Providers > SambaNova. Keys are encrypted locally; the text model list is fetched from `https://api.sambanova.ai/v1/models`. Responses stream through the OpenAI-compatible chat endpoint and can be cancelled. Reported per-model minute and daily request counters are shown separately and persisted; no remaining quota is invented before the API reports it. The limit dialog opens SambaNova billing.
+
+The free tier is available without a payment method. As of October 8, 2026, documented free models include DeepSeek V3.1/V3.2, Llama 3.3 70B, GPT-OSS 120B and Gemma 4 31B, each subject to 20 requests/minute, 20 requests/day and 200,000 tokens/day. Access and effective pricing depend on your account; standard API model prices are not interpreted as a promise that every request is free. [Official limits](https://docs.sambanova.ai/docs/en/models/rate-limits).
 
 ## OpenRouter limits
 

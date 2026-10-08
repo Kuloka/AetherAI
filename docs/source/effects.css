@@ -20,3 +20,6 @@ body>.nav,body>main,body>footer{position:relative;z-index:1}
 .border-glow-card:focus-visible{outline:2px solid #ccc;outline-offset:5px}
 @media(max-width:600px){#gateway-flow{opacity:.48}.feature-grid article,.detail-grid article{padding:24px}.faq details.border-glow-card{padding:20px}.demo{padding:26px}}
 @media(prefers-reduced-motion:reduce){.border-glow-card::before,.border-glow-card::after,.border-glow-card>.edge-light{display:none}}
+/* Shape Waves only surrounds the product name, leaving the page readable. */
+.shape-wordmark { width:min(760px,100%); height:clamp(110px,16vw,190px); margin:0 auto 18px; }
+.shape-wordmark-fallback { display:flex; align-items:center; justify-content:center; height:100%; color:#dedede; font-size:clamp(46px,8vw,100px); font-weight:600; letter-spacing:-.055em; }

@@ -1,5 +1,7 @@
 # Website effects
 
+The build also emits `background-effects.js`, `background-effects.css` and its legal notice in the repository root for Electron. These are prebundled Pattern Waves / Pixel Blast components, with dependencies isolated in this build directory. Shape Waves renders the website's MultiMind wordmark with a static text fallback for unsupported WebGPU. Component provenance and local lifecycle adjustments are listed in `backgrounds/SOURCES.md`.
+
 Gateway Flow is adapted from the supplied component into the shared root `gateway-flow.js` canvas engine so the static website and Electron app use the same offline implementation. Website options live in `effects.jsx`: its heading is the only click target. App options live in `renderer.js` and do not set an interactive target. Edit either small options object to tune density, speed, opacity and particle size independently. BorderGlow keeps the supplied edge-proximity calculation on the existing HTML elements.
 
 Source: https://github.com/DavidHDev/react-bits — copyright David Haz. See REACT-BITS-LICENSE.md. Components are integrated into the MultiMind website.

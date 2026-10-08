@@ -13,6 +13,7 @@ app.on('web-contents-created', (_event, contents) => {
       assert.equal(await contents.executeJavaScript("document.title.includes('MultiMind')"), true);
       assert.equal(await contents.executeJavaScript("!!document.getElementById('settingsBtn') || !!document.querySelector('.settings-btn')"), true);
       assert.ok(BrowserWindow.getAllWindows().length);
+      assert.equal(await contents.executeJavaScript("(async()=>{const settings=await api.settingsGet();const account=await api.accountStatus();return !!settings && typeof account.configured==='boolean';})()"),true);
       console.log(`PASS: packaged app loads on ${process.platform}/${process.arch}`);
       clearTimeout(deadline); app.exit(0);
     } catch (error) { console.error(error); app.exit(1); }

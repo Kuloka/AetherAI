@@ -5,6 +5,10 @@
     "build": "node build.cjs"
   },
   "dependencies": {
+    "ogl": "^1.0.11",
+    "three": "^0.180.0",
+    "postprocessing": "^6.36.0",
+    "vgpu": "^0.3.1",
     "react": "19.2",
     "react-dom": "19.2"
   },

@@ -1,0 +1,8 @@
+const fs=require('node:fs'),path=require('node:path'),{execFileSync}=require('node:child_process');
+const files=[...new Set(execFileSync('git',['ls-files','--cached','--others','--exclude-standard','-z'],{encoding:'utf8',windowsHide:true}).split('\0').filter(Boolean))];
+const forbidden=/(^|\/)(?:\.env(?:\..*)?|auth-config\.json|credentials[^/]*\.json|service-account[^/]*\.json|[^/]*session[^/]*\.enc)|\.(?:pem|key|p12|pfx|db|sqlite3?|dump)$|email-template.*\.html$/i;
+const patterns=[/-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,/\bsb_secret_[A-Za-z0-9_-]{20,}/,/\bsk-or-v1-[a-f0-9]{40,}/,/\bgsk_[A-Za-z0-9]{40,}/,/\bnvapi-[A-Za-z0-9_-]{40,}/];
+const findings=[];
+for(const file of files){if(forbidden.test(file)&&!file.endsWith('.env.example'))findings.push(file+': private file');if(!fs.existsSync(file)||fs.statSync(file).size>6000000||! /\.(?:js|cjs|json|md|html|ya?ml|txt|sql|example)$/.test(file))continue;const text=fs.readFileSync(file,'utf8');if(patterns.some(p=>p.test(text)))findings.push(file+': possible secret');for(const match of text.matchAll(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g)){try{if(JSON.parse(Buffer.from(match[0].split('.')[1],'base64url')).role==='service_role')findings.push(file+': privileged JWT');}catch{}}}
+const pkg=JSON.parse(fs.readFileSync('package.json','utf8'));if(pkg.build.files.includes('**/*'))findings.push('package.json: unrestricted package files');
+if(findings.length){console.error(findings.join('\n'));process.exit(1);}console.log('PASS: '+files.length+' publishable files checked; no matching secrets/private files; package uses an allowlist');

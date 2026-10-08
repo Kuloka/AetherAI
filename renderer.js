@@ -21,6 +21,7 @@
     accessMode: "ask",
     appLanguage: "en",
     theme: "dark",
+    appearance: { background: "gateway", accent: "#c3c3c3", surface: null },
     teamEnabled: true,
     workerModels: [],
     computeMode: "auto",
@@ -80,7 +81,8 @@
     availableModels = modeModels();
     if (!availableModels.some(model => model.name === settings.selectedModel)) {
       const remembered = settings.localAi ? settings.lastLocalModel : settings.lastCloudModel;
-      const automatic = settings.localAi ? availableModels[0] : availableModels.find(model=>model.free===true || model.provider==='groq');
+      const generalModels=availableModels.filter(model=>!/allam/i.test(model.name));
+      const automatic = settings.localAi ? availableModels[0] : generalModels.find(model=>model.free===true) || generalModels.find(model=>model.provider==='groq'&&/gpt-oss-120b/i.test(model.name)) || generalModels.find(model=>model.provider==='groq'&&/gpt-oss-20b|qwen|llama/i.test(model.name)) || generalModels.find(model=>model.provider==='groq');
       settings.selectedModel = availableModels.some(model => model.name === remembered) ? remembered : automatic?.name || null;
     }
     renderSelectedModel(settings.selectedModel);
@@ -114,6 +116,7 @@
     const configured = statuses.some(item => item.id === id && item.configured);
     $('providerDisconnect').hidden = !configured;
     $('providerStatus').textContent = settings.appLanguage === 'ru' ? (configured ? 'Подключено. Бесплатные модели имеют лимиты провайдера.' : 'Добавьте свой API-ключ. Ключ хранится зашифрованным на компьютере.') : (configured ? 'Connected. Free models are subject to provider limits.' : 'Add your API key. It is stored encrypted on this computer.');
+    if(id==='sambanova')$('providerStatus').textContent += settings.appLanguage==='ru'?' Бесплатный тариф доступен без привязки карты. Лимиты зависят от модели и тарифа аккаунта.':' A free tier is available without a payment method. Limits depend on the model and your account tier.';
   }
   $('providerSelect').addEventListener('change', () => { settings.preferredCloudProvider=$('providerSelect').value; persist(); $('providerKey').value = ''; refreshProviderStatus(); });
   document.querySelector('[data-settings-tab="cloud"]').addEventListener('click', () => refreshProviderStatus());
@@ -222,13 +225,7 @@
   const toggleTabBtn = $("toggleTabBtn");
   const sideLogo = document.querySelector(".side-logo");
   const toolbarExplorerBtn = $("toolbarExplorerBtn");
-  const toolbarTerminalBtn = $("toolbarTerminalBtn");
   const toolbarPanelBtn = $("toolbarPanelBtn");
-  const terminalPanel = $("terminalPanel");
-  const terminalOutput = $("terminalOutput");
-  const terminalInput = $("terminalInput");
-  const terminalCwd = $("terminalCwd");
-  const closeTerminalBtn = $("closeTerminalBtn");
   const sidePanel = $("sidePanel");
   const closePanelBtn = $("closePanelBtn");
   const progressCard = $("progressCard");
@@ -373,10 +370,8 @@
       closeSidebar: "Close sidebar",
       openSidebar: "Open sidebar",
       explorer: "Explorer",
-      toggleTerminal: "Toggle terminal",
       togglePanel: "Toggle panel",
       closePanel: "Close panel",
-      closeTerminal: "Close terminal",
       attachFile: "Attach file",
       send: "Send",
       stop: "Stop",
@@ -490,10 +485,8 @@
       "closeSidebar": "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0431\u043e\u043a\u043e\u0432\u0443\u044e \u043f\u0430\u043d\u0435\u043b\u044c",
       "openSidebar": "\u041e\u0442\u043a\u0440\u044b\u0442\u044c \u0431\u043e\u043a\u043e\u0432\u0443\u044e \u043f\u0430\u043d\u0435\u043b\u044c",
       "explorer": "\u041f\u0440\u043e\u0435\u043a\u0442\u044b",
-      "toggleTerminal": "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b",
       "togglePanel": "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u044c",
       "closePanel": "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u043f\u0430\u043d\u0435\u043b\u044c",
-      "closeTerminal": "\u0417\u0430\u043a\u0440\u044b\u0442\u044c \u0442\u0435\u0440\u043c\u0438\u043d\u0430\u043b",
       "attachFile": "\u041f\u0440\u0438\u043a\u0440\u0435\u043f\u0438\u0442\u044c \u0444\u0430\u0439\u043b",
       "send": "\u041e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c",
       "stop": "\u041e\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442\u044c",
@@ -800,11 +793,9 @@
       settingsBtn: t("settings"),
       toggleTabBtn: appEl?.classList.contains("tab-collapsed") ? t("openSidebar") : t("closeSidebar"),
       toolbarExplorerBtn: t("explorer"),
-      toolbarTerminalBtn: t("toggleTerminal"),
       toolbarPanelBtn: t("togglePanel"),
       progressHideBtn: progressDismissed ? t("showProgress") : t("collapseProgress"),
       closePanelBtn: t("closePanel"),
-      closeTerminalBtn: t("closeTerminal"),
       attachBtn: t("attachFile"),
       sendBtn: t("send"),
       stopBtn: t("stop"),
@@ -920,7 +911,7 @@
     migrateBrandNamesInData();
     const s = await window.api.settingsGet();
     if (s) settings = Object.assign(settings, s);
-    if (['openrouter','groq','gemini','cerebras'].includes(settings.preferredCloudProvider)) {
+    if (['openrouter','groq','gemini','cerebras','sambanova'].includes(settings.preferredCloudProvider)) {
       $('providerSelect').value=settings.preferredCloudProvider;
       $('providerPickerValue').textContent=$('providerSelect').selectedOptions[0].textContent;
       $('providerOptions').querySelectorAll('[data-provider]').forEach(button=>button.setAttribute('aria-selected',String(button.dataset.provider===settings.preferredCloudProvider)));
@@ -1226,6 +1217,7 @@
         btn.classList.toggle("active", btn.dataset.theme === settings.theme);
       });
     }
+    window.MultiMindAppearance?.apply(settings.appearance);
     if (computeSegment) {
       computeSegment.querySelectorAll("button").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.compute === (settings.computeMode || "auto"));
@@ -1287,7 +1279,7 @@
   });
   $('cloudDisconnect').onclick=async()=>{await window.api.cloudDisconnect();$('cloudApiKey').value='';if(settings.selectedModel?.startsWith('cloud:'))settings.selectedModel=null;await checkOllama();renderSelectedModel(settings.selectedModel);await persist();await refreshCloudStatus();};
   window.addEventListener('ollama-cloud-problem',event=>{
-    if (['rate','billing','overloaded'].includes(event.detail.kind) && ['openrouter','groq','gemini','cerebras'].includes(event.detail.provider)) {
+    if (['rate','billing','overloaded'].includes(event.detail.kind) && ['openrouter','groq','gemini','cerebras','sambanova'].includes(event.detail.provider)) {
       showProviderLimit(event.detail); return;
     }
     const {kind,message}=event.detail;
@@ -1404,13 +1396,13 @@
   function renderSettings() {
     renderDiscordSettings();
     refreshCloudStatus();
-    refreshCloudStatus();
     refreshPlugins();
     applyAppLanguageBasics();
     const russian = settings.appLanguage === "ru";
     settingsModal.querySelectorAll('[data-settings-tab]').forEach(button => {
-      button.textContent = ({general: russian ? 'Общие' : 'General', models: russian ? 'Модели' : 'Models', skills: 'Skills', plugins: 'Plugins', cloud: 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: 'Discord Activity'})[button.dataset.settingsTab];
+      button.textContent = ({general: russian ? 'Общие' : 'General', customization: russian ? 'Оформление' : 'Customization', models: russian ? 'Модели' : 'Models', skills: 'Skills', plugins: 'Plugins', cloud: 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: 'Discord Activity'})[button.dataset.settingsTab];
     });
+    renderAppearance();
     if (languagePackList) {
       languagePackList.innerHTML = '';
       $('languageValue').textContent = APP_LANGUAGES.find(lang => lang.code === (settings.appLanguage || 'en'))?.name || 'English';
@@ -1537,6 +1529,9 @@
 
 
   function initGatewayFlowBackground() {
+    gatewayFlowBg?.gatewayFlow?.destroy();
+    if (gatewayFlowBg) { gatewayFlowBg.gatewayFlow = null; gatewayFlowBg.hidden = settings.appearance?.background !== "gateway"; }
+    if (settings.appearance?.background !== "gateway") return;
     if (!gatewayFlowBg || !window.MultiMindGatewayFlow) return;
     const flow = window.MultiMindGatewayFlow.createGatewayFlow(gatewayFlowBg, {
       paths: 58,
@@ -1550,6 +1545,39 @@
     });
     gatewayFlowBg.gatewayFlow = flow;
   }
+
+  function applyAppearance() {
+    settings.appearance = window.MultiMindAppearance.normalize(settings.appearance);
+    window.MultiMindAppearance.apply(settings.appearance);
+    if (gatewayFlowBg?.hidden !== (settings.appearance.background !== 'gateway') || (settings.appearance.background === 'gateway' && !gatewayFlowBg?.gatewayFlow)) initGatewayFlowBackground();
+    window.MultiMindBackgrounds?.update({background:settings.appearance.background,color:settings.appearance.accent});
+    renderAppearance();
+  }
+  function renderAppearance() {
+    const ru=settings.appLanguage==='ru';
+    const tab=document.querySelector('[data-settings-tab="customization"]');
+    tab.innerHTML=`<svg class="appearance-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5ZM12 20h8"/></svg><span>${ru?'Оформление':'Customization'}</span>`;
+    for(const [id,text] of Object.entries({appearanceTitle:ru?'Оформление':'Customization',appearanceHint:ru?'Настройте MultiMind под себя.':'Make MultiMind feel like yours.',backgroundTitle:ru?'Анимация фона':'Background animation',backgroundMotionNote:ru?'Анимация останавливается в скрытом окне. При уменьшении движения фон статичный.':'Animations pause when the app is hidden. Reduced motion uses a still background.',paletteTitle:ru?'Палитра цветов':'Color palette',accentColorLabel:ru?'Цвет акцента':'Accent color',surfaceColorLabel:ru?'Цвет приложения':'Application color',resetAppearance:ru?'Сбросить оформление':'Reset appearance'}))$(id).textContent=text;
+    const options=window.MultiMindAppearance.normalize(settings.appearance);
+    document.querySelectorAll('[data-background]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.background===options.background)));
+    document.querySelector('[data-background="none"] > span:last-child').textContent=ru?'Без анимации':'None';
+    $('accentColor').value=options.accent;
+    $('surfaceColor').value=options.surface || (settings.theme==='light'?'#f6f6f6':'#121212');
+  }
+  const swatches=document.querySelector('.appearance-swatches');
+  for(const color of ['#c3c3c3','#91baff','#b9a0ee','#f2ac83','#83c9ac','#ef9fbb']){
+    const button=document.createElement('button');button.type='button';button.style.background=color;button.setAttribute('aria-label',color);button.title=color;
+    button.onclick=()=>{settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),accent:color,surface:color==='#c3c3c3'?null:window.MultiMindAppearance.mix(color,settings.theme==='light'?'#ffffff':'#000000',settings.theme==='light'?.78:.7)};applyAppearance();window.api?.settingsSave(settings);};swatches.append(button);
+  }
+  document.querySelectorAll('[data-background]').forEach(button=>button.onclick=()=>{
+    settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),background:button.dataset.background};applyAppearance();window.api?.settingsSave(settings);
+  });
+  let appearanceTimer;
+  for(const [id,field] of [['accentColor','accent'],['surfaceColor','surface']]){
+    $(id).addEventListener('input',()=>{settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),[field]:$(id).value};clearTimeout(appearanceTimer);appearanceTimer=setTimeout(applyAppearance,80);});
+    $(id).addEventListener('change',()=>{clearTimeout(appearanceTimer);settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),[field]:$(id).value};applyAppearance();window.api?.settingsSave(settings);});
+  }
+  $('resetAppearance').onclick=()=>{settings.appearance=window.MultiMindAppearance.normalize();applyAppearance();window.api?.settingsSave(settings);};
 
   function initElectricComposerBorder() {
     if (!electricBorderCanvas) return;
@@ -1980,7 +2008,8 @@
     const details = [];
     const size = modelParameters(model); if(size)details.push(size+'B');
     if(model.contextLength)details.push(Math.round(model.contextLength/1024)+'K context');
-    if(model.provider)details.push(({groq:'Groq',openrouter:'OpenRouter',gemini:'Gemini',cerebras:'Cerebras'})[model.provider]||model.provider);
+    if(/allam/i.test(model.name))details.push('Arabic / English');
+    if(model.provider)details.push(({groq:'Groq',openrouter:'OpenRouter',gemini:'Gemini',cerebras:'Cerebras',sambanova:'SambaNova'})[model.provider]||model.provider);
     if(model.provider==='openrouter'){
       details.push(model.free?'Free':'Paid');
       if(!model.free && model.pricing){
@@ -2026,6 +2055,7 @@
       const card = document.createElement('div'); card.className = 'model-active-card';
       card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check">Selected</span></div>`;
       if (isCloudModel(selected.name)) card.append(buildModelLimits(selected));
+      const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='Model details';info.onclick=()=>{modelDropdown.classList.remove('show');window.MultiMindModelInfo.show(selected);};card.append(info);
       modelDropdown.append(card);
     }
     if (!settings.localAi && !availableModels.length) {
@@ -2103,6 +2133,7 @@
           modelDropdown.classList.remove("show");
           syncComposerExpanded();
         });
+        const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='ⓘ';info.setAttribute('aria-label','Details for '+(m.cloudName||m.name));info.onclick=event=>{event.stopPropagation();modelDropdown.classList.remove('show');window.MultiMindModelInfo.show(m);};item.append(info);
         modelDropdown.appendChild(item);
       });
     });
@@ -2131,6 +2162,7 @@
   }
 
   function renderSelectedModel(name) {
+    window.MultiMindAccount?.setModel(availableModels.find(model=>model.name===name));
     if (modelLabel) modelLabel.textContent = availableModels.find(model => model.name === name)?.cloudName || name || t("chooseModel");
     if (modelBtnIcon) {
       modelBtnIcon.innerHTML = name ? providerIconMarkup({ name }) : "";
@@ -2380,69 +2412,16 @@
     if (found) loadChat(found.id);
   });
 
-  function appendTerminalLine(text) {
-    if (!terminalOutput) return;
-    terminalOutput.textContent += (terminalOutput.textContent ? "\n" : "") + text;
-    terminalOutput.scrollTop = terminalOutput.scrollHeight;
-  }
-
-  async function updateTerminalCwd() {
-    if (!window.api || !window.api.getProjectsRoot || !terminalCwd) return;
-    const res = await window.api.getProjectsRoot();
-    if (res.ok) terminalCwd.textContent = `PS ${res.path}`;
-  }
-
-  toolbarExplorerBtn?.addEventListener("click", async () => {
-    const res = await window.api.openProjectsFolder();
-    if (res.ok) {
-      appendTerminalLine(`explorer ${res.path}`);
-    }
-  });
-  toolbarTerminalBtn?.addEventListener("click", async () => {
-    terminalPanel.classList.toggle("show");
-    toolbarTerminalBtn.classList.toggle("active", terminalPanel.classList.contains("show"));
-    await updateTerminalCwd();
-    if (terminalPanel.classList.contains("show") && !terminalOutput.textContent) {
-      appendTerminalLine("Windows PowerShell");
-      appendTerminalLine("Terminal ready.");
-    }
-    terminalInput?.focus();
-  });
+  toolbarExplorerBtn?.addEventListener("click", () => window.api.openProjectsFolder());
   toolbarPanelBtn?.addEventListener("click", () => {
     sidePanel.classList.toggle("show");
     toolbarPanelBtn.classList.toggle("active", sidePanel.classList.contains("show"));
     mainArea?.classList.toggle("panel-open", sidePanel.classList.contains("show"));
   });
-  closeTerminalBtn?.addEventListener("click", () => {
-    terminalPanel.classList.remove("show");
-    toolbarTerminalBtn?.classList.remove("active");
-  });
   closePanelBtn?.addEventListener("click", () => {
     sidePanel.classList.remove("show");
     toolbarPanelBtn?.classList.remove("active");
     mainArea?.classList.remove("panel-open");
-  });
-  terminalInput?.addEventListener("keydown", async (e) => {
-    if (e.key !== "Enter") return;
-    const cmd = terminalInput.value.trim();
-    if (!cmd) return;
-    terminalInput.value = "";
-    appendTerminalLine(`${terminalCwd.textContent}> ${cmd}`);
-    if (cmd.toLowerCase() === "explorer") {
-      const res = await window.api.openProjectsFolder();
-      if (res.ok) {
-        appendTerminalLine(`explorer ${res.path}`);
-      }
-    } else {
-      const result = await window.api.terminalRun?.(cmd);
-      if (!result) {
-        appendTerminalLine("Terminal is unavailable.");
-        return;
-      }
-      if (result.stdout) appendTerminalLine(result.stdout.trimEnd());
-      if (result.stderr) appendTerminalLine(result.stderr.trimEnd());
-      if (!result.ok && result.error) appendTerminalLine(result.error);
-    }
   });
   document.addEventListener("keydown", (e) => {
     if (e.ctrlKey || e.altKey || e.metaKey || e.key.length !== 1) return;
@@ -3500,20 +3479,8 @@
   // ============================================================
   function buildSystemPrompt(userText) {
 
-    const think = settings.thinkLevel;
-    let thinkHint = "";
-    if (think === "none") {
-      thinkHint = "\u041e\u0442\u0432\u0435\u0447\u0430\u0439 \u043a\u043e\u0440\u043e\u0442\u043a\u043e \u0438 \u043f\u0440\u044f\u043c\u043e.";
-    } else if (think === "low") {
-      thinkHint = "\u041e\u0442\u0432\u0435\u0447\u0430\u0439 \u043a\u0440\u0430\u0442\u043a\u043e \u0438 \u043f\u043e \u0434\u0435\u043b\u0443.";
-    } else if (think === "medium") {
-      thinkHint = "\u0414\u0430\u0432\u0430\u0439 \u0432\u0434\u0443\u043c\u0447\u0438\u0432\u044b\u0435, \u043f\u043e\u043b\u0435\u0437\u043d\u044b\u0435 \u043e\u0442\u0432\u0435\u0442\u044b \u043e\u0431\u044b\u0447\u043d\u043e\u0439 \u0434\u043b\u0438\u043d\u044b.";
-    } else if (think === "high") {
-      thinkHint = "\u0420\u0430\u0437\u043c\u044b\u0448\u043b\u044f\u0439 \u0433\u043b\u0443\u0431\u0436\u0435 \u0438 \u0434\u0430\u0432\u0430\u0439 \u043f\u0440\u043e\u0434\u0443\u043c\u0430\u043d\u043d\u044b\u0439 \u043e\u0442\u0432\u0435\u0442.";
-    } else if (think === "max") {
-      thinkHint = "\u0420\u0430\u0437\u043c\u044b\u0448\u043b\u044f\u0439 \u043c\u0430\u043a\u0441\u0438\u043c\u0430\u043b\u044c\u043d\u043e \u0433\u043b\u0443\u0431\u043e\u043a\u043e \u0438 \u0440\u0430\u0441\u0441\u043c\u0430\u0442\u0440\u0438\u0432\u0430\u0439 \u0437\u0430\u0434\u0430\u0447\u0443 \u0441 \u0440\u0430\u0437\u043d\u044b\u0445 \u0441\u0442\u043e\u0440\u043e\u043d.";
-    }
-    return `${MultiMindIntent.prompt(userText)}\n\n${thinkHint}`;
+    const hints = { none: 'Answer briefly and directly.', low: 'Give a concise, practical answer.', medium: 'Give a thoughtful, useful answer of ordinary length.', high: 'Consider the request carefully and give a well-reasoned answer.', max: 'Consider the request thoroughly from relevant perspectives.' };
+    return `${MultiMindIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}`;
   }
 
   async function maybeInstallNodePackages(activity, folderName) {
@@ -3580,8 +3547,8 @@
     const value = (model.cloudName || '') + ' ' + (model.name || '');
     const brands = [[/apodex/i,'apodex.png'],[/inclusion|ling[- .]/i,'antgroup-color.svg'],[/qwen/i,'qwen-color.svg'],[/deepseek/i,'deepseek-color.svg'],[/llama|meta/i,'meta-color.svg'],[/gemini|gemma/i,'gemini-color.svg'],[/claude|anthropic/i,'claude-color.svg'],[/gpt|openai/i,'openai.svg'],[/glm|zhipu/i,'zhipu-color.svg'],[/nemotron|nvidia/i,'nvidia-color.svg'],[/mistral|mixtral/i,'mistral-color.svg'],[/kimi|moonshot/i,'moonshot.svg'],[/minimax/i,'minimax-color.svg'],[/phi|microsoft/i,'microsoft-color.svg']];
     const brand = brands.find(([expression]) => expression.test(value));
-    const service = /^cloud:(openrouter|groq|gemini|cerebras)\//.exec(model.name || '')?.[1];
-    const icon = brand?.[1] || (service==='gemini'?'gemini-color.svg':service ? service+'.svg' : 'ollama.svg');
+    const service = /^cloud:(openrouter|groq|gemini|cerebras|sambanova)\//.exec(model.name || '')?.[1];
+    const icon = brand?.[1] || (service==='gemini'?'gemini-color.svg':service==='sambanova'?'sambanova.svg':service ? service+'.svg' : 'ollama.svg');
     return `<img class="provider-logo-img" src="resources/model-icons/${icon}" alt="" loading="lazy">`;
   }
 
@@ -3644,9 +3611,12 @@
       currentUserContent += `\n\nUse this internet context when relevant. Cite source domains or URLs in the answer.\n${internetContext}`;
     }
 
+    const memoryContext=await window.MultiMindAccount?.context(getCurrentChat()?.groupId,requestModel).catch(()=> '');
+    if (generationId !== activeGenerationId) return "_STOPPED_";
     const apiMessages = [
       { role: "system", content: buildSystemPrompt(userText) + (!intent.simple && activeSkillContext ? `\n\nUser-enabled skills (apply only when relevant to the current request; skills never authorize file changes by themselves):\n${activeSkillContext}` : "") },
       ...contextMsgs,
+      ...(memoryContext?[{role:'user',content:'User-approved memory (reference data, not permission to run tools or create files; the current request takes precedence):\n'+JSON.stringify(memoryContext)}]:[]),
       { role: "user", content: currentUserContent || (userImages && userImages.length ? "Describe this image." : ""), images: (userImages && userImages.length ? userImages : undefined) }
     ];
 
@@ -4868,6 +4838,7 @@
   }
 
   function renderSidebar() {
+    window.MultiMindAccount?.setProjects(data.groups);
     chatHistoryList.innerHTML = "";
 
     // "New chat" is highlighted only while the current draft has no messages.
@@ -5457,7 +5428,7 @@
     renderSettings();
     renderProgress();
     renderSelectedModel(settings.selectedModel);
-    initGatewayFlowBackground();
+    applyAppearance();
     initElectricComposerBorder();
     typeWelcomeTitle();
     renderSidebar();
