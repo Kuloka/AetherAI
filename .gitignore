@@ -61,6 +61,8 @@ credentials
 credentials.*
 !.env.example
 release-description.md
+SECURITY_AUDIT.md
+audit-reports/
 
 # OS and editor noise
 .DS_Store

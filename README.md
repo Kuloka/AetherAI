@@ -132,7 +132,7 @@ Presets are off for chat requests by default. Explicitly enable their use for th
 
 Model details show reported context, image support, size, quantization and known language information, with unknown values stated explicitly. Run quick check sends one English greeting and records elapsed time and a response sample on this device; it is not a general benchmark and a paid model can charge for that request.
 
-Release builds contain shared public Supabase client configuration; backend Google/SMTP settings remain operator-managed. See [account setup](docs/account-setup.md), [RLS setup](docs/memory-schema.sql), and the [security review](SECURITY_AUDIT.md). Apply and verify RLS in Supabase before enabling production sync. Google uses the system browser and PKCE; sessions and provider keys use OS encryption in the main process and reject unencrypted Linux storage. Tests simulate authentication responses; a successful request does not prove email delivery.
+Release builds contain shared public Supabase client configuration; backend Google/SMTP settings remain operator-managed. See [account setup](docs/account-setup.md) and [RLS setup](docs/memory-schema.sql). Apply and verify RLS in Supabase before enabling production sync. Google uses the system browser and PKCE; sessions and provider keys use OS encryption in the main process and reject unencrypted Linux storage. Tests simulate authentication responses; a successful request does not prove email delivery.
 
 ## SambaNova
 
