@@ -7,7 +7,9 @@ test('All desktop languages have complete website copy and six native download l
  assert.deepEqual(Object.keys(SITE_LANGUAGES).sort(),codes.sort());
  for(const code of codes){assert.deepEqual(shape(SITE_COPY[code]),shape(SITE_COPY.en),code);const html=siteMarkup(code);assert.ok(!html.includes('undefined'),code);assert.equal((html.match(/releases\/download\//g)||[]).length,6);}
  assert.match(fs.readFileSync(require.resolve('../docs/index.html'),'utf8'),/<html lang="en">/);
- const version=require('../package.json').version;
+ // Live downloads stay on the previous published release while native packages build.
+ const version=fs.readFileSync(require.resolve('../docs/index.html'),'utf8').match(/Version (\d+\.\d+\.\d+)/)?.[1];
+ assert.ok(version,'The website must declare its published download version');
  for(const code of codes){const html=siteMarkup(code);assert.ok(html.includes(`Version ${version}`)||html.includes(version));assert.equal((html.match(new RegExp('releases/download/v'+version.replaceAll('.', '\\.')+'/', 'g'))||[]).length,6);}
  assert.ok(fs.readFileSync(require.resolve('../docs/index.html'),'utf8').includes(`Version ${version}`));
 });

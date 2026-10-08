@@ -8,7 +8,7 @@
       if(!response.ok)throw Error('Asset HTTP '+response.status);
       return response.text();
     }).then(source=>{
-      const script=document.createElement('script');script.textContent=source;
+      const script=document.createElement('script');script.textContent=source.replace(/\r\n/g,'\n');
       document.head.appendChild(script);done?.();
     }).catch(()=>{}).finally(()=>clearTimeout(timeout));
   }
