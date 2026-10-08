@@ -65,10 +65,12 @@ jobs:
         run: node tests/package-security.cjs
 
       - name: Smoke test packaged application (Linux)
+        timeout-minutes: 2
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron --no-sandbox tests/native-shell-smoke.cjs
 
       - name: Smoke test packaged application
+        timeout-minutes: 2
         if: runner.os != 'Linux'
         run: npx electron tests/native-shell-smoke.cjs
 

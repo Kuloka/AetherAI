@@ -23,6 +23,11 @@ jobs:
               const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
               console.log(response.status + ' ' + url);
               if (!response.ok) throw new Error('HTTP ' + response.status);
+              if (file === 'index.html') {
+                const csp = response.headers.get('content-security-policy') || '';
+                if (!csp.includes("frame-ancestors 'none'") || !csp.includes('sha256-') || csp.includes("script-src 'unsafe-inline'")) throw new Error('Missing website security policy');
+                if (response.headers.get('x-content-type-options') !== 'nosniff') throw new Error('Missing nosniff');
+              }
               const actual = Buffer.from(await response.arrayBuffer());
               const expected = fs.readFileSync('docs/' + file);
               if (!actual.equals(expected)) throw new Error('Content differs: ' + file);

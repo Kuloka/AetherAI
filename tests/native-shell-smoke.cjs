@@ -15,7 +15,7 @@ app.on('web-contents-created', (_event, contents) => {
       assert.ok(BrowserWindow.getAllWindows().length);
       assert.equal(await contents.executeJavaScript("(async()=>{const settings=await api.settingsGet();const account=await api.accountStatus();return !!settings && typeof account.configured==='boolean';})()"),true);
       console.log(`PASS: packaged app loads on ${process.platform}/${process.arch}`);
-      clearTimeout(deadline); app.exit(0);
+      clearTimeout(deadline); app.quit();
     } catch (error) { console.error(error); app.exit(1); }
   });
 });
