@@ -9,6 +9,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -33,6 +35,14 @@ jobs:
               if (!actual.equals(expected)) throw new Error('Content differs: ' + file);
             }
             console.log('PASS: Cloudflare serves the current English page and all language/effect assets.');
+            const page = fs.readFileSync('docs/index.html', 'utf8');
+            const links = [...page.matchAll(/href="(https:\/\/github\.com\/Kuloka\/MultiMind\/releases\/download\/[^" ]+)"/g)].map(match => match[1]);
+            if (new Set(links).size !== 6) throw new Error('Expected six native downloads');
+            for (const url of links) {
+              const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(30000) });
+              console.log(response.status + ' download ' + url.split('/').pop());
+              if (!response.ok) throw new Error('Download unavailable');
+            }
           })().catch(error => { console.error(error.message, error.cause?.code || ''); process.exitCode = 1; });
           JS
       - name: Install browser checker
