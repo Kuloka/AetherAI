@@ -1,4 +1,5 @@
 /* Quiet monochrome surfaces; agent activity belongs to the reply. */
+.ui-loading .app { visibility:hidden; }
 .profile-btn { flex-shrink:0; margin:10px 12px 14px; padding:10px; display:flex; align-items:center; gap:10px; border:0; border-radius:12px; background:var(--bg-surface); color:var(--text-primary); cursor:pointer; text-align:left; }
 .profile-btn:hover { background:var(--bg-hover); }
 .sidebar { height:100%; max-height:100%; }
@@ -25,7 +26,7 @@
 #useSavedMemory:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 #useSavedMemory:disabled { opacity:.45; cursor:default; }
 @media(prefers-reduced-motion:reduce) { .profile-menu { animation:none; } }
-.app.tab-collapsed .profile-btn { justify-content:center; padding:6px; margin:8px 4px; }
+.app.tab-collapsed .profile-btn,.app.tab-collapsed .profile-menu { display:none!important; }
 .app.tab-collapsed .profile-btn > span:last-child { display:none; }
 .account-dialog { width:min(560px,calc(100vw - 48px)); max-height:85vh; background:var(--bg-main); color:var(--text-primary); }
 .account-dialog .modal-body { overflow:auto; }
@@ -92,6 +93,7 @@ body.auth-visible .app { pointer-events:none; }
 .appearance-settings h4 { font-size:13px; margin:28px 0 14px; }
 .background-options { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
 .background-options button { background:transparent; border:0; padding:0; text-align:left; color:var(--text-secondary); cursor:pointer; font:inherit; font-size:11px; }
+.background-options button > span:last-child { display:block; min-height:20px; line-height:20px; }
 .background-preview { display:flex; align-items:center; justify-content:center; height:92px; margin-bottom:10px; border-radius:12px; background-color:var(--bg-input); transition:transform .2s,box-shadow .2s; overflow:hidden; }
 .background-options button:hover .background-preview { transform:translateY(-3px); }
 .background-options button[aria-pressed=true] { color:var(--text-primary); }
@@ -107,7 +109,7 @@ body.auth-visible .app { pointer-events:none; }
 .appearance-colors input::-webkit-color-swatch-wrapper { padding:0; }
 .appearance-colors input::-webkit-color-swatch { border:0; border-radius:10px; }
 .appearance-colors input::-moz-color-swatch { border:0; border-radius:10px; }
-#backgroundMotionNote { font-size:11px; color:var(--text-muted); }
+#backgroundMotionNote { margin:18px 0 0; font-size:11px; line-height:1.6; color:var(--text-muted); }
 #appBackgroundEffects { position:absolute; inset:34px 0 0; z-index:0; pointer-events:none; opacity:.4; }
 #appBackgroundEffects.static-background { background-image:radial-gradient(var(--accent) 1px,transparent 1px); background-size:12px 12px; opacity:.15; }
 .gateway-flow-bg[hidden] { display:none; }

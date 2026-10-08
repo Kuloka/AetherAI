@@ -30,7 +30,10 @@
   function avatarKey(){return 'multimind.avatar.'+(account.user?.id||'local');}
   function renderAvatar(){const avatar=$('profileAvatar');avatar.replaceChildren();const stored=localStorage.getItem(avatarKey());if(stored&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(stored)){const image=document.createElement('img');image.src=stored;image.alt='Your avatar';avatar.append(image);}else avatar.textContent=Array.from(account.user?.email||'Local')[0].toUpperCase();}
   function closeProfile(){$('profileMenu').hidden=true;$('profileBtn').setAttribute('aria-expanded','false');}
-  $('profileBtn').onclick=async()=>{const opening=$('profileMenu').hidden;await refresh();if(!account.user){closeProfile();openAccount();return;}$('profileMenu').hidden=!opening;$('profileBtn').setAttribute('aria-expanded',String(opening));};
+  const appElement=document.querySelector('.app');
+  function syncProfileSidebar(){const collapsed=appElement.classList.contains('tab-collapsed');$('profileBtn').disabled=collapsed;if(collapsed)closeProfile();}
+  const profileSidebarObserver=new MutationObserver(syncProfileSidebar);profileSidebarObserver.observe(appElement,{attributes:true,attributeFilter:['class']});syncProfileSidebar();window.addEventListener('beforeunload',()=>profileSidebarObserver.disconnect());
+  $('profileBtn').onclick=async()=>{if(appElement.classList.contains('tab-collapsed'))return;const opening=$('profileMenu').hidden;await refresh();if(appElement.classList.contains('tab-collapsed')){closeProfile();return;}if(!account.user){closeProfile();openAccount();return;}$('profileMenu').hidden=!opening;$('profileBtn').setAttribute('aria-expanded',String(opening));};
   document.addEventListener('click',e=>{if(!e.target.closest('#profileBtn,#profileMenu'))closeProfile();});
   $('profileMenu').addEventListener('keydown',e=>{if(e.key==='Escape'){closeProfile();$('profileBtn').focus();}});
   $('profileAccount').onclick=()=>{closeProfile();openAccount();};

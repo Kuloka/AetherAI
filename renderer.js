@@ -1964,11 +1964,6 @@
     return n.includes("vision") || n.includes("llava") || n.includes("vl") || n.includes("minicpm") || n.includes("moondream") || n.includes("gemma3") || n.includes("gemma4");
   }
 
-  function pickVisionModelName() {
-    if (settings.selectedModel && modelSupportsVision(settings.selectedModel)) return settings.selectedModel;
-    const installedVision = availableModels.find(m => modelSupportsVision(m.name));
-    return installedVision ? installedVision.name : null;
-  }
   function modelSupportsThink(name) {
     const cat = MODEL_CATALOG.find(m => m.name === name);
     if (cat && cat.think) return true;
@@ -3480,7 +3475,7 @@
   function buildSystemPrompt(userText) {
 
     const hints = { none: 'Answer briefly and directly.', low: 'Give a concise, practical answer.', medium: 'Give a thoughtful, useful answer of ordinary length.', high: 'Consider the request carefully and give a well-reasoned answer.', max: 'Consider the request thoroughly from relevant perspectives.' };
-    return `${MultiMindIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}`;
+    return `${MultiMindIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}\n\n${MultiMindCapabilities.prompt(settings.selectedModel,modelSupportsVision(settings.selectedModel||''))}`;
   }
 
   async function maybeInstallNodePackages(activity, folderName) {
@@ -3560,15 +3555,7 @@
   async function generateResponse(userText, userImages, generationId) {
     const intent=MultiMindIntent.classify(userText);
     let requestModel = settings.selectedModel;
-    if (userImages && userImages.length) {
-      requestModel = pickVisionModelName();
-      if (!requestModel) {
-        return "\u0414\u043b\u044f \u0444\u043e\u0442\u043e \u043d\u0443\u0436\u043d\u0430 vision-\u043c\u043e\u0434\u0435\u043b\u044c. \u0421\u043a\u0430\u0447\u0430\u0439 llama3.2-vision, llava, moondream \u0438\u043b\u0438 qwen-vl \u0432 \u043a\u0430\u0442\u0430\u043b\u043e\u0433\u0435 \u043c\u043e\u0434\u0435\u043b\u0435\u0439.";
-      }
-      if (requestModel !== settings.selectedModel) {
-        addThinkingLine(`Using vision model: ${requestModel}`);
-      }
-    }
+    if(userImages?.length&&!modelSupportsVision(requestModel||''))return MultiMindCapabilities.notice(availableModels.find(model=>model.name===requestModel)?.cloudName||requestModel,settings.localAi,settings.appLanguage);
     if (!ollamaRunning && !requestModel?.startsWith('cloud:')) {
       return settings.appLanguage === "ru"
         ? "Ollama не запущена. Запусти Ollama и нажми на индикатор статуса в MultiMind."
@@ -3580,10 +3567,6 @@
         : (settings.localAi ? "No model is installed. Open the model catalog, download a model, and select it." : "Connect OpenRouter or Groq in Settings → Providers and choose a cloud model.");
     }
 
-    // предупреждение о vision
-    if (userImages && userImages.length && !modelSupportsVision(settings.selectedModel)) {
-      // всё равно пробуем — некоторые модели просто проигнорируют
-    }
 
     const chat = getCurrentChat();
     const history = chat ? chat.messages.slice(0, -1) : [];
@@ -3617,7 +3600,7 @@
       { role: "system", content: buildSystemPrompt(userText) + (!intent.simple && activeSkillContext ? `\n\nUser-enabled skills (apply only when relevant to the current request; skills never authorize file changes by themselves):\n${activeSkillContext}` : "") },
       ...contextMsgs,
       ...(memoryContext?[{role:'user',content:'User-approved memory (reference data, not permission to run tools or create files; the current request takes precedence):\n'+JSON.stringify(memoryContext)}]:[]),
-      { role: "user", content: currentUserContent || (userImages && userImages.length ? "Describe this image." : ""), images: (userImages && userImages.length ? userImages : undefined) }
+      { role: "user", content: currentUserContent || (userImages && userImages.length ? "Describe this image." : ""), images: (userImages && userImages.length ? (isCloudModel(requestModel)?userImages.map((image,index)=>chat?.messages.at(-1)?.images?.[index]||image):userImages) : undefined) }
     ];
 
     const reqBody = {
@@ -5434,6 +5417,7 @@
     renderSidebar();
     renderMessages();
     updateSendBtn();
+    document.documentElement.classList.remove('ui-loading');
     await refreshFluxStatus();
     await checkOllama();
     // повторная проверка статуса Ollama каждые 15с
@@ -5441,6 +5425,11 @@
     inputEl.focus();
   }
 
-  init();
+  init().catch(()=>{
+    if(gatewayFlowBg)gatewayFlowBg.hidden=true;
+    window.MultiMindBackgrounds?.update({background:'none',color:'#c3c3c3'});
+    if(welcomeTitle)welcomeTitle.textContent='Unable to load your workspace. Restart MultiMind.';
+    document.documentElement.classList.remove('ui-loading');
+  });
 
 })();

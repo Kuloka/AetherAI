@@ -2,6 +2,7 @@ const {secureStorageAvailable}=require('./security');
 const fs = require('fs');
 const path = require('path');
 const {describe}=require('../response-errors');
+const {cloudVision}=require('../model-capabilities');
 const PROVIDERS = {
   openrouter: { base: 'https://openrouter.ai/api/v1', keys: 'https://openrouter.ai/settings/keys' },
   groq: { base: 'https://api.groq.com/openai/v1', keys: 'https://console.groq.com/keys' },
@@ -50,7 +51,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     return data.data.filter(model => typeof model.id === 'string' && /^[a-zA-Z0-9_.:/-]{1,200}$/.test(model.id))
       .filter(model => id !== 'sambanova' || !/embed|rerank|whisper|tts|speech|audio/i.test(model.id))
       .filter(model => id === 'openrouter' ? model.architecture?.output_modalities?.includes('text') !== false : id==='gemini' ? /gemini/i.test(model.id)&&!/embedding|tts|image|live|audio|robotic/i.test(model.id) : !/whisper|tts|guard/i.test(model.id))
-      .map(model => ({ name: 'cloud:' + id + '/' + model.id, cloudName: model.name || model.id, contextLength: model.context_length || model.context_window || null, provider: id, backend: 'cloud', size: 0, details: {}, pricing:model.pricing||null, free: id==='openrouter' && Number(model.pricing?.prompt)===0 && Number(model.pricing?.completion)===0 && Object.values(model.pricing||{}).every(price=>Number(price)===0), capabilities: model.architecture?.input_modalities?.includes('image') ? ['completion', 'vision'] : ['completion'] }));
+      .map(model => ({ name: 'cloud:' + id + '/' + model.id, cloudName: model.name || model.id, contextLength: model.context_length || model.context_window || null, provider: id, backend: 'cloud', size: 0, details: {}, pricing:model.pricing||null, free: id==='openrouter' && Number(model.pricing?.prompt)===0 && Number(model.pricing?.completion)===0 && Object.values(model.pricing||{}).every(price=>Number(price)===0), capabilities: cloudVision(id,model) ? ['completion', 'vision'] : ['completion'] }));
   }
   async function save(id, value) {
     config(id);
@@ -93,7 +94,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     if (!match || !Array.isArray(body.messages)) throw new Error('Invalid provider request');
     const [, id, model] = match, token = key(id);
     if (!token) throw new Error('Connect ' + id + ' in Settings → Providers');
-    if (!(await models()).some(item => item.name === body.model)) throw new Error('This model is no longer available');
+    const selected=(await models()).find(item=>item.name===body.model);if(!selected)throw new Error('This model is no longer available');if(body.messages.some(message=>message.images?.length)&&!selected.capabilities.includes('vision'))throw new Error('This model does not support images. Choose a model marked Vision.');
     const payload = { model, stream: body.stream !== false, messages: body.messages.map(message => ({ role: message.role, content: message.images?.length ? [{ type: 'text', text: message.content || '' }, ...message.images.map(image => ({ type: 'image_url', image_url: { url: image.startsWith('data:') ? image : 'data:image/png;base64,' + image } }))] : message.content })), max_tokens: body.options?.num_predict || 1000 };
     if(id==='gemini')payload.model=model.replace(/^models\//,'');
     if (body.options?.temperature !== undefined) payload.temperature = body.options.temperature;

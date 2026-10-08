@@ -98,7 +98,7 @@ jobs:
         with:
           node-version: 24
       - name: Generate release description and exact line statistics
-        run: node scripts/release-notes.cjs v1.21.0 > release-description.md
+        run: node scripts/release-notes.cjs v1.23.1 > release-description.md
       - uses: actions/download-artifact@v4
         with:
           path: release-files

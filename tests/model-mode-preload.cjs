@@ -13,7 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   memorySave:value=>ipcRenderer.invoke('mode:memory-save',value),
   memoryRemove:id=>ipcRenderer.invoke('mode:memory-remove',id),
   memoryContext:project=>ipcRenderer.invoke('mode:memory-context',project),
-  dataGet: async () => ({ groups: [], chats: [] }), dataSave: async () => ({}),
+  dataGet: () => ipcRenderer.invoke('mode:data-get'), dataSave: async () => ({}),
   settingsGet: () => ipcRenderer.invoke('mode:settings'), settingsSave: value => ipcRenderer.invoke('mode:save', value),
   ollamaStatus: async () => ({ running: true, models: [{ name: 'llama3.2:1b', size: 1300000000 }] }),
   localStatus: async () => ({ supported: true, installed: true, stage: 'idle', models: [{ name: 'multimind:qwen', size: 1000000000 }] }),

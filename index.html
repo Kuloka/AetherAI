@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" class="ui-loading">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -123,7 +123,7 @@
       <div class="chat-stage">
     <section class="chat-container" id="chatContainer">
       <div class="welcome-screen" id="welcomeScreen">
-        <h1 class="welcome-title" id="welcomeTitle">Build the thing you keep imagining.</h1>
+        <h1 class="welcome-title" id="welcomeTitle"></h1>
         <p class="welcome-sub">Local AI assistant. Runs on Ollama, no API keys. Ask about code, text, ideas, translations, or anything else.</p>
         <p class="welcome-hint" id="welcomeHint">Choose a model to start.</p>
         <div class="local-setup" id="localSetupCard" hidden>
@@ -481,6 +481,7 @@
 <script src="multimind.js"></script>
 <script src="response-errors.js"></script>
 <script src="chat-intent.js"></script>
+<script src="model-capabilities.js"></script>
 <script src="plugins-chat.js"></script>
 <script src="account-memory.js"></script>
 <script src="model-info.js"></script>
