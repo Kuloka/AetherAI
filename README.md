@@ -2,7 +2,7 @@
   <img src="resources/branding/multimind-github.png" alt="MultiMind - your ideas, your models, your machine" width="100%">
 </p>
 <p align="center">
-  <a href="https://github.com/Kuloka/MultiMind/releases/tag/v1.23.1">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
+  <a href="https://github.com/Kuloka/MultiMind/releases/tag/v1.23.2">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
   <a href="#development">Development</a>
 </p>
 
