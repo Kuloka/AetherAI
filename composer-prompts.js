@@ -17,7 +17,7 @@
   function tick(){
     const lang=document.documentElement.lang||'en';
     if(lang!==language){language=lang;base=input.placeholder;index=0;length=0;deleting=false;paused=true;input.setAttribute('aria-label',base);}
-    const blocked=document.hidden||document.documentElement.classList.contains('ui-loading')||document.body.classList.contains('auth-visible')||document.activeElement===input||input.value.length>0||composing||reduced.matches;
+    const blocked=document.hidden||document.documentElement.classList.contains('ui-loading')||document.body.classList.contains('auth-visible')||input.value.length>0||composing||reduced.matches;
     if(blocked){if(!paused)input.placeholder=base;paused=true;return;}
     const now=performance.now();
     if(paused){paused=false;length=0;deleting=false;due=now+900;input.placeholder=base;}

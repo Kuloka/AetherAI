@@ -13,7 +13,7 @@ app.whenReady().then(async()=>{
  win.webContents.on('console-message',(_e,level,message)=>{if(level===3)errors.push(message);});const evaluate=code=>win.webContents.executeJavaScript(code),wait=ms=>new Promise(r=>setTimeout(r,ms));
  await win.loadFile(path.resolve(__dirname,'../index.html'));console.log('Loaded math interface');
  win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
- await wait(700);await evaluate("document.querySelector('#accountClose').click();document.activeElement.blur()");
+ await wait(700);await evaluate("document.querySelector('#accountClose').click()");
  assert.equal(await evaluate("document.body.classList.contains('theme-light')"),true);
  assert.equal(await evaluate("getComputedStyle(document.querySelector('.welcome-brand-logo')).color"),'rgb(22, 24, 28)');
  const welcomeOriginal=await evaluate("document.querySelector('.welcome-brand-logo .aether-crown').getAttribute('d')");await wait(1700);

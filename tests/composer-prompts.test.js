@@ -7,5 +7,5 @@ test('composer examples type, hold five seconds, erase and rotate without touchi
  const step=ms=>{for(let i=0;i<ms;i+=35){now+=35;tick();}};
  step(2500);assert.equal(input.placeholder,'List 100 cat breeds');step(4300);assert.equal(input.placeholder,'List 100 cat breeds');step(1100);assert.notEqual(input.placeholder,'List 100 cat breeds');step(3500);assert.equal(input.placeholder,'Explain black holes simply');
  input.value='Never overwrite my draft';events.input();step(9000);assert.equal(input.value,'Never overwrite my draft');assert.equal(input.placeholder,'Ask AetherAI anything...');
- input.value='';document.activeElement=input;step(4000);assert.equal(input.placeholder,'Ask AetherAI anything...');document.activeElement=null;reduced.matches=true;step(4000);assert.equal(input.placeholder,'Ask AetherAI anything...');
+ input.value='';document.activeElement=input;step(4000);assert.notEqual(input.placeholder,'Ask AetherAI anything...');events.compositionstart();step(4000);assert.equal(input.placeholder,'Ask AetherAI anything...');events.compositionend();reduced.matches=true;step(4000);assert.equal(input.placeholder,'Ask AetherAI anything...');
 });
