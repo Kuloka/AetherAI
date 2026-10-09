@@ -34,6 +34,13 @@ jobs:
               const expected = fs.readFileSync('docs/' + file);
               if (!actual.equals(expected)) throw new Error('Content differs: ' + file);
             }
+            for (const file of fs.readdirSync('docs').filter(name => /^google[a-f0-9]+\.html$/.test(name))) {
+              const response = await fetch(base + file, { redirect: 'manual', signal: AbortSignal.timeout(30000) });
+              if (response.status !== 200) throw new Error('Verification file must return 200 without redirect: ' + response.status);
+              const actual = await response.text();
+              if (actual.trim() !== fs.readFileSync('docs/' + file, 'utf8').trim()) throw new Error('Verification content differs');
+              console.log('PASS: Google verification file is public and returns its original content.');
+            }
             console.log('PASS: Cloudflare serves the current English page and all language/effect assets.');
             const page = fs.readFileSync('docs/index.html', 'utf8');
             const links = [...page.matchAll(/href="(https:\/\/github\.com\/Kuloka\/AetherAI\/releases\/download\/[^" ]+)"/g)].map(match => match[1]);
