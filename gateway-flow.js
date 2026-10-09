@@ -1,7 +1,7 @@
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  root.MultiMindGatewayFlow = api;
+  root.AetherAIGatewayFlow = api;
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   const DEFAULTS = Object.freeze({
     paths: 64,

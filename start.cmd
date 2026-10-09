@@ -1,8 +1,8 @@
 @echo off
-title MultiMind
+title AetherAI
 echo.
 echo   ========================================
-echo            MultiMind - Starting
+echo            AetherAI - Starting
 echo   ========================================
 echo.
 

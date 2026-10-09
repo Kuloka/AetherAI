@@ -43,24 +43,14 @@ async function waitFor(win, expression, timeout = 90000) {
 }
 app.whenReady().then(async () => {
   fs.mkdirSync(out, { recursive: true });
-  // Rasterize the repo-native SVG for Windows packaging.
-  const icon = new BrowserWindow({ width: 256, height: 256, show: false, frame: false, transparent: true, webPreferences: { offscreen: true } });
-  const svg = fs.readFileSync(path.join(root, 'resources/multimind-logo.svg'), 'utf8');
-  await icon.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(`<style>html,body{margin:0;width:256px;height:256px;overflow:hidden}svg{display:block;width:256px;height:256px}</style>${svg}`));
-  await new Promise(resolve => setTimeout(resolve, 300));
-  const png = (await icon.webContents.capturePage()).toPNG();
-  fs.writeFileSync(path.join(root, 'resources/multimind-logo.png'), png);
-  const header = Buffer.alloc(22); header.writeUInt16LE(1, 2); header.writeUInt16LE(1, 4); header.writeUInt16LE(1, 10); header.writeUInt16LE(32, 12); header.writeUInt32LE(png.length, 14); header.writeUInt32LE(22, 18);
-  fs.writeFileSync(path.join(root, 'resources/multimind-logo.ico'), Buffer.concat([header, png]));
-  icon.destroy();
   const win = new BrowserWindow({ width: 1200, height: 780, frame: false, show: false, webPreferences: { preload: path.join(__dirname, 'ui-preload.cjs'), offscreen: true } });
   const errors = [];
   win.webContents.on('console-message', (_event, level, message) => { if (level === 3 && !/ERR_|Content Security|Failed to load resource/.test(message)) errors.push(message); });
   await win.loadFile(path.join(root, process.argv.includes('--packaged') ? 'dist/win-unpacked/resources/app.asar/index.html' : 'index.html'));
-  await waitFor(win, `document.querySelector('#localSetupBtn').textContent === ${JSON.stringify(process.env.MULTIMIND_PREVIEW_LANGUAGE === 'en' ? 'Quick setup' : 'Быстрая настройка')}`);
+  await waitFor(win, `document.querySelector('#localSetupBtn').textContent === ${JSON.stringify(process.env.AETHERAI_PREVIEW_LANGUAGE === 'en' ? 'Quick setup' : 'Быстрая настройка')}`);
   await new Promise(resolve => setTimeout(resolve, 1800));
-  fs.writeFileSync(path.join(out, 'multimind-welcome.png'), (await win.webContents.capturePage()).toPNG());
-  const backgroundState = await win.webContents.executeJavaScript("({api:!!window.MultiMindGatewayFlow,context:!!document.querySelector('#gatewayFlowBg').getContext('2d'),flow:document.querySelector('#gatewayFlowBg').dataset.gatewayFlow,interactive:document.querySelector('#gatewayFlowBg').dataset.gatewayInteractive})");
+  fs.writeFileSync(path.join(out, 'aetherai-welcome.png'), (await win.webContents.capturePage()).toPNG());
+  const backgroundState = await win.webContents.executeJavaScript("({api:!!window.AetherAIGatewayFlow,context:!!document.querySelector('#gatewayFlowBg').getContext('2d'),flow:document.querySelector('#gatewayFlowBg').dataset.gatewayFlow,interactive:document.querySelector('#gatewayFlowBg').dataset.gatewayInteractive})");
   assert.deepEqual(backgroundState, { api: true, context: true, flow: 'active', interactive: 'false' }, JSON.stringify(errors));
   assert.equal(await win.webContents.executeJavaScript("document.querySelector('#threadsBg')"), null);
   assert.ok(await win.webContents.executeJavaScript(`document.querySelector('#localSetupCard').getBoundingClientRect().bottom < document.querySelector('.composer').getBoundingClientRect().top`), 'Setup must not overlap composer');
@@ -84,7 +74,7 @@ app.whenReady().then(async () => {
     const panelFocus = await win.webContents.executeJavaScript("(()=>{const canvas=document.querySelector('#gatewayFlowBg'),stage=document.querySelector('.chat-stage'),c=canvas.getBoundingClientRect(),s=stage.getBoundingClientRect();return {actual:canvas.gatewayFlow.focusPoint().x,expected:s.left+s.width/2-c.left}})()");
     assert.ok(Math.abs(panelFocus.actual - panelFocus.expected) < 1, JSON.stringify(panelFocus));
     assert.ok(panelFocus.actual < focusBeforePanel, 'Gateway focus must move with the narrower chat stage');
-    fs.writeFileSync(path.join(out, 'multimind-panel-centered.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out, 'aetherai-panel-centered.png'), (await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('#closePanelBtn').click()");
     await win.webContents.executeJavaScript("document.querySelector('#modelSelector').click();document.querySelector('#ddOpenModels').click()");
     await waitFor(win, "document.querySelectorAll('.catalog-item[data-model^=\"multimind:\"]').length === 15");
@@ -93,7 +83,7 @@ app.whenReady().then(async () => {
     await win.webContents.executeJavaScript("document.querySelector('#modelsSearch').value='llama3.2-1b';document.querySelector('#modelsSearch').dispatchEvent(new Event('input'))");
     assert.equal(await win.webContents.executeJavaScript("document.querySelectorAll('.catalog-item').length"), 2);
     await new Promise(resolve => setTimeout(resolve, 300));
-    fs.writeFileSync(path.join(out, 'multimind-gguf-catalog.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out, 'aetherai-gguf-catalog.png'), (await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('#modelsSearch').value='';document.querySelector('#modelsSearch').dispatchEvent(new Event('input'));document.querySelector('[data-backend=ollama]').click()");
     assert.equal(await win.webContents.executeJavaScript("document.querySelectorAll('.catalog-item[data-model^=\"multimind:\"]').length"), 0);
     assert.ok(await win.webContents.executeJavaScript("document.querySelectorAll('.catalog-item').length > 0"));
@@ -112,7 +102,7 @@ app.whenReady().then(async () => {
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#cloudPlansModal').classList.contains('show')"),true);
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#cloudPlansClose').getBoundingClientRect().width"),44);
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#cloudPlansClose svg').getBoundingClientRect().width"),24);
-    fs.writeFileSync(path.join(out,'multimind-cloud-plans.png'),(await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out,'aetherai-cloud-plans.png'),(await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('#cloudPlansClose').click();document.querySelector('.cloud-model-row').click()");
     assert.match(await win.webContents.executeJavaScript("document.querySelector('#modelLabel').textContent"),/cloud:gpt-oss/);
     assert.deepEqual(errors,[]);testCloud.disconnect();console.log('PASS: encrypted Windows credentials, cloud selection, billing dialog, rate limits do not open pricing');win.destroy();app.quit();return;
@@ -127,7 +117,7 @@ app.whenReady().then(async () => {
     await win.webContents.executeJavaScript("document.querySelector('#pluginsList .activity-switch').click()");
     await waitFor(win,"document.querySelector('#pluginsList').textContent.includes('connected') && document.querySelector('#pluginsList').textContent.includes('list_projects')");
     await win.webContents.executeJavaScript("document.querySelector('#pluginsList details').open=true");
-    fs.writeFileSync(path.join(out,'multimind-plugins.png'),(await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out,'aetherai-plugins.png'),(await win.webContents.capturePage()).toPNG());
     assert.deepEqual(errors,[]);
     await pluginHost.close();console.log('PASS: Plugins UI adds, enables and discovers real stdio tools under Electron');win.destroy();app.quit();return;
   }
@@ -136,11 +126,11 @@ app.whenReady().then(async () => {
     await win.webContents.executeJavaScript("document.querySelector('#userInput').focus()");
     assert.equal(await win.webContents.executeJavaScript("getComputedStyle(document.querySelector('.composer-field')).borderTopLeftRadius"), radius);
     await win.webContents.executeJavaScript("document.querySelector('.app').classList.add('tab-collapsed')");
-    assert.ok(await win.webContents.executeJavaScript("(()=>{const a=document.querySelector('.side-logo').getBoundingClientRect(),b=document.querySelector('.multimind-mark-img').getBoundingClientRect();return Math.abs((a.left+a.right-b.left-b.right)/2)<1 && Math.abs((a.top+a.bottom-b.top-b.bottom)/2)<1})()"));
+    assert.ok(await win.webContents.executeJavaScript("(()=>{const a=document.querySelector('.side-logo').getBoundingClientRect(),b=document.querySelector('.aetherai-mark-img').getBoundingClientRect();return Math.abs((a.left+a.right-b.left-b.right)/2)<1 && Math.abs((a.top+a.bottom-b.top-b.bottom)/2)<1})()"));
     await win.webContents.executeJavaScript("document.querySelector('.app').classList.remove('tab-collapsed'); document.querySelector('#settingsBtn').click();document.querySelector('[data-settings-tab=models]').click();document.querySelector('.worker-picker-trigger').click()");
     assert.ok(await win.webContents.executeJavaScript("(()=>{const a=document.querySelector('.worker-picker-trigger').getBoundingClientRect(),b=document.querySelector('.worker-picker-list').getBoundingClientRect();return Math.abs(a.width-b.width)<1&&Math.abs(a.left-b.left)<1&&Math.abs(a.bottom-b.top)<1})()"));
     await new Promise(resolve=>setTimeout(resolve,300));
-    fs.writeFileSync(path.join(out,'multimind-worker-picker.png'),(await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out,'aetherai-worker-picker.png'),(await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('.worker-picker-list [data-value=\"multimind:deepseek-coder:6.7b\"]').click()");
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#workerModel0').value"),'multimind:deepseek-coder:6.7b');
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('.worker-picker-trigger').getAttribute('aria-expanded')"),'false');
@@ -154,14 +144,14 @@ app.whenReady().then(async () => {
     await win.webContents.executeJavaScript("document.querySelector('#languageToggle').click()");
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#languageToggle').getAttribute('aria-expanded')"), 'true');
     await new Promise(resolve => setTimeout(resolve, 400));
-    fs.writeFileSync(path.join(out, 'multimind-settings.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out, 'aetherai-settings.png'), (await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('[data-lang=en]').click()");
     assert.equal(await win.webContents.executeJavaScript("document.documentElement.lang"), 'en');
     await win.webContents.executeJavaScript("document.querySelector('[data-settings-tab=skills]').click()");
     assert.equal(await win.webContents.executeJavaScript("document.querySelectorAll('#skillPresets .preset-card').length"),3);
     await win.webContents.executeJavaScript("document.querySelector('#skillPresets .preset-install:not(:disabled)')?.click()");
     await waitFor(win,"document.querySelectorAll('#skillsList .skill-row').length>0");
-    fs.writeFileSync(path.join(out, 'multimind-skill-presets.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out, 'aetherai-skill-presets.png'), (await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('[data-settings-tab=models]').click()");
     assert.ok(await win.webContents.executeJavaScript("!document.querySelector('.agent-settings').hidden && document.querySelector('.settings-language').hidden"));
     assert.deepEqual(errors, []);
@@ -169,9 +159,9 @@ app.whenReady().then(async () => {
     win.setSize(1920,1080);
     await new Promise(resolve=>setTimeout(resolve,400));
     assert.ok(await win.webContents.executeJavaScript("!document.querySelector('.discord-settings').hidden && document.querySelector('.discord-settings').getBoundingClientRect().right < innerWidth"));
-    fs.writeFileSync(path.join(out, 'multimind-discord-settings.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out, 'aetherai-discord-settings.png'), (await win.webContents.capturePage()).toPNG());
     const sharp = require(process.argv.includes('--packaged') ? path.join(root,'dist/win-unpacked/resources/app.asar/node_modules/sharp') : 'sharp');
-    assert.equal((await sharp(path.join(root,'resources/multimind-logo-animated.gif'),{animated:true}).metadata()).pages,64);
+    assert.equal((await sharp(path.join(root,'resources/aetherai-logo-animated.gif'),{animated:true}).metadata()).pages,64);
     console.log('PASS: full-window settings, language selection, section navigation, Discord panel at 1920px and native GIF decoder');
     win.destroy(); app.quit(); return;
   }
@@ -186,7 +176,7 @@ app.whenReady().then(async () => {
     assert.equal(await win.webContents.executeJavaScript(`getComputedStyle(document.querySelector('#windowTitlebar')).webkitAppRegion`), 'drag');
     assert.ok((await runtime.status()).models.some(model => model.name === 'multimind:qwen2.5:0.5b'));
     assert.deepEqual(errors, []);
-    fs.writeFileSync(path.join(out, 'multimind-local-catalog.png'), (await win.webContents.capturePage()).toPNG());
+    fs.writeFileSync(path.join(out, 'aetherai-local-catalog.png'), (await win.webContents.capturePage()).toPNG());
     console.log('PASS: native catalog download button prepares and selects the model without an Ollama API');
     win.destroy(); runtime.stop(); app.quit(); return;
   }
@@ -196,16 +186,16 @@ app.whenReady().then(async () => {
   await waitFor(win, `document.querySelectorAll('[data-agent-id^="worker-"]').length === 2`);
   await waitFor(win, `document.querySelector('#teamRows pre')?.textContent.length > 20`);
   assert.ok(await win.webContents.executeJavaScript(`!!document.querySelector('.thinking-message #teamPanel')`), 'Agents must be inside the reply');
-  fs.writeFileSync(path.join(out, 'multimind-agents-working.png'), (await win.webContents.capturePage()).toPNG());
+  fs.writeFileSync(path.join(out, 'aetherai-agents-working.png'), (await win.webContents.capturePage()).toPNG());
   await waitFor(win, `!!document.querySelector('.agent-history')`, 90000);
   const result = await win.webContents.executeJavaScript(`({title: document.title, rows: [...document.querySelectorAll('.team-row')].map(el => ({status: el.className, text: el.innerText})), text: document.querySelector('#messages').innerText})`);
   fs.writeFileSync(path.join(out, 'ui-smoke-result.json'), JSON.stringify({ errors, ...result }, null, 2));
-  assert.equal(result.title, 'MultiMind');
+  assert.equal(result.title, 'AetherAI');
   assert.ok(result.rows.length >= 2, 'Expected two real specialists');
   assert.ok(result.rows.every(row => row.status.includes('done')));
   await waitFor(win, `document.querySelectorAll('.blur-text-word:not(.blur-text-done)').length === 0`);
   await win.webContents.executeJavaScript(`document.querySelector('#chatContainer').scrollTop = 0`);
-  fs.writeFileSync(path.join(out, 'multimind-agents-result.png'), (await win.webContents.capturePage()).toPNG());
+  fs.writeFileSync(path.join(out, 'aetherai-agents-result.png'), (await win.webContents.capturePage()).toPNG());
   fs.writeFileSync(path.join(out, 'ui-smoke-result.json'), JSON.stringify({ errors, ...result }, null, 2));
   assert.deepEqual(errors, []);
   await win.webContents.executeJavaScript(`const next = document.querySelector('#userInput'); next.value = 'Раздели работу между специалистами: сравни Python и JavaScript для обучения и для серверной разработки.'; next.dispatchEvent(new Event('input')); document.querySelector('#sendBtn').click();`);

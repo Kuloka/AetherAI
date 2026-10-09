@@ -21,6 +21,6 @@ function render(){
     active && options.background==='pixel' ? <PixelBlast color={options.color} pixelSize={3} speed={.35} enableRipples={false} antialias={false} patternDensity={.65}/> : null}</Fallback>);
   host.classList.toggle('static-background',reduced&&['pattern','pixel'].includes(options.background));
 }
-window.MultiMindBackgrounds={update(value){options=value;delete host.dataset.unavailable;render();}};
+window.AetherAIBackgrounds={update(value){options=value;delete host.dataset.unavailable;render();}};
 document.addEventListener('visibilitychange',render);
 matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',render);

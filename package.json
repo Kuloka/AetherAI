@@ -1,7 +1,7 @@
 {
-  "name": "multimind",
-  "version": "1.23.2",
-  "description": "MultiMind - local AI workspace with collaborative agents",
+  "name": "aetherai",
+  "version": "1.24.0",
+  "description": "AetherAI - local AI workspace with collaborative agents",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
@@ -14,11 +14,11 @@
     "dist:linux": "electron-builder --linux AppImage deb",
     "check:security": "node scripts/security-check.cjs"
   },
-  "productName": "MultiMind",
+  "productName": "AetherAI",
   "private": true,
   "build": {
     "appId": "ai.multimind.place",
-    "productName": "MultiMind",
+    "productName": "AetherAI",
     "files": [
       "*.js",
       "*.css",
@@ -38,7 +38,7 @@
       "output": "dist"
     },
     "win": {
-      "icon": "resources/multimind-logo.ico",
+      "icon": "resources/aetherai-logo.ico",
       "target": [
         "nsis",
         "portable"
@@ -48,26 +48,26 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "MultiMind",
+      "shortcutName": "AetherAI",
       "guid": "b74d891e-393a-5bfb-895d-fb3070229109"
     },
     "mac": {
       "category": "public.app-category.productivity",
-      "icon": "resources/multimind-logo-mac.png",
+      "icon": "resources/aetherai-logo-mac.png",
       "target": [
         "dmg"
       ],
-      "artifactName": "MultiMind-macOS-${version}-${arch}.${ext}"
+      "artifactName": "AetherAI-macOS-${version}-${arch}.${ext}"
     },
     "linux": {
       "category": "Utility",
-      "icon": "resources/multimind-logo.png",
+      "icon": "resources/aetherai-logo.png",
       "target": [
         "AppImage",
         "deb"
       ],
-      "artifactName": "MultiMind-Linux-${version}-${arch}.${ext}",
-      "maintainer": "MultiMind"
+      "artifactName": "AetherAI-Linux-${version}-${arch}.${ext}",
+      "maintainer": "AetherAI"
     },
     "asarUnpack": [
       "node_modules/@img/**/*",
@@ -84,7 +84,7 @@
     "zod": "^4.6.5"
   },
   "author": {
-    "name": "MultiMind"
+    "name": "AetherAI"
   },
   "overrides": {
     "@electron/get": "^5.1.0"

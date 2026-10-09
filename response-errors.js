@@ -45,5 +45,5 @@
   }
   const api={describe,format:(input,language='en',status=0)=>{const error=describe(input,status);return error.messages[language]||error.messages.en;}};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
-  root.MultiMindErrors=api;
+  root.AetherAIErrors=api;
 })(typeof globalThis!=='undefined'?globalThis:window);

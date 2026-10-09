@@ -1,5 +1,5 @@
 {
-  "name": "multimind-site-effects",
+  "name": "aetherai-site-effects",
   "private": true,
   "scripts": {
     "build": "node build.cjs"

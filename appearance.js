@@ -15,6 +15,6 @@
     document.body.dataset.customAccent=options.accent==='#c3c3c3'?'false':'true';
     return options;
   }
-  root.MultiMindAppearance={normalize,apply,readable,mix};
+  root.AetherAIAppearance={normalize,apply,readable,mix};
   if(typeof module!=='undefined')module.exports={normalize,readable,mix};
 })(typeof globalThis!=='undefined'?globalThis:window);

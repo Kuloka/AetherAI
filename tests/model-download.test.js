@@ -13,7 +13,7 @@ const hash = content => crypto.createHash('sha256').update(content).digest('hex'
 const gguf = Buffer.concat([Buffer.from('GGUF'), Buffer.alloc(65532, 42)]);
 
 async function fixture(t, handler) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'multimind-gguf-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aetherai-gguf-'));
   const server = http.createServer(handler);
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => {

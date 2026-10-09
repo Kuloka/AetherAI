@@ -197,10 +197,10 @@ app.whenReady().then(async () => {
   assert.equal(memories.length,1);assert.match(await evaluate("document.querySelector('#memoryList').textContent"),/Synthetic test preference/);
   fs.writeFileSync(path.join(__dirname,'../artifacts/profile-memory.png'),(await win.webContents.capturePage()).toPNG());
   assert.equal(await evaluate("document.querySelector('#useSavedMemory').checked"),false);
-  assert.equal(await evaluate("MultiMindAccount.context(null,'cloud:openrouter/test/free')"),'');assert.equal(memoryReads,0);
+  assert.equal(await evaluate("AetherAIAccount.context(null,'cloud:openrouter/test/free')"),'');assert.equal(memoryReads,0);
   await evaluate("document.querySelector('#useSavedMemory').click()");
-  assert.equal(await evaluate("MultiMindAccount.context(null,'cloud:openrouter/test/free')"),'Synthetic test preference');assert.equal(memoryReads,1);
-  assert.equal(await evaluate("MultiMindAccount.context(null,'cloud:another/model')"),'');
+  assert.equal(await evaluate("AetherAIAccount.context(null,'cloud:openrouter/test/free')"),'Synthetic test preference');assert.equal(memoryReads,1);
+  assert.equal(await evaluate("AetherAIAccount.context(null,'cloud:another/model')"),'');
   await evaluate("document.querySelector('#memoryClose').click();document.querySelector('.model-active-card .model-info-button').click()");await wait();
   assert.match(await evaluate("document.querySelector('#modelInfoFacts').textContent"),/Provider/);
   assert.match(await evaluate("document.querySelector('#modelCheckResult').textContent"),/Not tested/);

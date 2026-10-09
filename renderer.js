@@ -1,5 +1,5 @@
 /* ============================================
-   MultiMind Renderer
+   AetherAI Renderer
    Chat-first assistant. Ollama-powered.
    ============================================ */
 
@@ -35,7 +35,7 @@
   let composerSmartSearch = false;
   let activeSkillContext = "";
   const PLUGIN_PRESETS = [
-    { id:'workspace', name:'Workspace Files', description:'Read and edit files inside MultiMind projects.', config:{ name:'Workspace Files', type:'builtin' } },
+    { id:'workspace', name:'Workspace Files', description:'Read and edit files inside AetherAI projects.', config:{ name:'Workspace Files', type:'builtin' } },
     { id:'memory', name:'Memory', description:'Keep useful facts and entities between tasks.', config:{ name:'Memory', type:'stdio', command:navigator.platform.startsWith('Win')?'npx.cmd':'npx', args:['-y','@modelcontextprotocol/server-memory'] } },
     { id:'sequential-thinking', name:'Sequential Thinking', description:'Break complex work into checked reasoning steps.', config:{ name:'Sequential Thinking', type:'stdio', command:navigator.platform.startsWith('Win')?'npx.cmd':'npx', args:['-y','@modelcontextprotocol/server-sequential-thinking'] } }
   ];
@@ -89,13 +89,13 @@
     renderModelDropdown();
     $('localAiToggle')?.setAttribute('aria-checked', String(settings.localAi));
     if ($('localAiDescription')) $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
-    $('localSetupCard').hidden = !settings.localAi || !MultiMind.shouldShowSetup(localRuntimeState, availableModels.length, settings.localSetupCompleted);
+    $('localSetupCard').hidden = !settings.localAi || !AetherAI.shouldShowSetup(localRuntimeState, availableModels.length, settings.localSetupCompleted);
     if (!settings.localAi) {
       $('modelsModal').classList.remove('show');
       welcomeHint.textContent = settings.appLanguage === 'ru' ? 'Подключите OpenRouter или Groq в настройках → Providers.' : 'Connect OpenRouter or Groq in Settings → Providers.';
       if (availableModels.length) welcomeHint.textContent = settings.appLanguage === 'ru' ? 'Облачные модели готовы.' : 'Cloud models are ready.';
     }
-    updateMultiMindControls();
+    updateAetherAIControls();
   }
   function openProviderSettings() {
     settingsModal.classList.add('show');
@@ -311,7 +311,7 @@
       textAI: "Text AI",
       generationAI: "Generation AI",
       chooseModel: "Choose model",
-      askPlaceholder: "Ask MultiMind anything...",
+      askPlaceholder: "Ask AetherAI anything...",
       modelSearch: "Search models...",
       folderPlaceholder: "Folder name...",
       setupTitle: "Clarify the task",
@@ -357,10 +357,10 @@
       computeMode: "Compute mode",
       computeModeDesc: "Auto uses the best available device. CPU is safer for PCs without a GPU.",
       progress: "Progress",
-      multimindActions: "MultiMind actions",
+      aetheraiActions: "AetherAI actions",
       codingPreview: "Coding preview",
       approvalTitle: "Ask before changes",
-      approvalDefault: "MultiMind wants to edit a file.",
+      approvalDefault: "AetherAI wants to edit a file.",
       accept: "Accept",
       acceptInChat: "Accept in this chat",
       denied: "Denied",
@@ -426,7 +426,7 @@
       "textAI": "Text AI",
       "generationAI": "Generation AI",
       "chooseModel": "\u0412\u044b\u0431\u0440\u0430\u0442\u044c \u043c\u043e\u0434\u0435\u043b\u044c",
-      "askPlaceholder": "\u0421\u043f\u0440\u043e\u0441\u0438\u0442\u0435 MultiMind \u043e \u0447\u0451\u043c \u0443\u0433\u043e\u0434\u043d\u043e...",
+      "askPlaceholder": "\u0421\u043f\u0440\u043e\u0441\u0438\u0442\u0435 AetherAI \u043e \u0447\u0451\u043c \u0443\u0433\u043e\u0434\u043d\u043e...",
       "modelSearch": "\u041f\u043e\u0438\u0441\u043a \u043c\u043e\u0434\u0435\u043b\u0435\u0439...",
       "folderPlaceholder": "\u041d\u0430\u0437\u0432\u0430\u043d\u0438\u0435 \u043f\u0430\u043f\u043a\u0438...",
       "setupTitle": "\u0423\u0442\u043e\u0447\u043d\u0438\u0442\u044c \u0437\u0430\u0434\u0430\u0447\u0443",
@@ -472,10 +472,10 @@
       "computeMode": "\u0420\u0435\u0436\u0438\u043c \u0432\u044b\u0447\u0438\u0441\u043b\u0435\u043d\u0438\u0439",
       "computeModeDesc": "Auto \u0432\u044b\u0431\u0438\u0440\u0430\u0435\u0442 \u043b\u0443\u0447\u0448\u0435\u0435 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e. CPU \u043d\u0430\u0434\u0451\u0436\u043d\u0435\u0435 \u0434\u043b\u044f \u041f\u041a \u0431\u0435\u0437 \u0432\u0438\u0434\u0435\u043e\u043a\u0430\u0440\u0442\u044b.",
       "progress": "\u041f\u0440\u043e\u0433\u0440\u0435\u0441\u0441",
-      "multimindActions": "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f MultiMind",
+      "aetheraiActions": "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044f AetherAI",
       "codingPreview": "\u041f\u0440\u0435\u0432\u044c\u044e \u043a\u043e\u0434\u0430",
       "approvalTitle": "\u0421\u043f\u0440\u043e\u0441\u0438\u0442\u044c \u043f\u0435\u0440\u0435\u0434 \u0438\u0437\u043c\u0435\u043d\u0435\u043d\u0438\u044f\u043c\u0438",
-      "approvalDefault": "MultiMind \u0445\u043e\u0447\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0444\u0430\u0439\u043b.",
+      "approvalDefault": "AetherAI \u0445\u043e\u0447\u0435\u0442 \u0438\u0437\u043c\u0435\u043d\u0438\u0442\u044c \u0444\u0430\u0439\u043b.",
       "accept": "\u041f\u0440\u0438\u043d\u044f\u0442\u044c",
       "acceptInChat": "\u041f\u0440\u0438\u043d\u044f\u0442\u044c \u0432 \u044d\u0442\u043e\u043c \u0447\u0430\u0442\u0435",
       "denied": "\u041e\u0442\u043a\u043b\u043e\u043d\u0438\u0442\u044c",
@@ -541,7 +541,7 @@
       recent: "Reciente",
       models: "Modelos",
       chooseModel: "Elegir modelo",
-      askPlaceholder: "Pregunta a MultiMind cualquier cosa...",
+      askPlaceholder: "Pregunta a AetherAI cualquier cosa...",
       modelSearch: "Buscar modelos...",
       setupTitle: "Aclarar tarea",
       access: { ask: "Preguntar antes de cambios", auto: "Editar automaticamente", plan: "Modo plan", full: "Acceso completo" },
@@ -563,7 +563,7 @@
       recent: "Recent",
       models: "Modeles",
       chooseModel: "Choisir un modele",
-      askPlaceholder: "Demandez n'importe quoi a MultiMind...",
+      askPlaceholder: "Demandez n'importe quoi a AetherAI...",
       modelSearch: "Rechercher des modeles...",
       setupTitle: "Preciser la tache",
       access: { ask: "Demander avant modifications", auto: "Modifier automatiquement", plan: "Mode plan", full: "Acces complet" },
@@ -585,7 +585,7 @@
       recent: "Zuletzt",
       models: "Modelle",
       chooseModel: "Modell wahlen",
-      askPlaceholder: "Frag MultiMind alles...",
+      askPlaceholder: "Frag AetherAI alles...",
       modelSearch: "Modelle suchen...",
       setupTitle: "Aufgabe klaren",
       access: { ask: "Vor Anderungen fragen", auto: "Automatisch bearbeiten", plan: "Planmodus", full: "Voller Zugriff" },
@@ -607,7 +607,7 @@
       recent: "Recentes",
       models: "Modelos",
       chooseModel: "Escolher modelo",
-      askPlaceholder: "Pergunte qualquer coisa ao MultiMind...",
+      askPlaceholder: "Pergunte qualquer coisa ao AetherAI...",
       modelSearch: "Buscar modelos...",
       setupTitle: "Esclarecer tarefa",
       access: { ask: "Perguntar antes de alterar", auto: "Editar automaticamente", plan: "Modo plano", full: "Acesso total" },
@@ -629,7 +629,7 @@
       recent: "Recenti",
       models: "Modelli",
       chooseModel: "Scegli modello",
-      askPlaceholder: "Chiedi qualsiasi cosa a MultiMind...",
+      askPlaceholder: "Chiedi qualsiasi cosa a AetherAI...",
       modelSearch: "Cerca modelli...",
       setupTitle: "Chiarisci attivita",
       access: { ask: "Chiedi prima delle modifiche", auto: "Modifica automaticamente", plan: "Modalita piano", full: "Accesso completo" },
@@ -651,7 +651,7 @@
       recent: "Son",
       models: "Modeller",
       chooseModel: "Model sec",
-      askPlaceholder: "MultiMind'ya istedigini sor...",
+      askPlaceholder: "AetherAI'ya istedigini sor...",
       modelSearch: "Model ara...",
       setupTitle: "Gorevi netlestir",
       access: { ask: "Degisiklikten once sor", auto: "Otomatik duzenle", plan: "Plan modu", full: "Tam erisim" },
@@ -693,7 +693,7 @@
       projects: "\u041f\u0440\u043e\u0454\u043a\u0442\u0438",
       recent: "\u041d\u0435\u0434\u0430\u0432\u043d\u0456",
       models: "\u041c\u043e\u0434\u0435\u043b\u0456",
-      askPlaceholder: "\u0417\u0430\u043f\u0438\u0442\u0430\u0439 MultiMind \u043f\u0440\u043e \u0449\u043e \u0437\u0430\u0432\u0433\u043e\u0434\u043d\u043e...",
+      askPlaceholder: "\u0417\u0430\u043f\u0438\u0442\u0430\u0439 AetherAI \u043f\u0440\u043e \u0449\u043e \u0437\u0430\u0432\u0433\u043e\u0434\u043d\u043e...",
       access: { ask: "\u041f\u0438\u0442\u0430\u0442\u0438 \u043f\u0435\u0440\u0435\u0434 \u0437\u043c\u0456\u043d\u0430\u043c\u0438", auto: "\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u0442\u0438 \u0430\u0432\u0442\u043e\u043c\u0430\u0442\u0438\u0447\u043d\u043e", plan: "\u0420\u0435\u0436\u0438\u043c \u043f\u043b\u0430\u043d\u0443", full: "\u041f\u043e\u0432\u043d\u0438\u0439 \u0434\u043e\u0441\u0442\u0443\u043f" },
       motivationLines: ["\u0417\u0431\u0435\u0440\u0438 \u0442\u0435, \u0449\u043e \u0434\u0430\u0432\u043d\u043e \u0443\u044f\u0432\u043b\u044f\u0454\u0448.", "\u0417\u0440\u043e\u0431\u0438 \u0456\u0434\u0435\u044e \u0436\u0438\u0432\u043e\u044e.", "\u0422\u0432\u043e\u044f \u043d\u0430\u0441\u0442\u0443\u043f\u043d\u0430 \u0432\u0435\u0440\u0441\u0456\u044f \u043f\u043e\u0447\u0438\u043d\u0430\u0454\u0442\u044c\u0441\u044f \u0442\u0443\u0442."],
     },
@@ -933,7 +933,7 @@
   function migrateBrandNamesInData() {
     let changed = false;
     const rename = value => repairMojibakeText(String(value || ""))
-      .replace(/^(Musical|Nebula|Nevo)Project/i, "MultiMindProject");
+      .replace(/^(Musical|Nebula|Nevo)Project/i, "AetherAIProject");
     data.groups.forEach(group => {
       const nextName = rename(group.name);
       const nextFolderName = rename(group.folderName || group.name);
@@ -1072,7 +1072,7 @@
         row.className = "panel-app-card";
         row.innerHTML = `
           <div class="panel-app-title">App preview</div>
-          <div class="panel-app-name">${escapeHtml(item.name || "MultiMind app")}</div>
+          <div class="panel-app-name">${escapeHtml(item.name || "AetherAI app")}</div>
           <div class="panel-app-grid">
             <span>Interface</span><strong>${escapeHtml(item.interface || "Generated UI")}</strong>
             <span>Entry</span><strong>${escapeHtml(item.entry || "main.txt")}</strong>
@@ -1127,7 +1127,7 @@
     return {
       kind: "overview",
       key: "__overview",
-      name: file.replace(/\.[^.]+$/, "") || "MultiMind app",
+      name: file.replace(/\.[^.]+$/, "") || "AetherAI app",
       interface: iface,
       entry,
       run
@@ -1217,7 +1217,7 @@
         btn.classList.toggle("active", btn.dataset.theme === settings.theme);
       });
     }
-    window.MultiMindAppearance?.apply(settings.appearance);
+    window.AetherAIAppearance?.apply(settings.appearance);
     if (computeSegment) {
       computeSegment.querySelectorAll("button").forEach(btn => {
         btn.classList.toggle("active", btn.dataset.compute === (settings.computeMode || "auto"));
@@ -1333,7 +1333,7 @@
   $('pluginType').addEventListener('change',()=>{
     const type=$('pluginType').value;
     $('pluginCommandRow').hidden=$('pluginArgsRow').hidden=type!=='stdio';$('pluginUrlRow').hidden=type!=='http';
-    $('pluginTransportHint').textContent=type==='builtin'?'Reads project folders and text files inside MultiMindProject. No extra installation.':type==='stdio'?'Enabling starts the executable on your computer. Its runtime must already be installed.':'Streamable HTTP endpoint. OAuth and custom authentication headers are not supported yet.';
+    $('pluginTransportHint').textContent=type==='builtin'?'Reads project folders and text files inside your local project folder. No extra installation.':type==='stdio'?'Enabling starts the executable on your computer. Its runtime must already be installed.':'Streamable HTTP endpoint. OAuth and custom authentication headers are not supported yet.';
   });
   $('pluginForm').addEventListener('submit',async event=>{
     event.preventDefault();$('pluginsError').textContent='';const button=event.target.querySelector('[type=submit]');button.disabled=true;
@@ -1350,12 +1350,12 @@
   function renderDiscordSettings() {
     const ru = settings.appLanguage === 'ru';
     $('discordToggle').setAttribute('aria-checked', String(settings.discordActivity?.enabled === true));
-    $('discordDescription').textContent = ru ? 'Показывать MultiMind в вашем профиле Discord.' : 'Show MultiMind on your Discord profile.';
+    $('discordDescription').textContent = ru ? 'Показывать AetherAI в вашем профиле Discord.' : 'Show AetherAI on your Discord profile.';
     if (document.activeElement !== $('discordImageUrl')) $('discordImageUrl').value = settings.discordActivity?.image || '';
     $('discordImageLinkLabel').textContent = ru ? 'Ссылка на изображение или имя ресурса Discord' : 'Image URL or Discord asset name';
     $('discordImageHelp').textContent = ru ? 'Discord использует публичную HTTPS-ссылку. Файл из Add сохраняется локально: разместите подготовленное изображение и вставьте ссылку сюда. GIF работает по ссылке; загруженные ресурсы Discord — без анимации.' : 'Discord uses a public HTTPS URL. Add prepares a local file: host the prepared image and paste its URL here. GIF works by URL; uploaded Discord assets are static.';
-    $('discordImageUrl').placeholder = ru ? 'Пусто — анимированный логотип MultiMind' : 'Leave empty for the animated MultiMind logo';
-    $('discordImageHelp').textContent = (ru ? 'По умолчанию в Discord играет анимация струны MultiMind. Для своей картинки вставьте публичную HTTPS-ссылку. ' : 'Discord uses the animated MultiMind string logo by default. For a custom image, paste a public HTTPS URL. ') + (ru ? 'Add подготавливает локальный файл для размещения.' : 'Add prepares a local file for hosting.');
+    $('discordImageUrl').placeholder = ru ? 'Пусто — анимированный логотип AetherAI' : 'Leave empty for the animated AetherAI logo';
+    $('discordImageHelp').textContent = (ru ? 'По умолчанию в Discord играет анимация логотипа AetherAI. Для своей картинки вставьте публичную HTTPS-ссылку. ' : 'Discord uses the animated AetherAI logo by default. For a custom image, paste a public HTTPS URL. ') + (ru ? 'Add подготавливает локальный файл для размещения.' : 'Add prepares a local file for hosting.');
     $('discordExportImage').textContent = ru ? 'Сохранить подготовленный файл' : 'Save prepared image';
     if (discordMediaPreview) {
       const m = discordMediaPreview;
@@ -1427,8 +1427,8 @@
 
   function applyAppLanguageBasics() {
     document.documentElement.lang = settings.appLanguage || "en";
-    document.title = "MultiMind";
-    updateMultiMindControls();
+    document.title = "AetherAI";
+    updateAetherAIControls();
     updateComposerModeToggles();
     $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
     document.querySelector('[data-settings-tab="cloud"]').textContent = 'Providers';
@@ -1469,7 +1469,7 @@
     const progressTitle = document.querySelector(".progress-head > span");
     if (progressTitle) progressTitle.textContent = t("progress");
     const panelTitle = document.querySelector(".panel-header > span");
-    if (panelTitle) panelTitle.textContent = t("multimindActions");
+    if (panelTitle) panelTitle.textContent = t("aetheraiActions");
     const panelPreviewTitle = document.querySelector(".panel-progress-title");
     if (panelPreviewTitle) panelPreviewTitle.textContent = t("codingPreview");
     if (!settings.selectedModel) renderSelectedModel(null);
@@ -1532,8 +1532,8 @@
     gatewayFlowBg?.gatewayFlow?.destroy();
     if (gatewayFlowBg) { gatewayFlowBg.gatewayFlow = null; gatewayFlowBg.hidden = settings.appearance?.background !== "gateway"; }
     if (settings.appearance?.background !== "gateway") return;
-    if (!gatewayFlowBg || !window.MultiMindGatewayFlow) return;
-    const flow = window.MultiMindGatewayFlow.createGatewayFlow(gatewayFlowBg, {
+    if (!gatewayFlowBg || !window.AetherAIGatewayFlow) return;
+    const flow = window.AetherAIGatewayFlow.createGatewayFlow(gatewayFlowBg, {
       paths: 58,
       speed: 0.72,
       lineOpacity: 0.105,
@@ -1547,18 +1547,18 @@
   }
 
   function applyAppearance() {
-    settings.appearance = window.MultiMindAppearance.normalize(settings.appearance);
-    window.MultiMindAppearance.apply(settings.appearance);
+    settings.appearance = window.AetherAIAppearance.normalize(settings.appearance);
+    window.AetherAIAppearance.apply(settings.appearance);
     if (gatewayFlowBg?.hidden !== (settings.appearance.background !== 'gateway') || (settings.appearance.background === 'gateway' && !gatewayFlowBg?.gatewayFlow)) initGatewayFlowBackground();
-    window.MultiMindBackgrounds?.update({background:settings.appearance.background,color:settings.appearance.accent});
+    window.AetherAIBackgrounds?.update({background:settings.appearance.background,color:settings.appearance.accent});
     renderAppearance();
   }
   function renderAppearance() {
     const ru=settings.appLanguage==='ru';
     const tab=document.querySelector('[data-settings-tab="customization"]');
     tab.innerHTML=`<svg class="appearance-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5ZM12 20h8"/></svg><span>${ru?'Оформление':'Customization'}</span>`;
-    for(const [id,text] of Object.entries({appearanceTitle:ru?'Оформление':'Customization',appearanceHint:ru?'Настройте MultiMind под себя.':'Make MultiMind feel like yours.',backgroundTitle:ru?'Анимация фона':'Background animation',backgroundMotionNote:ru?'Анимация останавливается в скрытом окне. При уменьшении движения фон статичный.':'Animations pause when the app is hidden. Reduced motion uses a still background.',paletteTitle:ru?'Палитра цветов':'Color palette',accentColorLabel:ru?'Цвет акцента':'Accent color',surfaceColorLabel:ru?'Цвет приложения':'Application color',resetAppearance:ru?'Сбросить оформление':'Reset appearance'}))$(id).textContent=text;
-    const options=window.MultiMindAppearance.normalize(settings.appearance);
+    for(const [id,text] of Object.entries({appearanceTitle:ru?'Оформление':'Customization',appearanceHint:ru?'Настройте AetherAI под себя.':'Make AetherAI feel like yours.',backgroundTitle:ru?'Анимация фона':'Background animation',backgroundMotionNote:ru?'Анимация останавливается в скрытом окне. При уменьшении движения фон статичный.':'Animations pause when the app is hidden. Reduced motion uses a still background.',paletteTitle:ru?'Палитра цветов':'Color palette',accentColorLabel:ru?'Цвет акцента':'Accent color',surfaceColorLabel:ru?'Цвет приложения':'Application color',resetAppearance:ru?'Сбросить оформление':'Reset appearance'}))$(id).textContent=text;
+    const options=window.AetherAIAppearance.normalize(settings.appearance);
     document.querySelectorAll('[data-background]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.background===options.background)));
     document.querySelector('[data-background="none"] > span:last-child').textContent=ru?'Без анимации':'None';
     $('accentColor').value=options.accent;
@@ -1567,17 +1567,17 @@
   const swatches=document.querySelector('.appearance-swatches');
   for(const color of ['#c3c3c3','#91baff','#b9a0ee','#f2ac83','#83c9ac','#ef9fbb']){
     const button=document.createElement('button');button.type='button';button.style.background=color;button.setAttribute('aria-label',color);button.title=color;
-    button.onclick=()=>{settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),accent:color,surface:color==='#c3c3c3'?null:window.MultiMindAppearance.mix(color,settings.theme==='light'?'#ffffff':'#000000',settings.theme==='light'?.78:.7)};applyAppearance();window.api?.settingsSave(settings);};swatches.append(button);
+    button.onclick=()=>{settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),accent:color,surface:color==='#c3c3c3'?null:window.AetherAIAppearance.mix(color,settings.theme==='light'?'#ffffff':'#000000',settings.theme==='light'?.78:.7)};applyAppearance();window.api?.settingsSave(settings);};swatches.append(button);
   }
   document.querySelectorAll('[data-background]').forEach(button=>button.onclick=()=>{
-    settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),background:button.dataset.background};applyAppearance();window.api?.settingsSave(settings);
+    settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),background:button.dataset.background};applyAppearance();window.api?.settingsSave(settings);
   });
   let appearanceTimer;
   for(const [id,field] of [['accentColor','accent'],['surfaceColor','surface']]){
-    $(id).addEventListener('input',()=>{settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),[field]:$(id).value};clearTimeout(appearanceTimer);appearanceTimer=setTimeout(applyAppearance,80);});
-    $(id).addEventListener('change',()=>{clearTimeout(appearanceTimer);settings.appearance={...window.MultiMindAppearance.normalize(settings.appearance),[field]:$(id).value};applyAppearance();window.api?.settingsSave(settings);});
+    $(id).addEventListener('input',()=>{settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),[field]:$(id).value};clearTimeout(appearanceTimer);appearanceTimer=setTimeout(applyAppearance,80);});
+    $(id).addEventListener('change',()=>{clearTimeout(appearanceTimer);settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),[field]:$(id).value};applyAppearance();window.api?.settingsSave(settings);});
   }
-  $('resetAppearance').onclick=()=>{settings.appearance=window.MultiMindAppearance.normalize();applyAppearance();window.api?.settingsSave(settings);};
+  $('resetAppearance').onclick=()=>{settings.appearance=window.AetherAIAppearance.normalize();applyAppearance();window.api?.settingsSave(settings);};
 
   function initElectricComposerBorder() {
     if (!electricBorderCanvas) return;
@@ -1805,16 +1805,16 @@
     welcomeHint.textContent = availableModels.length
       ? (settings.appLanguage === "ru" ? "Модели готовы к работе." : "Local models are ready.")
       : (settings.appLanguage === "ru" ? "Нажми «Быстрая настройка» — приложение подготовит модель само." : "Choose Quick setup to prepare your first model automatically.");
-    $("localSetupCard").hidden = !MultiMind.shouldShowSetup(local, availableModels.length, settings.localSetupCompleted);
+    $("localSetupCard").hidden = !AetherAI.shouldShowSetup(local, availableModels.length, settings.localSetupCompleted);
     $("localSetupBtn").disabled = !local.supported || ["windows", "windows-install", "engine", "extracting", "model", "starting"].includes(local.stage);
     renderModelDropdown();
-    updateMultiMindControls();
+    updateAetherAIControls();
     if(settings.selectedModel?.startsWith('cloud:'))welcomeHint.textContent=settings.appLanguage==='ru'?'Ollama Cloud: сообщения отправляются в облако.':'Ollama Cloud: messages are sent to the cloud.';
     applyModelMode();
     if(previousModel!==settings.selectedModel)await persist();
   }
 
-  function updateMultiMindControls() {
+  function updateAetherAIControls() {
     $('localAiToggle').disabled = isGenerating;
     $('localAiToggle').setAttribute('aria-checked', String(settings.localAi));
     const ru = settings.appLanguage === "ru";
@@ -1947,7 +1947,7 @@
     } catch (error) { $("localSetupStatus").textContent = error.message; }
     finally { $("installOllamaBtn").disabled = false; }
   });
-  $("teamToggle").addEventListener("click", () => { settings.teamEnabled = !settings.teamEnabled; updateMultiMindControls(); persist(); });
+  $("teamToggle").addEventListener("click", () => { settings.teamEnabled = !settings.teamEnabled; updateAetherAIControls(); persist(); });
   for (let i = 0; i < 2; i++) $("workerModel" + i).addEventListener("change", event => {
     if (!Array.isArray(settings.workerModels)) settings.workerModels = [];
     settings.workerModels[i] = event.target.value; persist();
@@ -2050,7 +2050,7 @@
       const card = document.createElement('div'); card.className = 'model-active-card';
       card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check">Selected</span></div>`;
       if (isCloudModel(selected.name)) card.append(buildModelLimits(selected));
-      const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='Model details';info.onclick=()=>{modelDropdown.classList.remove('show');window.MultiMindModelInfo.show(selected);};card.append(info);
+      const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='Model details';info.onclick=()=>{modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(selected);};card.append(info);
       modelDropdown.append(card);
     }
     if (!settings.localAi && !availableModels.length) {
@@ -2128,7 +2128,7 @@
           modelDropdown.classList.remove("show");
           syncComposerExpanded();
         });
-        const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='ⓘ';info.setAttribute('aria-label','Details for '+(m.cloudName||m.name));info.onclick=event=>{event.stopPropagation();modelDropdown.classList.remove('show');window.MultiMindModelInfo.show(m);};item.append(info);
+        const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='ⓘ';info.setAttribute('aria-label','Details for '+(m.cloudName||m.name));info.onclick=event=>{event.stopPropagation();modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(m);};item.append(info);
         modelDropdown.appendChild(item);
       });
     });
@@ -2157,7 +2157,7 @@
   }
 
   function renderSelectedModel(name) {
-    window.MultiMindAccount?.setModel(availableModels.find(model=>model.name===name));
+    window.AetherAIAccount?.setModel(availableModels.find(model=>model.name===name));
     if (modelLabel) modelLabel.textContent = availableModels.find(model => model.name === name)?.cloudName || name || t("chooseModel");
     if (modelBtnIcon) {
       modelBtnIcon.innerHTML = name ? providerIconMarkup({ name }) : "";
@@ -2291,9 +2291,6 @@
     appEl?.classList.add("tab-collapsed");
     applyButtonTooltips();
   });
-  sideLogo?.addEventListener('mouseenter', () => {
-    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) $('sidebarLogoMotion')?.beginElement();
-  });
 
   function updateComposerModeToggles() {
     const russian = settings.appLanguage === "ru";
@@ -2317,7 +2314,6 @@
     composerSmartSearch = !composerSmartSearch;
     updateComposerModeToggles();
   });
-  sideLogo?.addEventListener('mouseleave', () => $('sidebarLogoMotion')?.endElement());
   sideLogo?.addEventListener("click", () => {
     appEl?.classList.remove("tab-collapsed");
     applyButtonTooltips();
@@ -2591,13 +2587,13 @@
     const reasoning = thinkingEl.querySelector(".thinking-reasoning");
     const label = thinkingEl.querySelector(".thinking-stage-label");
     const time = thinkingEl.querySelector(".thinking-stage-time");
-    const multimindStatus = thinkingEl.querySelector(".thinking-inline");
+    const aetheraiStatus = thinkingEl.querySelector(".thinking-inline");
     if (reasoning) reasoning.classList.add("is-collapsed");
     if (label) label.textContent = "Thought";
     if (time) time.textContent = formatDuration(thinkingThoughtDurationMs);
-    if (reasoning && multimindStatus) {
-      reasoning.parentElement.insertBefore(multimindStatus, reasoning.nextSibling);
-      multimindStatus.classList.add("thinking-after-thought");
+    if (reasoning && aetheraiStatus) {
+      reasoning.parentElement.insertBefore(aetheraiStatus, reasoning.nextSibling);
+      aetheraiStatus.classList.add("thinking-after-thought");
     }
   }
 
@@ -2643,8 +2639,8 @@
       : (mode === "image" ? "Creating image" : "Thinking");
     if (logo) {
       logo.innerHTML = `
-        <img class="thinking-logo-ghost" src="resources/multimind-logo.svg" alt="">
-        <img class="thinking-logo-line" src="resources/multimind-logo.svg" alt="">
+        <img class="thinking-logo-ghost" src="resources/aetherai-logo.svg" alt="">
+        <img class="thinking-logo-line" src="resources/aetherai-logo.svg" alt="">
       `;
     }
     if (label) {
@@ -2923,7 +2919,7 @@
     if (settings.accessMode === "ask") {
       const decision = await requestChangeApproval(
         "python packages",
-        `MultiMind needs to install Python packages so the app can run: ${packages.join(", ")}`
+        `AetherAI needs to install Python packages so the app can run: ${packages.join(", ")}`
       );
       if (decision === "deny") {
         addProgressItem(`Denied package install ${packages.join(", ")}`, "denied");
@@ -3006,7 +3002,7 @@
       const existing = data.groups.find(g => g.id === chat.groupId);
       return existing ? existing.folderName || existing.name : null;
     }
-    const groupName = "MultiMindProject";
+    const groupName = "AetherAIProject";
     let folderName = groupName;
     if (window.api && window.api.ensureProjectFolder) {
       const folder = await window.api.ensureProjectFolder(groupName);
@@ -3039,7 +3035,7 @@
     }
     const needsApproval = fileAlreadyExists && settings.accessMode === "ask" && acceptedChangeChatId !== currentChatId;
     if (needsApproval) {
-      const decision = await requestChangeApproval(filePath, `MultiMind wants to change an existing file: ${filePath}`);
+      const decision = await requestChangeApproval(filePath, `AetherAI wants to change an existing file: ${filePath}`);
       if (decision === "deny") {
         addProgressItem(`Denied edit ${filePath}`, "denied");
         upsertCodingPreview(Object.assign({}, lastCodeActivity, { state: "editing" }), `Denied: ${filePath}`);
@@ -3475,7 +3471,7 @@
   function buildSystemPrompt(userText) {
 
     const hints = { none: 'Answer briefly and directly.', low: 'Give a concise, practical answer.', medium: 'Give a thoughtful, useful answer of ordinary length.', high: 'Consider the request carefully and give a well-reasoned answer.', max: 'Consider the request thoroughly from relevant perspectives.' };
-    return `${MultiMindIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}\n\n${MultiMindCapabilities.prompt(settings.selectedModel,modelSupportsVision(settings.selectedModel||''))}`;
+    return `${AetherAIIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}\n\n${AetherAICapabilities.prompt(settings.selectedModel,modelSupportsVision(settings.selectedModel||''))}`;
   }
 
   async function maybeInstallNodePackages(activity, folderName) {
@@ -3484,7 +3480,7 @@
     if (settings.accessMode === "ask") {
       const decision = await requestChangeApproval(
         "package.json",
-        `MultiMind needs to install Node packages so the app can run: ${packages.join(", ")}`
+        `AetherAI needs to install Node packages so the app can run: ${packages.join(", ")}`
       );
       if (decision === "deny") {
         upsertCodingPreview(Object.assign({}, activity, { state: "editing" }), `Dependency install denied: ${packages.join(", ")}`);
@@ -3553,13 +3549,13 @@
   }
 
   async function generateResponse(userText, userImages, generationId) {
-    const intent=MultiMindIntent.classify(userText);
+    const intent=AetherAIIntent.classify(userText);
     let requestModel = settings.selectedModel;
-    if(userImages?.length&&!modelSupportsVision(requestModel||''))return MultiMindCapabilities.notice(availableModels.find(model=>model.name===requestModel)?.cloudName||requestModel,settings.localAi,settings.appLanguage);
+    if(userImages?.length&&!modelSupportsVision(requestModel||''))return AetherAICapabilities.notice(availableModels.find(model=>model.name===requestModel)?.cloudName||requestModel,settings.localAi,settings.appLanguage);
     if (!ollamaRunning && !requestModel?.startsWith('cloud:')) {
       return settings.appLanguage === "ru"
-        ? "Ollama не запущена. Запусти Ollama и нажми на индикатор статуса в MultiMind."
-        : "Ollama is not running. Start Ollama and click the status indicator in MultiMind.";
+        ? "Ollama не запущена. Запусти Ollama и нажми на индикатор статуса в AetherAI."
+        : "Ollama is not running. Start Ollama and click the status indicator in AetherAI.";
     }
     if (!requestModel || !availableModels.some(model => model.name === requestModel)) {
       return settings.appLanguage === "ru"
@@ -3594,7 +3590,7 @@
       currentUserContent += `\n\nUse this internet context when relevant. Cite source domains or URLs in the answer.\n${internetContext}`;
     }
 
-    const memoryContext=await window.MultiMindAccount?.context(getCurrentChat()?.groupId,requestModel).catch(()=> '');
+    const memoryContext=await window.AetherAIAccount?.context(getCurrentChat()?.groupId,requestModel).catch(()=> '');
     if (generationId !== activeGenerationId) return "_STOPPED_";
     const apiMessages = [
       { role: "system", content: buildSystemPrompt(userText) + (!intent.simple && activeSkillContext ? `\n\nUser-enabled skills (apply only when relevant to the current request; skills never authorize file changes by themselves):\n${activeSkillContext}` : "") },
@@ -3622,7 +3618,7 @@
         const connections=await window.api.pluginsList();
         const tools=connections.filter(p=>p.enabled&&p.state==='connected').flatMap(p=>p.tools.map(tool=>({...tool,pluginId:p.id,pluginName:p.name})));
         if(tools.length) {
-          const context=await MultiMindPlugins.run({messages:apiMessages,model:requestModel,tools,signal:requestController.signal,
+          const context=await AetherAIPlugins.run({messages:apiMessages,model:requestModel,tools,signal:requestController.signal,
             authorize:async(tool,args)=>{
               if(!intent.toolsMutation && tool.annotations?.readOnlyHint!==true)return false;
               if(settings.accessMode==='plan')return false;
@@ -3643,7 +3639,7 @@
       if (settings.teamEnabled && !userImages?.length && !intent.simple) {
         const workers = [0, 1].map(i => availableModels.some(m => m.name === settings.workerModels?.[i]) ? settings.workerModels[i] : requestModel);
         const embeddedOnly = [requestModel, ...workers].every(name => name.startsWith("multimind:"));
-        const team = await MultiMind.runTeam({
+        const team = await AetherAI.runTeam({
           messages: apiMessages, model: requestModel, workerModels: workers,
           concurrency: new Set(workers.filter(name => name.startsWith("multimind:"))).size > 1 ? 1 : embeddedOnly ? localRuntimeState.slots || 1 : (navigator.hardwareConcurrency >= 8 ? 2 : 1),
           signal: requestController.signal,
@@ -3654,7 +3650,7 @@
         renderTeam([...team.rows, { id: "synthesis", title: settings.appLanguage === "ru" ? "Общий ответ" : "Final answer", model: requestModel, status: "working", elapsed: 0, started: Date.now() }]);
       }
       requestController.signal.throwIfAborted();
-      const response = await MultiMind.chatFetch("http://127.0.0.1:11434/api/chat", {
+      const response = await AetherAI.chatFetch("http://127.0.0.1:11434/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reqBody),
@@ -3726,7 +3722,7 @@
         collapseThinkingToThought();
         const fallbackBody = Object.assign({}, reqBody, { stream: false });
         if (Object.prototype.hasOwnProperty.call(fallbackBody, "think")) fallbackBody.think = false;
-        const fallbackResponse = await MultiMind.chatFetch("http://127.0.0.1:11434/api/chat", {
+        const fallbackResponse = await AetherAI.chatFetch("http://127.0.0.1:11434/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(fallbackBody),
@@ -3764,9 +3760,9 @@
       renderTeam(teamRows.map(row => row.id === "synthesis" ? { ...row, status: "done", elapsed: Date.now() - row.started, output: fullText } : row));
       return fullText || "(пустой ответ)";
     } catch (err) {
-      if (generationId === activeGenerationId) renderTeam(teamRows.map(row => row.status === "working" || row.status === "queued" ? { ...row, status: requestController.signal.aborted ? "stopped" : "error", output: MultiMindErrors.format(err,settings.appLanguage) } : row));
+      if (generationId === activeGenerationId) renderTeam(teamRows.map(row => row.status === "working" || row.status === "queued" ? { ...row, status: requestController.signal.aborted ? "stopped" : "error", output: AetherAIErrors.format(err,settings.appLanguage) } : row));
       if (requestController.signal.aborted || err.name === "AbortError") return "_STOPPED_";
-      return MultiMindErrors.format(err, settings.appLanguage);
+      return AetherAIErrors.format(err, settings.appLanguage);
     } finally {
       if (abortController === requestController) abortController = null;
     }
@@ -4321,8 +4317,8 @@
       const decision = await requestChangeApproval(
         "Flux Python packages",
         settings.appLanguage === "ru"
-          ? `MultiMind нужно установить Python-пакеты для локальной генерации Flux: ${FLUX_PYTHON_PACKAGES.join(", ")}`
-          : `MultiMind needs to install Python packages for local Flux image generation: ${FLUX_PYTHON_PACKAGES.join(", ")}`
+          ? `AetherAI нужно установить Python-пакеты для локальной генерации Flux: ${FLUX_PYTHON_PACKAGES.join(", ")}`
+          : `AetherAI needs to install Python packages for local Flux image generation: ${FLUX_PYTHON_PACKAGES.join(", ")}`
       );
       if (decision === "deny") return false;
     }
@@ -4332,7 +4328,7 @@
       : `Installing Flux packages: ${FLUX_PYTHON_PACKAGES.join(", ")}`;
     const progressId = addProgressItem(title, "pending");
     appendTerminalLine(`py -m pip install ${FLUX_PYTHON_PACKAGES.join(" ")}`);
-    const result = await window.api.installPythonPackages(FLUX_PYTHON_PACKAGES, "MultiMindProject");
+    const result = await window.api.installPythonPackages(FLUX_PYTHON_PACKAGES, "AetherAIProject");
     if (result?.ok) {
       updateProgressItem(progressId, "done", settings.appLanguage === "ru"
         ? "Flux-пакеты установлены"
@@ -4821,7 +4817,7 @@
   }
 
   function renderSidebar() {
-    window.MultiMindAccount?.setProjects(data.groups);
+    window.AetherAIAccount?.setProjects(data.groups);
     chatHistoryList.innerHTML = "";
 
     // "New chat" is highlighted only while the current draft has no messages.
@@ -5427,8 +5423,8 @@
 
   init().catch(()=>{
     if(gatewayFlowBg)gatewayFlowBg.hidden=true;
-    window.MultiMindBackgrounds?.update({background:'none',color:'#c3c3c3'});
-    if(welcomeTitle)welcomeTitle.textContent='Unable to load your workspace. Restart MultiMind.';
+    window.AetherAIBackgrounds?.update({background:'none',color:'#c3c3c3'});
+    if(welcomeTitle)welcomeTitle.textContent='Unable to load your workspace. Restart AetherAI.';
     document.documentElement.classList.remove('ui-loading');
   });
 

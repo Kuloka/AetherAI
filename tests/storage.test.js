@@ -4,7 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { initializeStorage } = require('../electron/storage-migration');
-const { shouldShowSetup } = require('../multimind');
+const { shouldShowSetup } = require('../aetherai');
 
 test('setup stays hidden for downloaded models before the engine starts', () => {
   assert.equal(shouldShowSetup({ installed: true, running: false, stage: 'idle' }, 0, false), false);
@@ -15,7 +15,7 @@ test('setup stays hidden for downloaded models before the engine starts', () => 
 });
 
 test('storage migration preserves chats, models and projects and runs only once', () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'multimind-migration-'));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'aetherai-migration-'));
   const write = (file, text) => { const location = path.join(home, file); fs.mkdirSync(path.dirname(location), { recursive: true }); fs.writeFileSync(location, text); };
   try {
     write('.nevo-data/data.json', '{"groups":[],"chats":[]}');
@@ -38,13 +38,13 @@ test('storage migration preserves chats, models and projects and runs only once'
   } finally {
     const resolved = path.resolve(home);
     assert.equal(path.dirname(resolved), path.resolve(os.tmpdir()));
-    assert.ok(path.basename(resolved).startsWith('multimind-migration-'));
+    assert.ok(path.basename(resolved).startsWith('aetherai-migration-'));
     fs.rmSync(resolved, { recursive: true });
   }
 });
 
-test('MultiMind imports Musical data and model references without rewriting messages or overwriting current settings',()=>{
- const home=fs.mkdtempSync(path.join(os.tmpdir(),'multimind-upgrade-'));
+test('AetherAI imports Musical data and model references without rewriting messages or overwriting current settings',()=>{
+ const home=fs.mkdtempSync(path.join(os.tmpdir(),'aetherai-upgrade-'));
  const write=(name,value)=>{const file=path.join(home,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,value);};
  try {
   const hash='a'.repeat(64);
@@ -62,5 +62,5 @@ test('MultiMind imports Musical data and model references without rewriting mess
   assert.equal(fs.readFileSync(path.join(dirs.projectsDir,'MultiMindProject2/main.js'),'utf8'),'original project');
   assert.ok(fs.existsSync(path.join(home,'.musical-data/runtime/llama-b10549/'+hash+'.gguf')));
   write('.multimind-data/settings.json','{"appLanguage":"de"}');initializeStorage(home);assert.equal(JSON.parse(fs.readFileSync(path.join(dirs.dataDir,'settings.json'))).appLanguage,'de');
- }finally{assert.equal(path.dirname(path.resolve(home)),path.resolve(os.tmpdir()));assert.ok(path.basename(home).startsWith('multimind-upgrade-'));fs.rmSync(home,{recursive:true});}
+ }finally{assert.equal(path.dirname(path.resolve(home)),path.resolve(os.tmpdir()));assert.ok(path.basename(home).startsWith('aetherai-upgrade-'));fs.rmSync(home,{recursive:true});}
 });

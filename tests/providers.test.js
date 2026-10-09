@@ -7,7 +7,7 @@ const { createProviders } = require('../electron/cloud-providers');
 const storage = { isEncryptionAvailable: () => true, encryptString: value => Buffer.from(value.split('').reverse().join('')), decryptString: value => value.toString().split('').reverse().join('') };
 
 test('provider keys are encrypted, paid models retain prices, split UTF-8 SSE survives, and disconnect clears catalog', async t => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'multimind-providers-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-providers-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const cloud = createProviders(dir, storage, async (url, init) => {
     assert.equal(init.headers.Authorization, 'Bearer fixture-key');
@@ -42,7 +42,7 @@ test('provider keys are encrypted, paid models retain prices, split UTF-8 SSE su
 });
 
 test('Groq forwards JSON requests, filters audio models and reports rate limits without exposing a key', async t => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'multimind-groq-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-groq-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const cloud = createProviders(dir, storage, async (url, init) => {
     if (url.endsWith('/models')) return Response.json({ data: [{ id: 'test-chat' }, { id: 'whisper-v3' }] });
@@ -59,7 +59,7 @@ test('Groq forwards JSON requests, filters audio models and reports rate limits 
 });
 
 test('provider quota counters come from API data and headers, retain genuine zero and clear rate-limit banners on success', async t => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'multimind-quota-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-quota-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   let exhausted = true;
   const cloud = createProviders(dir, storage, async url => {
@@ -85,7 +85,7 @@ test('provider quota counters come from API data and headers, retain genuine zer
 });
 
 test('temporary OpenRouter spending holds do not claim the account quota is exhausted and honor HTTP-date retry', async t => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'multimind-inflight-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-inflight-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const retry = new Date(Date.now() + 60000).toUTCString();
   const cloud = createProviders(dir, storage, async url => {
@@ -103,7 +103,7 @@ test('temporary OpenRouter spending holds do not claim the account quota is exha
 });
 
 test('OpenRouter rejects an invalid key before writing credentials', async t => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'multimind-invalid-key-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-invalid-key-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const cloud = createProviders(dir, storage, async () => new Response('unauthorized', { status: 401 }));
   await assert.rejects(cloud.save('openrouter', 'fixture-key'), /HTTP 401/);
@@ -111,7 +111,7 @@ test('OpenRouter rejects an invalid key before writing credentials', async t => 
 });
 
 test('Groq keeps separate model quotas and clears both after disconnect', async t => {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'multimind-model-quota-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-model-quota-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const cloud = createProviders(dir, storage, async (url, init) => {
     if (url.endsWith('/models')) return Response.json({ data: [{ id: 'model-a' }, { id: 'model-b' }] });
@@ -130,7 +130,7 @@ test('Groq keeps separate model quotas and clears both after disconnect', async 
 });
 
 test('OpenRouter mid-stream Nvidia exhaustion emits a readable overloaded event',async t=>{
-  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-stream-error-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-stream-error-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   const cloud=createProviders(dir,storage,async url=>{
     if(url.endsWith('/key'))return Response.json({data:{}});
     if(url.endsWith('/models/user'))return Response.json({data:[{id:'test/free',pricing:{prompt:'0',completion:'0'}}]});
@@ -142,7 +142,7 @@ test('OpenRouter mid-stream Nvidia exhaustion emits a readable overloaded event'
 });
 
 for(const [id,base] of [['gemini','https://generativelanguage.googleapis.com/v1beta/openai'],['cerebras','https://api.cerebras.ai/v1']])test(id+' validates its key, lists models and generates through the correct endpoint',async t=>{
-  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-'+id+'-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-'+id+'-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   const model=id==='gemini'?'models/gemini-test':'test-model';let chats=0;
   const cloud=createProviders(dir,storage,async(url,init)=>{
     assert.equal(init.headers.Authorization,'Bearer fixture-key');

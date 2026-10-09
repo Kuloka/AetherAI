@@ -62,8 +62,8 @@ function createLocalRuntime(dataDir, options = {}) {
     signal.throwIfAborted();
     report({ stage: 'windows-install', completed: 0, total: 0 });
     await new Promise((resolve, reject) => {
-      const script = "$ErrorActionPreference='Stop'; $signature=Get-AuthenticodeSignature -LiteralPath $env:MULTIMIND_VC_INSTALLER; if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid Microsoft signature' }; $installerProcess=Start-Process -FilePath $env:MULTIMIND_VC_INSTALLER -ArgumentList '/install','/passive','/norestart' -Verb RunAs -WindowStyle Hidden -Wait -PassThru; if ($installerProcess.ExitCode -notin @(0,3010,1638)) { throw ('Windows component installation failed: '+$installerProcess.ExitCode) }";
-      const proc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, env: { ...process.env, MULTIMIND_VC_INSTALLER: installer } });
+      const script = "$ErrorActionPreference='Stop'; $signature=Get-AuthenticodeSignature -LiteralPath $env:AETHERAI_VC_INSTALLER; if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { throw 'Invalid Microsoft signature' }; $installerProcess=Start-Process -FilePath $env:AETHERAI_VC_INSTALLER -ArgumentList '/install','/passive','/norestart' -Verb RunAs -WindowStyle Hidden -Wait -PassThru; if ($installerProcess.ExitCode -notin @(0,3010,1638)) { throw ('Windows component installation failed: '+$installerProcess.ExitCode) }";
+      const proc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], { windowsHide: true, env: { ...process.env, AETHERAI_VC_INSTALLER: installer } });
       let error = '';
       proc.stderr.on('data', chunk => { error = (error + chunk).slice(-1200); });
       proc.on('error', reject);
@@ -137,7 +137,7 @@ function createLocalRuntime(dataDir, options = {}) {
           report({ stage: 'extracting' });
           await new Promise((resolve, reject) => {
             // Paths are passed through environment variables, never shell interpolation.
-            const proc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'Expand-Archive -LiteralPath $env:MULTIMIND_ARCHIVE -DestinationPath $env:MULTIMIND_RUNTIME -Force'], { windowsHide: true, env: { ...process.env, MULTIMIND_ARCHIVE: zip, MULTIMIND_RUNTIME: root }, signal });
+            const proc = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'Expand-Archive -LiteralPath $env:AETHERAI_ARCHIVE -DestinationPath $env:AETHERAI_RUNTIME -Force'], { windowsHide: true, env: { ...process.env, AETHERAI_ARCHIVE: zip, AETHERAI_RUNTIME: root }, signal });
             proc.on('error', reject);
             proc.on('exit', code => code === 0 ? resolve() : reject(new Error('Could not unpack local engine')));
           });

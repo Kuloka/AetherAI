@@ -76,7 +76,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MultiMind-${{ matrix.platform }}-${{ matrix.arch }}
+          name: AetherAI-${{ matrix.platform }}-${{ matrix.arch }}
           if-no-files-found: error
           path: |
             dist/*.exe
@@ -97,8 +97,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Generate release description and exact line statistics
-        run: node scripts/release-notes.cjs v1.23.1 > release-description.md
       - uses: actions/download-artifact@v4
         with:
           path: release-files
@@ -128,9 +126,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: MultiMind ${{ github.ref_name }}
-          generate_release_notes: true
-          body_path: release-description.md
+          name: AetherAI ${{ github.ref_name }}
+          generate_release_notes: false
+          body_path: RELEASE_NOTES.md
           prerelease: false
           overwrite_files: true
           files: |

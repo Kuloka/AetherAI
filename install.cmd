@@ -1,8 +1,8 @@
 @echo off
-title MultiMind - Install
+title AetherAI - Install
 echo.
 echo   ========================================
-echo          MultiMind - Installation
+echo          AetherAI - Installation
 echo   ========================================
 echo.
 
@@ -29,7 +29,7 @@ echo   Ollama is optional and can be installed from the app.
 echo.
 echo   ========================================
 echo   Done! Now run start.vbs without a terminal window
-echo   Projects will be saved to: %USERPROFILE%\MultiMindProject
+echo   Projects will be saved to: %USERPROFILE%\AetherAIProject
 echo   ========================================
 echo.
 pause

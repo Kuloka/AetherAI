@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { runTeam, chatFetch } = require('../multimind');
+const { runTeam, chatFetch } = require('../aetherai');
 const { download } = require('../electron/local-runtime');
 const fs = require('fs');
 const os = require('os');
@@ -74,7 +74,7 @@ test('download resumes partial bytes, verifies SHA256, and rejects corrupt conte
     res.end(content.subarray(start));
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'multimind-download-test-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aetherai-download-test-'));
   const destination = path.join(dir, 'archive');
   const asset = { url: `http://127.0.0.1:${server.address().port}`, size: content.length, sha: crypto.createHash('sha256').update(content).digest('hex') };
   try {

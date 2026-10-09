@@ -3,7 +3,7 @@ const fs=require('node:fs/promises'),os=require('node:os'),path=require('node:pa
 const {createProviders}=require('../electron/cloud-providers');
 const storage={isEncryptionAvailable:()=>true,encryptString:v=>Buffer.from(v.split('').reverse().join('')),decryptString:v=>v.toString().split('').reverse().join('')};
 test('SambaNova connects, streams UTF-8, preserves per-model minute/day limits and clears credentials',async t=>{
-  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-sambanova-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-sambanova-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
   let exhausted=false;
   const provider=createProviders(directory,storage,async(url,init)=>{
     assert.equal(init.headers.Authorization,'Bearer fixture-samba-key');
@@ -32,7 +32,7 @@ test('SambaNova connects, streams UTF-8, preserves per-model minute/day limits a
   provider.disconnect('sambanova');assert.deepEqual(provider.usage(),{});assert.deepEqual(await provider.models(),[]);
 });
 test('SambaNova rejects an unauthorized key without storing it',async t=>{
-  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-sambanova-auth-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
+  const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-sambanova-auth-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));
   const provider=createProviders(directory,storage,async()=>new Response('unauthorized',{status:401}));
   await assert.rejects(provider.save('sambanova','fixture-samba-key'),/HTTP 401/);
   assert.equal(provider.status().find(p=>p.id==='sambanova').configured,false);

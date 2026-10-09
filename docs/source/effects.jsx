@@ -70,14 +70,14 @@ createRoot(layer).render(<QuietFallback><Background/></QuietFallback>);
 // The product wordmark gets its own Shape Waves field; the accessible title stays HTML.
 function AnimatedWordmark(){
   const [failed,setFailed]=useState(false);
-  return failed || reduced.matches ? <span className="shape-wordmark-fallback">MultiMind</span> :
-    <ShapeWaves text="MultiMind" color="#bbbbbb" hoverColor="#ffffff" backgroundColor="#101010" textSize={.72} cellSize={5} brightness={.7} interactive onError={()=>setFailed(true)}/>;
+  return failed || reduced.matches ? <span className="shape-wordmark-fallback">AetherAI</span> :
+    <ShapeWaves text="AetherAI" color="#bbbbbb" hoverColor="#ffffff" backgroundColor="#101010" textSize={.72} cellSize={5} brightness={.7} interactive onError={()=>setFailed(true)}/>;
 }
 let wordmarkRoot=null;
 function mountWordmark(){
   const title=document.querySelector('.hero h1');
   if(!title || document.querySelector('.shape-wordmark'))return;
-  const host=document.createElement('div');host.className='shape-wordmark';host.setAttribute('aria-label','MultiMind');
+  const host=document.createElement('div');host.className='shape-wordmark';host.setAttribute('aria-label','AetherAI');
   wordmarkRoot?.unmount();
   title.before(host);wordmarkRoot=createRoot(host);wordmarkRoot.render(<QuietFallback><AnimatedWordmark/></QuietFallback>);
 }

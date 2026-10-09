@@ -117,7 +117,7 @@
         row.status = 'done';
         return row.output;
       } catch (error) {
-        row.status = signal.aborted ? 'stopped' : 'error'; row.output = root.MultiMindErrors ? root.MultiMindErrors.format(error, root.document?.documentElement.lang || 'en') : error.message;
+        row.status = signal.aborted ? 'stopped' : 'error'; row.output = root.AetherAIErrors ? root.AetherAIErrors.format(error, root.document?.documentElement.lang || 'en') : error.message;
         if (signal.aborted) throw error;
         return null;
       } finally { clearInterval(ticker); row.elapsed = Date.now() - row.started; emit(); }
@@ -163,5 +163,5 @@
   }
   const api = { chatFetch, runTeam, shouldShowSetup };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
-  else root.MultiMind = api;
+  else root.AetherAI = api;
 })(typeof window !== 'undefined' ? window : globalThis);

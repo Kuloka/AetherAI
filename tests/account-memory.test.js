@@ -3,7 +3,7 @@ const {createAccountAuth}=require('../electron/account-auth'),{createMemoryStore
 const storage={isEncryptionAvailable:()=>true,encryptString:value=>Buffer.from(value.split('').reverse().join('')),decryptString:value=>value.toString().split('').reverse().join('')};
 const owner='12345678-1234-1234-1234-123456789abc';
 test('password registration waits for confirmation, password login persists only tokens and errors are readable',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-password-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let fail=false;
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-password-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let fail=false;
  const auth=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},async(url,init)=>{
   const body=JSON.parse(init.body);assert.equal(body.email,'test@example.com');assert.equal(body.password,'fixture-password');
   if(url.endsWith('/signup'))return Response.json({user:{id:owner}});
@@ -18,7 +18,7 @@ test('password registration waits for confirmation, password login persists only
  fail=true;await assert.rejects(auth.signIn('test@example.com','fixture-password'),/Incorrect email or password/);
 });
 test('email OTP stores encrypted sessions, hides tokens, rejects repeat sends and signs out',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-account-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let requests=[];
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-account-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let requests=[];
  const auth=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},async(url,init)=>{
    requests.push(url);if(url.endsWith('/otp'))return Response.json({});if(url.endsWith('/verify')){assert.equal(JSON.parse(init.body).token,'123456');return Response.json({access_token:'private-access-token',refresh_token:'private-refresh-token',expires_in:3600,user:{id:owner,email:'test@example.com'}});}return new Response(null,{status:204});
  });
@@ -29,7 +29,7 @@ test('email OTP stores encrypted sessions, hides tokens, rejects repeat sends an
  await auth.logout();assert.equal((await auth.status()).user,null);assert.equal(requests.length,3);
 });
 test('six-digit email codes preserve leading zeroes and reject other lengths before making requests',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-six-digit-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let requests=0;
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-six-digit-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let requests=0;
  const auth=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},async(url,init)=>{
   requests++;assert.ok(url.endsWith('/verify'));assert.equal(JSON.parse(init.body).token,'001234');return Response.json({access_token:'private-access',refresh_token:'private-refresh',expires_in:3600,user:{id:owner,email:'test@example.com'}});
  });
@@ -41,7 +41,7 @@ test('unconfigured auth stays unavailable and privileged keys are rejected',asyn
  assert.throws(()=>createAccountAuth(os.tmpdir(),storage,{publishableKey:'sb_secret_bad'}),/public/);
 });
 test('Google callback exchanges a PKCE code using a verifier that matches the browser challenge',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-pkce-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let browserUrl,changed;
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-pkce-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let browserUrl,changed;
  const auth=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key',callbackPort:0},async(url,init)=>{
    if(url.endsWith('/settings'))return Response.json({external:{google:true}});
    assert.match(url,/grant_type=pkce/);const body=JSON.parse(init.body);assert.equal(body.auth_code,'fixture-code');
@@ -56,21 +56,21 @@ test('disabled Google provider gives a readable error without opening a browser'
  await assert.rejects(auth.google(async()=>{opened=true;}),/Google sign-in is not enabled yet/);assert.equal(opened,false);
 });
 test('expired account sessions refresh once for concurrent authenticated calls',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-refresh-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let refreshed=0;
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-refresh-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let refreshed=0;
  const auth=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},async(url,init)=>{
   if(url.endsWith('/verify'))return Response.json({access_token:'expired',refresh_token:'refresh-first',expires_in:1,user:{id:owner,email:'test@example.com'}});
   assert.match(url,/grant_type=refresh_token/);assert.equal(JSON.parse(init.body).refresh_token,'refresh-first');refreshed++;return Response.json({access_token:'renewed',refresh_token:'rotated',expires_in:3600,user:{id:owner,email:'test@example.com'}});
  });await auth.verify('test@example.com','123456');const result=await Promise.all([auth.credentials(),auth.credentials()]);assert.equal(refreshed,1);assert.equal(result[0].access_token,'renewed');assert.equal(result[1].access_token,'renewed');
 });
 test('memory is scoped, editable, disableable, removable, persistent, and isolated per account',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-memory-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const store=createMemoryStore(directory);
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-memory-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const store=createMemoryStore(directory);
  store.save('local',{content:'Prefer short replies',projectId:null});const entry=store.save('local',{content:'Project uses React',projectId:'project-a'})[1];
  assert.match(store.context('local','project-a'),/React/);assert.doesNotMatch(store.context('local','project-b'),/React/);assert.deepEqual(store.list(owner),[]);
  store.save('local',{...entry,enabled:false});assert.doesNotMatch(store.context('local','project-a'),/React/);store.remove('local',entry.id);assert.equal(store.list('local').length,1);
  assert.equal(createMemoryStore(directory).list('local').length,1);assert.throws(()=>store.save('local',{content:'x'.repeat(1501)}),/1,500/);assert.throws(()=>store.list('../outside'),/owner/);
 });
 test('sign-out while refresh is in flight does not restore old session credentials',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-refresh-cancel-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let release,started;
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-refresh-cancel-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));let release,started;
  const began=new Promise(resolve=>{started=resolve;});
  const auth=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},async url=>{
   if(url.endsWith('/verify'))return Response.json({access_token:'old',refresh_token:'refresh',expires_in:1,user:{id:owner,email:'test@example.com'}});
@@ -79,7 +79,7 @@ test('sign-out while refresh is in flight does not restore old session credentia
  });await auth.verify('test@example.com','123456');const refresh=auth.credentials();const rejection=assert.rejects(refresh,/account changed/);await began;await auth.logout();release();await rejection;assert.equal((await auth.status()).user,null);assert.equal(await fs.stat(path.join(directory,'account-session.enc')).then(()=>true,()=>false),false);
 });
 test('memory sync merges newer remote notes, retains deletion and never syncs the guest store',async t=>{
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'multimind-memory-sync-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const store=createMemoryStore(directory),entry=store.save(owner,{content:'Original'})[0];store.remove(owner,entry.id);let sent;
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-memory-sync-'));t.after(()=>fs.rm(directory,{recursive:true,force:true}));const store=createMemoryStore(directory),entry=store.save(owner,{content:'Original'})[0];store.remove(owner,entry.id);let sent;
  const auth={dataCall:async(_endpoint,method,body)=>{if(method==='GET')return [{user_id:owner,id:entry.id,content:'Old remote',project_id:null,enabled:true,updated_at:'2020-01-01T00:00:00Z',deleted_at:null}];sent=body;}};
  await store.sync(owner,auth);assert.ok(sent[0].deleted_at);assert.equal(sent[0].content,'');assert.equal(store.list(owner).length,0);await assert.rejects(store.sync('local',auth),/Sign in/);
 });
