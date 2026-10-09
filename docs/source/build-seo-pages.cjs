@@ -1,5 +1,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'..');
+// Public Search Console ownership tag supplied by the site owner.
+const googleVerification='j1oT0w3Mch--CY0ucE4gCtBZLy9GP4Rz3GM0ohUGB38';
 for(const file of ['locales.js','locales-west.js','locales-east.js','seo.js','render.js'])require(path.join(root,file));
 const escape=value=>String(value).replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const boot=fs.readFileSync(path.join(__dirname,'boot.js'),'utf8').replace(/\r\n/g,'\n');
@@ -11,7 +13,7 @@ for(const lang of langs){
  const folder=lang==='en'?root:path.join(root,lang);fs.mkdirSync(folder,{recursive:true});
  fs.writeFileSync(path.join(folder,'index.html'),`<!doctype html>
 <html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escape(copy.meta[0])}</title><meta name="description" content="${escape(copy.meta[1])}"><meta name="robots" content="index,follow,max-image-preview:large"><meta name="theme-color" content="#101010">
+<title>${escape(copy.meta[0])}</title><meta name="description" content="${escape(copy.meta[1])}"><meta name="google-site-verification" content="${escape(googleVerification)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta name="theme-color" content="#101010">
 <meta property="og:site_name" content="AetherAI"><meta property="og:title" content="${escape(copy.meta[0])}"><meta property="og:description" content="${escape(copy.meta[1])}"><meta property="og:type" content="website"><meta property="og:url" content="${url}"><meta property="og:locale" content="${lang==='en'?'en_US':lang==='pt'?'pt_BR':lang+'_'+lang.toUpperCase()}"><meta property="og:image" content="${SITE_ORIGIN}/assets/social.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="600"><meta property="og:image:alt" content="AetherAI — local and cloud AI chat">
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escape(copy.meta[0])}"><meta name="twitter:description" content="${escape(copy.meta[1])}"><meta name="twitter:image" content="${SITE_ORIGIN}/assets/social.png">
 <link rel="icon" href="/assets/logo.svg" type="image/svg+xml"><link rel="canonical" href="${url}">${alternates}
