@@ -20,8 +20,8 @@
     thinkLevel: "medium",
     accessMode: "ask",
     appLanguage: "en",
-    theme: "dark",
-    appearance: { background: "gateway", accent: "#c3c3c3", surface: null },
+    theme: "light",
+    appearance: { background: "gateway", accent: "#ffffff", surface: null },
     teamEnabled: true,
     workerModels: [],
     computeMode: "auto",
@@ -114,7 +114,10 @@
     const id = $('providerSelect').value;
     const statuses = await window.api.providersStatus();
     const configured = statuses.some(item => item.id === id && item.configured);
-    $('providerDisconnect').hidden = !configured;
+    if (id !== $('providerSelect').value) return;
+    const action=$('providerConnect'); action.dataset.connected=String(configured); action.type=configured?'button':'submit';
+    action.textContent=settings.appLanguage==='ru'?(configured?'Отключить':'Подключить'):(configured?'Disconnect':'Connect');
+    $('providerKey').required=!configured; $('providerKey').disabled=configured;
     $('providerStatus').textContent = settings.appLanguage === 'ru' ? (configured ? 'Подключено. Бесплатные модели имеют лимиты провайдера.' : 'Добавьте свой API-ключ. Ключ хранится зашифрованным на компьютере.') : (configured ? 'Connected. Free models are subject to provider limits.' : 'Add your API key. It is stored encrypted on this computer.');
     if(id==='sambanova')$('providerStatus').textContent += settings.appLanguage==='ru'?' Бесплатный тариф доступен без привязки карты. Лимиты зависят от модели и тарифа аккаунта.':' A free tier is available without a payment method. Limits depend on the model and your account tier.';
   }
@@ -122,7 +125,7 @@
   document.querySelector('[data-settings-tab="cloud"]').addEventListener('click', () => refreshProviderStatus());
   $('providerGetKey').onclick = () => window.api?.providersOpen($('providerSelect').value);
   $('providerForm').addEventListener('submit', async event => {
-    event.preventDefault(); $('providerConnect').disabled = true;
+    event.preventDefault(); if($('providerConnect').disabled || $('providerConnect').dataset.connected==='true')return; $('providerConnect').disabled = true; $('providerPickerToggle').disabled=true; closeProviderPicker();
     try {
       await window.api.providersSave($('providerSelect').value, $('providerKey').value);
       $('providerKey').value = '';
@@ -131,12 +134,16 @@
       await checkOllama(); await refreshProviderStatus();
       await persist();
     } catch (error) { $('providerStatus').textContent = error.message; }
-    finally { $('providerConnect').disabled = false; }
+    finally { $('providerConnect').disabled = false; $('providerPickerToggle').disabled=false; }
   });
-  $('providerDisconnect').onclick = async () => {
-    try { await window.api.providersDisconnect($('providerSelect').value); await checkOllama(); await refreshProviderStatus(); }
-    catch (error) { $('providerStatus').textContent = error.message; }
-  };
+  $('providerConnect').addEventListener('click', async () => {
+    const action=$('providerConnect'); if(action.dataset.connected!=='true'||action.disabled)return;
+    action.disabled=true; $('providerPickerToggle').disabled=true; closeProviderPicker();
+    const id=$('providerSelect').value;
+    try { await window.api.providersDisconnect(id); await checkOllama(); await refreshProviderStatus(); }
+    catch(error){$('providerStatus').textContent=error.message;}
+    finally{action.disabled=false; $('providerPickerToggle').disabled=false;}
+  });
   function closeProviderPicker() {
     $('providerPickerToggle').setAttribute('aria-expanded', 'false');
     $('providerOptions').classList.remove('open'); $('providerOptions').inert = true;
@@ -673,7 +680,7 @@
       recent: "Ostatnie",
       models: "Modele",
       chooseModel: "Wybierz model",
-      askPlaceholder: "Zapytaj Nebule o cokolwiek...",
+      askPlaceholder: "Zapytaj AetherAI o cokolwiek...",
       modelSearch: "Szukaj modeli...",
       setupTitle: "Doprecyzuj zadanie",
       access: { ask: "Pytaj przed zmianami", auto: "Edytuj automatycznie", plan: "Tryb planu", full: "Pelny dostep" },
@@ -918,8 +925,8 @@
     }
     if (typeof s?.localAi !== 'boolean') settings.localAi = !!s?.selectedModel && !isCloudModel(s.selectedModel);
     if (!settings.appLanguage) settings.appLanguage = "en";
-    if (!settings.theme) settings.theme = "dark";
-    if (!settings.multimindThemeApplied) { settings.theme = "dark"; settings.multimindThemeApplied = true; }
+    if (!settings.theme) settings.theme = "light";
+    if (!settings.aetherGlassApplied) { if (!settings.appearance?.surface) settings.theme = "light"; if (!settings.appearance?.accent || settings.appearance.accent === "#c3c3c3") settings.appearance = {...settings.appearance, accent:"#ffffff"}; settings.aetherGlassApplied = true; settings.multimindThemeApplied = true; }
     if (!settings.computeMode) settings.computeMode = "auto";
     if (!settings.selectedFluxVariant) settings.selectedFluxVariant = null;
     if (!settings.preferredWebSources || typeof settings.preferredWebSources !== "object") settings.preferredWebSources = {};
@@ -1230,11 +1237,10 @@
     if(!window.api?.cloudStatus)return;
     const status=await window.api.cloudStatus();const ru=settings.appLanguage==='ru';
     $('cloudAccountStatus').textContent=status.configured?(ru?'Ключ сохранён. Доступ к аккаунту проверяется при запросе к модели.':'API key saved. Account access is checked when you request a model.'):(ru?'Аккаунт не подключён':'Account not connected');
-    $('cloudDisconnect').hidden=!status.configured;
+    $('cloudConnect').dataset.connected=String(status.configured);$('cloudConnect').type=status.configured?'button':'submit';$('cloudApiKey').required=!status.configured;$('cloudApiKey').disabled=status.configured;
     $('cloudPrivacy').textContent=ru?'Облачные модели отправляют сообщения и приложенный контекст в Ollama. Локальные модели работают на вашем компьютере.':'Cloud models send messages and attached context to Ollama. Local models run on your machine.';
     $('cloudGetKey').textContent=ru?'Войти / создать API-ключ':'Sign in / create key';
-    $('cloudConnect').textContent=ru?'Подключить аккаунт':'Connect account';
-    $('cloudDisconnect').textContent=ru?'Отключить':'Disconnect';
+    $('cloudConnect').textContent=ru?(status.configured?'Отключить':'Подключить аккаунт'):(status.configured?'Disconnect':'Connect account');
     $('cloudPlansBtn').textContent=ru?'Тарифы':'View plans';
     $('cloudModelsTitle').textContent=ru?'Облачные модели':'Cloud models';
     $('cloudRefresh').textContent=ru?'Обновить':'Refresh';
@@ -1273,11 +1279,11 @@
   $('cloudRefresh').onclick=()=>refreshCloudModels(true);
   document.querySelector('[data-settings-tab="ollama-cloud"]').addEventListener('click',()=>{refreshCloudStatus();refreshCloudModels();});
   $('cloudAccountForm').addEventListener('submit',async event=>{
-    event.preventDefault();$('cloudConnect').disabled=true;
+    event.preventDefault();if($('cloudConnect').disabled||$('cloudConnect').dataset.connected==='true')return;$('cloudConnect').disabled=true;
     try{await window.api.cloudSave($('cloudApiKey').value);$('cloudApiKey').value='';await refreshCloudStatus();await checkOllama();await refreshCloudModels();}
     catch(error){$('cloudError').textContent=error.message;}finally{$('cloudConnect').disabled=false;}
   });
-  $('cloudDisconnect').onclick=async()=>{await window.api.cloudDisconnect();$('cloudApiKey').value='';if(settings.selectedModel?.startsWith('cloud:'))settings.selectedModel=null;await checkOllama();renderSelectedModel(settings.selectedModel);await persist();await refreshCloudStatus();};
+  $('cloudConnect').addEventListener('click',async()=>{const action=$('cloudConnect');if(action.dataset.connected!=='true'||action.disabled)return;action.disabled=true;try{await window.api.cloudDisconnect();$('cloudApiKey').value='';if(settings.selectedModel?.startsWith('cloud:')&&!/^cloud:(openrouter|groq|gemini|cerebras|sambanova)\//.test(settings.selectedModel))settings.selectedModel=null;await checkOllama();renderSelectedModel(settings.selectedModel);await persist();await refreshCloudStatus();}catch(error){$('cloudError').textContent=error.message;}finally{action.disabled=false;}});
   window.addEventListener('ollama-cloud-problem',event=>{
     if (['rate','billing','overloaded'].includes(event.detail.kind) && ['openrouter','groq','gemini','cerebras','sambanova'].includes(event.detail.provider)) {
       showProviderLimit(event.detail); return;
@@ -1565,9 +1571,9 @@
     $('surfaceColor').value=options.surface || (settings.theme==='light'?'#f6f6f6':'#121212');
   }
   const swatches=document.querySelector('.appearance-swatches');
-  for(const color of ['#c3c3c3','#91baff','#b9a0ee','#f2ac83','#83c9ac','#ef9fbb']){
+  for(const color of ['#ffffff','#91baff','#b9a0ee','#f2ac83','#83c9ac','#ef9fbb']){
     const button=document.createElement('button');button.type='button';button.style.background=color;button.setAttribute('aria-label',color);button.title=color;
-    button.onclick=()=>{settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),accent:color,surface:color==='#c3c3c3'?null:window.AetherAIAppearance.mix(color,settings.theme==='light'?'#ffffff':'#000000',settings.theme==='light'?.78:.7)};applyAppearance();window.api?.settingsSave(settings);};swatches.append(button);
+    button.onclick=()=>{settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),accent:color,surface:color==='#ffffff'?null:window.AetherAIAppearance.mix(color,settings.theme==='light'?'#ffffff':'#000000',settings.theme==='light'?.78:.7)};applyAppearance();window.api?.settingsSave(settings);};swatches.append(button);
   }
   document.querySelectorAll('[data-background]').forEach(button=>button.onclick=()=>{
     settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),background:button.dataset.background};applyAppearance();window.api?.settingsSave(settings);

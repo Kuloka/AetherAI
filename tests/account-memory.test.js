@@ -46,10 +46,12 @@ test('Google callback exchanges a PKCE code using a verifier that matches the br
    if(url.endsWith('/settings'))return Response.json({external:{google:true}});
    assert.match(url,/grant_type=pkce/);const body=JSON.parse(init.body);assert.equal(body.auth_code,'fixture-code');
    const challenge=require('node:crypto').createHash('sha256').update(body.code_verifier).digest('base64url');assert.equal(challenge,new URL(browserUrl).searchParams.get('code_challenge'));
-   return Response.json({access_token:'private',refresh_token:'refresh',expires_in:3600,user:{id:owner,email:'fixture@example.com'}});
+   return Response.json({access_token:'private',refresh_token:'refresh',expires_in:3600,user:{id:owner,email:'fixture@example.com',app_metadata:{provider:'google'},user_metadata:{picture:'https://lh3.googleusercontent.com/a/fixture',full_name:'Fixture User'}}});
  });t.after(()=>auth.cancelGoogle());
  await auth.google(async url=>{browserUrl=url;},status=>{changed=status;});assert.equal(new URL(browserUrl).searchParams.get('provider'),'google');
  const response=await fetch(new URL(browserUrl).searchParams.get('redirect_to')+'?code=fixture-code');assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/text\/html/);const html=await response.text();assert.match(html,/You're signed in/);assert.ok(!html.includes('fixture-code'));assert.match(response.headers.get('content-security-policy'),/default-src 'none'/);assert.equal(changed.user.id,owner);assert.ok(!JSON.stringify(changed).includes('refresh'));
+ assert.equal(changed.user.avatarUrl,'https://lh3.googleusercontent.com/a/fixture');assert.equal(changed.user.name,'Fixture User');
+ const restored=createAccountAuth(directory,storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},()=>{throw Error('Restored profile should use its encrypted cache');});assert.equal((await restored.status()).user.avatarUrl,changed.user.avatarUrl);
 });
 test('disabled Google provider gives a readable error without opening a browser',async()=>{
  let opened=false;const auth=createAccountAuth(os.tmpdir(),storage,{url:'https://fixture.supabase.co',publishableKey:'sb_publishable_fixture_key'},async(url,init)=>{assert.ok(url.endsWith('/settings'));assert.equal(init.method,'GET');return Response.json({external:{google:false}});});

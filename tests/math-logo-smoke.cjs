@@ -13,7 +13,17 @@ app.whenReady().then(async()=>{
  win.webContents.on('console-message',(_e,level,message)=>{if(level===3)errors.push(message);});const evaluate=code=>win.webContents.executeJavaScript(code),wait=ms=>new Promise(r=>setTimeout(r,ms));
  await win.loadFile(path.resolve(__dirname,'../index.html'));console.log('Loaded math interface');
  win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
- await wait(700);await evaluate("document.querySelector('#accountClose').click();document.querySelector('#userInput').value='Explain this mathematical result';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(1000);console.log('Received mathematical reply');
+ await wait(700);await evaluate("document.querySelector('#accountClose').click();document.activeElement.blur()");
+ assert.equal(await evaluate("document.body.classList.contains('theme-light')"),true);
+ assert.equal(await evaluate("getComputedStyle(document.querySelector('.welcome-brand-logo')).color"),'rgb(22, 24, 28)');
+ const welcomeOriginal=await evaluate("document.querySelector('.welcome-brand-logo .aether-crown').getAttribute('d')");await wait(1700);
+ assert.notEqual(await evaluate("document.querySelector('.welcome-brand-logo .aether-crown').getAttribute('d')"),welcomeOriginal);
+ await wait(1200);const prompt=await evaluate("document.querySelector('#userInput').placeholder");assert.equal(prompt,'List 100 cat breeds');
+ await wait(3200);assert.equal(await evaluate("document.querySelector('#userInput').placeholder"),prompt);
+ await evaluate("document.querySelector('#userInput').focus();document.querySelector('#userInput').value='My draft';document.querySelector('#userInput').dispatchEvent(new Event('input'))");await wait(300);
+ assert.equal(await evaluate("document.querySelector('#userInput').placeholder"),'Ask AetherAI anything...');assert.equal(await evaluate("document.querySelector('#userInput').value"),'My draft');
+ const preview=path.resolve(__dirname,'../artifacts');fs.mkdirSync(preview,{recursive:true});fs.writeFileSync(path.join(preview,'aetherai-white-glass.png'),(await win.webContents.capturePage()).toPNG());
+ await evaluate("document.querySelector('#userInput').value='Explain this mathematical result';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(1000);console.log('Received mathematical reply');
  assert.equal(await evaluate("document.querySelectorAll('#messages .katex').length"),4);
  assert.ok(await evaluate("!!document.querySelector('#messages mfrac') && !!document.querySelector('#messages mtable')"));
  assert.equal(await evaluate("document.querySelectorAll('.katex .blur-text-word').length"),0);

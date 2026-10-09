@@ -1,5 +1,7 @@
-AetherAI 1.24.1
+AetherAI 1.24.2
 
-Mathematical replies now render fractions, roots, powers, sums, integrals and matrices offline. Formula rendering keeps code examples literal and blocks untrusted links, images and HTML commands.
+The default interface is now light, with dark logos, solid white primary actions and frosted glass controls. Custom application colors remain available.
 
-The logo morphs from A into flowing waves and back on hover. Discord uses a new animated GIF URL to avoid the old cached image. Reduced motion keeps the app logo still.
+Connected providers and Ollama Cloud now show a single Disconnect action. The welcome screen has a flowing logo, and the composer types example questions, holds each for five seconds, then erases it. Suggestions pause while writing; reduced motion keeps the interface still.
+
+Google sign-in uses your Google profile photo automatically. Your chosen avatar or initial takes priority, and unavailable photos fall back to your initial.

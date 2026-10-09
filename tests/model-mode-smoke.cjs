@@ -65,7 +65,14 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate("(() => { const a=document.querySelector('#providerPickerToggle').getBoundingClientRect(),b=document.querySelector('#providerOptions').getBoundingClientRect();return Math.abs(a.bottom-b.top)<1 && Math.abs(a.width-b.width)<1; })()"), true);
   fs.mkdirSync(path.join(__dirname, '../artifacts'), { recursive: true });
   fs.writeFileSync(path.join(__dirname, '../artifacts/provider-picker.png'), (await win.webContents.capturePage()).toPNG());
-  await evaluate("document.querySelector('#providerOptions button').click();document.querySelector('#providerKey').value='fixture-key';document.querySelector('#providerForm').requestSubmit()"); await wait();
+  await evaluate("document.querySelector('#providerOptions button').click()");await wait();
+  assert.equal(await evaluate("document.querySelector('#providerConnect').textContent"),'Disconnect');
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('#providerConnect')).backgroundColor"),'rgb(255, 255, 255)');
+  await evaluate("document.querySelector('#providerConnect').click()");await wait();
+  assert.equal(await evaluate("document.querySelector('#providerConnect').textContent"),'Connect');
+  assert.equal(await evaluate("document.querySelector('#providerKey').disabled"),false);
+  await evaluate("document.querySelector('#providerKey').value='fixture-key';document.querySelector('#providerForm').requestSubmit()"); await wait();
+  assert.equal(await evaluate("document.querySelector('#providerConnect').textContent"),'Disconnect');
   assert.equal(settings.localAi, false);
   assert.doesNotMatch(await evaluate("document.querySelector('#modelDropdown').textContent"), /llama3|Catalog/);
   await evaluate("document.querySelector('[data-settings-tab=ollama-cloud]').click()");

@@ -28,7 +28,10 @@
   async function refresh(){if(window.api?.accountStatus)account=await window.api.accountStatus();render();}
   async function action(button,fn){if(busy.size)return;busy.add(button.id);updateAuthControls();$('accountError').textContent='';try{await fn();}catch(e){$('accountError').textContent=e.message;}finally{busy.delete(button.id);button.disabled=false;render();}}
   function avatarKey(){return 'multimind.avatar.'+(account.user?.id||'local');}
-  function renderAvatar(){const avatar=$('profileAvatar');avatar.replaceChildren();const stored=localStorage.getItem(avatarKey());if(stored&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(stored)){const image=document.createElement('img');image.src=stored;image.alt='Your avatar';avatar.append(image);}else avatar.textContent=Array.from(account.user?.email||'Local')[0].toUpperCase();}
+  function renderAvatar(){const avatar=$('profileAvatar');avatar.replaceChildren();const stored=localStorage.getItem(avatarKey()),initial=Array.from(account.user?.name||account.user?.email||'Local')[0].toUpperCase();
+    const source=stored&&/^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(stored)?stored:stored==='initial'?null:window.AetherAIAvatar.googleAvatar(account.user?.avatarUrl);
+    if(source){const image=document.createElement('img');image.alt='Your avatar';image.referrerPolicy='no-referrer';image.onerror=()=>{if(image.parentNode===avatar)avatar.textContent=initial;};image.src=source;avatar.append(image);}else avatar.textContent=initial;
+  }
   function closeProfile(){$('profileMenu').hidden=true;$('profileBtn').setAttribute('aria-expanded','false');}
   const appElement=document.querySelector('.app');
   function syncProfileSidebar(){const collapsed=appElement.classList.contains('tab-collapsed');$('profileBtn').disabled=collapsed;if(collapsed)closeProfile();}
@@ -40,7 +43,7 @@
   $('profilePresets').onclick=()=>{closeProfile();$('openMemory').click();};
   $('profileSignOut').onclick=async()=>{closeProfile();await action($('profileSignOut'),async()=>{account=await window.api.accountLogout();render();});};
   $('profileChangeAvatar').onclick=()=>{closeProfile();$('profileAvatarFile').click();};
-  $('profileResetAvatar').onclick=()=>{localStorage.removeItem(avatarKey());renderAvatar();closeProfile();};
+  $('profileResetAvatar').onclick=()=>{localStorage.setItem(avatarKey(),'initial');renderAvatar();closeProfile();};
   $('profileAvatarFile').onchange=async e=>{const file=e.target.files[0],key=avatarKey();e.target.value='';if(!file)return;try{if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>5*1024*1024)throw Error('Choose a PNG, JPEG or WebP image under 5 MB.');const bitmap=await createImageBitmap(file);const canvas=document.createElement('canvas');canvas.width=canvas.height=128;const size=Math.min(bitmap.width,bitmap.height);canvas.getContext('2d').drawImage(bitmap,(bitmap.width-size)/2,(bitmap.height-size)/2,size,size,0,0,128,128);bitmap.close();if(key!==avatarKey())return;localStorage.setItem(key,canvas.toDataURL('image/png'));renderAvatar();}catch(error){openAccount();$('accountError').textContent=error.message;}};
   $('accountGoogle').onclick=()=>action($('accountGoogle'),async()=>{if(googleWaiting){await window.api.accountCancel();googleWaiting=false;}else{await window.api.accountGoogle();googleWaiting=true;}$('accountCancel').hidden=true;});
   $('accountCancel').onclick=async()=>{await window.api.accountCancel();googleWaiting=false;updateAuthControls();$('accountCancel').hidden=true;$('accountError').textContent='';};

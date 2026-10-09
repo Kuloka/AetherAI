@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="aetherai.css">
 <link rel="stylesheet" href="background-effects.css">
 <link rel="stylesheet" href="resources/katex/katex.min.css">
+<link rel="stylesheet" href="glass.css">
 </head>
 <body>
 <header class="window-titlebar" id="windowTitlebar">
@@ -125,6 +126,8 @@
       <div class="chat-stage">
     <section class="chat-container" id="chatContainer">
       <div class="welcome-screen" id="welcomeScreen">
+        <svg class="welcome-brand-logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g fill="currentColor"><path class="aether-crown" d="M28 168 99 43C112 20 134 20 148 43L222 168C191 154 175 130 151 101 137 83 120 78 106 94 81 123 59 150 28 168Z"/><path class="aether-ribbon" d="M30 178C65 158 79 134 105 120 124 110 139 113 154 127 177 147 192 174 216 195 235 213 217 239 193 225 164 208 148 171 133 162 120 154 111 169 102 184L75 222C60 243 28 237 23 217 19 202 23 188 30 178Z"/></g></svg>
+
         <h1 class="welcome-title" id="welcomeTitle"></h1>
         <p class="welcome-sub">Local AI assistant. Runs on Ollama, no API keys. Ask about code, text, ideas, translations, or anything else.</p>
         <p class="welcome-hint" id="welcomeHint">Choose a model to start.</p>
@@ -280,7 +283,7 @@
       <section class="settings-block cloud-settings" data-settings-panel="cloud" hidden>
         <h3>Providers</h3>
         <p id="providerPrivacy">Cloud requests send your messages and attached context to the selected provider.</p>
-<form id="providerForm"><label id="providerLabel">Provider</label><div class="provider-picker"><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button><button type="button" role="option" data-provider="sambanova" aria-selected="false">SambaNova · Free tier</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option><option value="sambanova">SambaNova · Free tier</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button><button class="catalog-btn" type="button" id="providerDisconnect">Disconnect</button></div></form>
+<form id="providerForm"><label id="providerLabel">Provider</label><div class="provider-picker"><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button><button type="button" role="option" data-provider="sambanova" aria-selected="false">SambaNova · Free tier</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option><option value="sambanova">SambaNova · Free tier</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button></div></form>
         <p id="providerStatus" role="status"></p>
       </section>
       <section class="settings-section" data-settings-panel="general">
@@ -302,7 +305,7 @@
         <button type="button" data-background="pixel"><span class="background-preview"><img src="resources/background-previews/pixel.png" alt="" loading="lazy"></span><span>Pixel Blast</span></button></div>
         <p id="backgroundMotionNote">Animations pause when the app is hidden. Reduced motion uses a still background.</p>
         <h4 id="paletteTitle">Color palette</h4><div class="appearance-swatches" role="group" aria-labelledby="paletteTitle"></div>
-        <div class="appearance-colors"><label><span id="accentColorLabel">Accent color</span><input type="color" id="accentColor" value="#c3c3c3"></label><label><span id="surfaceColorLabel">Application color</span><input type="color" id="surfaceColor" value="#121212"></label></div>
+        <div class="appearance-colors"><label><span id="accentColorLabel">Accent color</span><input type="color" id="accentColor" value="#ffffff"></label><label><span id="surfaceColorLabel">Application color</span><input type="color" id="surfaceColor" value="#121212"></label></div>
         <button type="button" id="resetAppearance" class="catalog-btn">Reset appearance</button>
       </section>
       <section class="settings-section" data-settings-panel="models" hidden>
@@ -331,7 +334,7 @@
         <div class="discord-heading"><h3>Ollama Cloud</h3><button id="cloudPlansBtn" type="button" class="catalog-btn">View plans</button></div>
         <p id="cloudPrivacy">Cloud models send your messages and attached context to Ollama. Local models continue to run on your machine.</p>
         <p id="cloudAccountStatus" role="status"></p>
-        <form id="cloudAccountForm"><label id="cloudKeyLabel" for="cloudApiKey">Ollama API key</label><input id="cloudApiKey" type="password" autocomplete="off" placeholder="Paste your API key" required><div><button type="button" class="catalog-btn" id="cloudGetKey">Sign in / create key</button><button class="catalog-btn" type="submit" id="cloudConnect">Connect account</button><button class="catalog-btn" type="button" id="cloudDisconnect">Disconnect</button></div></form>
+        <form id="cloudAccountForm"><label id="cloudKeyLabel" for="cloudApiKey">Ollama API key</label><input id="cloudApiKey" type="password" autocomplete="off" placeholder="Paste your API key" required><div><button type="button" class="catalog-btn" id="cloudGetKey">Sign in / create key</button><button class="catalog-btn" type="submit" id="cloudConnect">Connect account</button></div></form>
         <p id="cloudError" role="status"></p>
         <div class="discord-heading"><h4 id="cloudModelsTitle">Cloud models</h4><button type="button" class="catalog-btn" id="cloudRefresh">Refresh</button></div><div id="cloudModelsList"></div>
       </section>
@@ -485,11 +488,13 @@
 <script src="chat-intent.js"></script>
 <script src="model-capabilities.js"></script>
 <script src="plugins-chat.js"></script>
+<script src="avatar-profile.js"></script>
 <script src="account-memory.js"></script>
 <script src="model-info.js"></script>
 <script src="resources/katex/katex.min.js"></script>
 <script src="math-renderer.js"></script>
 <script src="logo-motion.js"></script>
 <script src="renderer.js"></script>
+<script src="composer-prompts.js"></script>
 </body>
 </html>

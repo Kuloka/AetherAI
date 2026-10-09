@@ -21,4 +21,15 @@
   }
   const api={A,waves,frame,attach};root.AetherAILogo=api;if(typeof module!=='undefined')module.exports=api;
   root.document?.querySelectorAll('.side-logo').forEach(attach);
+  const welcome=root.document?.querySelector('.welcome-brand-logo');
+  if(welcome){
+    const parts=[welcome.querySelector('.aether-crown'),welcome.querySelector('.aether-ribbon')],original=parts.map(part=>part.getAttribute('d'));
+    const reduced=root.matchMedia('(prefers-reduced-motion: reduce)');let request=null,start=0;
+    function reset(){if(request!==null)root.cancelAnimationFrame(request);request=null;parts.forEach((part,i)=>part.setAttribute('d',original[i]));}
+    function sync(){const visible=!root.document.hidden&&!reduced.matches&&!root.document.documentElement.classList.contains('ui-loading')&&!root.document.body.classList.contains('auth-visible')&&welcome.getClientRects().length>0;
+      if(!visible){reset();return;}if(request!==null)return;start=root.performance.now();
+      function tick(now){frame(((now-start)%4200)/4200).forEach((value,i)=>parts[i].setAttribute('d',value));request=root.requestAnimationFrame(tick);}request=root.requestAnimationFrame(tick);
+    }
+    root.setInterval(sync,250);root.document.addEventListener('visibilitychange',sync);reduced.addEventListener('change',sync);
+  }
 })(typeof globalThis!=='undefined'?globalThis:window);

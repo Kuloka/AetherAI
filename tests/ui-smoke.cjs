@@ -5,6 +5,7 @@ const assert = require('assert/strict');
 const root = path.resolve(__dirname, '..');
 const out = path.join(root, 'artifacts');
 const testCloud=require('../electron/ollama-cloud').createCloud(path.join(out,'ui-cloud'),require('electron').safeStorage,async()=>Response.json({models:[{name:'gpt-oss:120b'},{name:'test-cloud'}]}));
+if(process.argv.includes('--cloud'))testCloud.disconnect();
 ipcMain.handle('test:cloud-status',()=>testCloud.status());
 ipcMain.handle('test:cloud-save',(_e,key)=>testCloud.save(key));
 ipcMain.handle('test:cloud-models',()=>testCloud.models());
@@ -93,7 +94,7 @@ app.whenReady().then(async () => {
   }
   if (process.argv.includes('--cloud')) {
     await win.webContents.executeJavaScript("document.querySelector('#settingsBtn').click();document.querySelector('[data-settings-tab=cloud]').click();document.querySelector('#cloudApiKey').value='fixture-cloud-key';document.querySelector('#cloudAccountForm').requestSubmit()");
-    await waitFor(win,"document.querySelector('#cloudDisconnect').hidden === false && document.querySelectorAll('.cloud-model-row').length===2");
+    await waitFor(win,"document.querySelector('#cloudConnect').dataset.connected === 'true' && document.querySelectorAll('.cloud-model-row').length===2");
     assert.ok(!fs.readFileSync(path.join(out,'ui-cloud','ollama-cloud.key'),'utf8').includes('fixture-cloud-key'));
     await win.webContents.executeJavaScript("window.dispatchEvent(new CustomEvent('ollama-cloud-problem',{detail:{kind:'rate',message:'Too many requests'}}))");
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#cloudPlansModal').classList.contains('show')"),false);
@@ -104,7 +105,12 @@ app.whenReady().then(async () => {
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#cloudPlansClose svg').getBoundingClientRect().width"),24);
     fs.writeFileSync(path.join(out,'aetherai-cloud-plans.png'),(await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript("document.querySelector('#cloudPlansClose').click();document.querySelector('.cloud-model-row').click()");
-    assert.match(await win.webContents.executeJavaScript("document.querySelector('#modelLabel').textContent"),/cloud:gpt-oss/);
+    assert.match(await win.webContents.executeJavaScript("document.querySelector('#modelLabel').textContent"),/gpt-oss/);
+    await win.webContents.executeJavaScript("document.querySelector('#settingsBtn').click();document.querySelector('[data-settings-tab=ollama-cloud]').click()");
+    await waitFor(win,"document.querySelector('#cloudConnect').dataset.connected === 'true' && !document.querySelector('#cloudConnect').disabled",10000);
+    await win.webContents.executeJavaScript("document.querySelector('#cloudConnect').click()");
+    await waitFor(win,"document.querySelector('#cloudConnect').dataset.connected === 'false'",10000);
+    assert.equal(await win.webContents.executeJavaScript("document.querySelector('#cloudApiKey').disabled"),false);
     assert.deepEqual(errors,[]);testCloud.disconnect();console.log('PASS: encrypted Windows credentials, cloud selection, billing dialog, rate limits do not open pricing');win.destroy();app.quit();return;
   }
   if (process.argv.includes('--plugins')) {

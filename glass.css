@@ -1,0 +1,40 @@
+/* Neutral surfaces: solid primary actions, translucent secondary controls. */
+body.theme-light {
+  --bg-darkest:#ffffff;--bg-activity:#f8f9fb;--bg-main:#fafbfc;--bg-sidebar:#f1f3f5;
+  --bg-surface:#ffffff;--bg-input:#f3f5f7;--bg-hover:#e8ecf0;--bg-active:#e1e6ec;
+  --bg-user-msg:#eef1f5;--text-primary:#16181c;--text-bright:#16181c;
+  --text-secondary:#515762;--text-muted:#656c76;--border:#d9dfe6;--border-light:#cbd3dd;
+  --scrollbar-thumb:#c5cdd7;--accent:#ffffff;
+}
+body { --glass-fill:color-mix(in srgb,var(--bg-surface) 72%,transparent);--glass-edge:color-mix(in srgb,var(--text-primary) 14%,transparent); }
+.welcome-brand-logo { display:block;width:68px;height:68px;flex-shrink:0;margin:0 auto 24px;position:relative;z-index:1;color:var(--text-primary); }
+.welcome-screen { padding-top:clamp(28px,6vh,62px); }
+.auth-brand svg g { fill:var(--text-primary); }
+.auth-screen { background:var(--bg-main)!important;color:var(--text-primary); }
+.auth-heading h1,.auth-heading h2 { color:var(--text-primary); }
+.auth-heading p,.auth-divider,.auth-footnote,.auth-status,.auth-text-button,.auth-code-actions button,.auth-guest,#accountCodeHint,#accountSetupNote { color:var(--text-secondary); }
+.auth-divider::before,.auth-divider::after { background:var(--border); }
+.auth-text-button:hover,.auth-code-actions button:hover,.auth-guest:hover { color:var(--text-primary); }
+.auth-screen input { background:var(--glass-fill);color:var(--text-primary);border-color:var(--glass-edge); }
+.auth-google,.auth-google:hover:not(:disabled) { background:var(--glass-fill);color:var(--text-primary);border-color:var(--glass-edge); }
+.composer-inner { border:1px solid var(--glass-edge);border-radius:16px;background:var(--glass-fill);backdrop-filter:blur(20px); }
+.composer-field,.composer-controls { background:transparent!important; }
+.composer { background:transparent; }
+.profile-btn,.profile-menu,.modal:not(.settings-modal),.model-dropdown,.access-dropdown,.think-dropdown,.cloud-plan-grid article {
+  background:var(--glass-fill);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);
+  box-shadow:0 8px 30px #00000008;
+}
+.catalog-btn,.settings-segment,.composer-chip,.composer-toggle,.model-btn,.access-btn,.think-btn,.team-toggle,.auth-google,#providerPickerToggle,#languageToggle,.worker-picker-trigger {
+  background:var(--glass-fill);border:1px solid var(--glass-edge)!important;box-shadow:inset 0 1px 0 #ffffff12!important;backdrop-filter:blur(12px);
+}
+.catalog-btn:hover:not(:disabled),.composer-toggle:hover,.model-btn:hover,.access-btn:hover,.think-btn:hover { background:var(--bg-hover); }
+.catalog-btn.primary,body.theme-light .catalog-btn.primary,.auth-primary,.auth-primary:hover:not(:disabled),
+.setup-custom-submit,body.theme-light .setup-custom-submit,.local-setup #localSetupBtn,
+.composer-send:not(:disabled),body.theme-light .composer-send:not(:disabled),#cloudConnect {
+  background:#ffffff!important;color:#171717!important;border:1px solid #cbd1d9!important;box-shadow:none!important;backdrop-filter:none;
+}
+.catalog-btn.primary:hover:not(:disabled),#cloudConnect:hover:not(:disabled) { background:#f3f4f6!important; }
+#providerForm input,#cloudApiKey,#pluginForm input,#pluginForm select { background:var(--glass-fill);border:1px solid var(--glass-edge); }
+#providerForm > div:last-child { display:flex;gap:12px;align-items:center; }
+body.theme-light .thinking-logo-line { filter:brightness(0); }
+@media(max-height:650px){.welcome-brand-logo{width:48px;height:48px;margin-bottom:14px}.welcome-screen{padding-top:24px}}

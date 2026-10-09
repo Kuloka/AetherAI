@@ -1,6 +1,7 @@
 const {secureStorageAvailable}=require('./security');
 const fs=require('fs'),path=require('path'),crypto=require('crypto'),http=require('http');
 const {authResultPage}=require('./auth-result-page');
+const {profile}=require('../avatar-profile');
 function createAccountAuth(directory,storage,config={},request=fetch){
   const configured=/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(config.url||'')&&typeof config.publishableKey==='string'&&config.publishableKey.length>20;
   if(config.publishableKey?.startsWith('sb_secret_'))throw Error('Only a public Supabase key may be shipped');
@@ -8,7 +9,7 @@ function createAccountAuth(directory,storage,config={},request=fetch){
   const file=path.join(directory,'account-session.enc');let session=null,pending=null,refreshing=null,revision=0;const cooldown=new Map();
   function load(){if(!session&&configured&&fs.existsSync(file)){try{session=JSON.parse(storage.decryptString(fs.readFileSync(file)));}catch{session=null;}}}
   function save(data){if(!secureStorageAvailable(storage))throw Error('Secure account storage is unavailable');if(!data?.access_token||!data.refresh_token||!data.user?.id)throw Error('Invalid sign-in response');
-    session={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:data.expires_at||Math.floor(Date.now()/1000)+(data.expires_in||3600),user:{id:data.user.id,email:data.user.email||''}};
+    session={access_token:data.access_token,refresh_token:data.refresh_token,expires_at:data.expires_at||Math.floor(Date.now()/1000)+(data.expires_in||3600),profileVersion:1,user:profile(data.user)};
     fs.mkdirSync(directory,{recursive:true});const temp=file+'.tmp';fs.writeFileSync(temp,storage.encryptString(JSON.stringify(session)),{mode:0o600});fs.renameSync(temp,file);
   }
   async function call(endpoint,method='POST',body,token){if(!configured)throw Error('Account sign-in has not been configured yet');
@@ -20,7 +21,8 @@ function createAccountAuth(directory,storage,config={},request=fetch){
     if(session.expires_at*1000<Date.now()+60000){if(!refreshing){const previous=session,version=revision;refreshing=call('/auth/v1/token?grant_type=refresh_token','POST',{refresh_token:session.refresh_token}).then(data=>{if(session!==previous||revision!==version)throw Error('The account changed during refresh');save(data);}).finally(()=>{refreshing=null;});}await refreshing;}
     return session;
   }
-  async function status(){load();return {configured:!!configured,user:session?{...session.user}:null};}
+  let profileLookup=null;
+  async function status(){load();if(session&&!session.profileVersion){if(!profileLookup){const owner=session,version=revision;profileLookup=(async()=>{try{const current=await credentials();const user=await call('/auth/v1/user','GET',undefined,current.access_token);if(revision===version&&session?.user.id===owner.user.id)save({...current,user});}catch{/* Keep the cached profile when offline. */}})().finally(()=>{profileLookup=null;});}await profileLookup;}return {configured:!!configured,user:session?{...session.user}:null};}
   function email(value){if(typeof value!=='string'||value.length>254||!/^\S+@\S+\.\S+$/.test(value))throw Error('Enter a valid email address');return value.trim().toLowerCase();}
   async function sendCode(value){const address=email(value);if(!secureStorageAvailable(storage))throw Error('Secure account storage is unavailable');if(Date.now()<(cooldown.get(address)||0))throw Error('Wait 60 seconds before requesting another code');
     cooldown.set(address,Date.now()+60000);try{await call('/auth/v1/otp','POST',{email:address,create_user:true});}catch(e){cooldown.delete(address);throw e;}return {sent:true,retryAfter:60};

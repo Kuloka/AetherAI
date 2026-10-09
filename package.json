@@ -1,6 +1,6 @@
 {
   "name": "aetherai",
-  "version": "1.24.1",
+  "version": "1.24.2",
   "description": "AetherAI - local AI workspace with collaborative agents",
   "main": "electron/main.js",
   "scripts": {
