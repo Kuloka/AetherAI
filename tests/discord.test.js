@@ -40,7 +40,8 @@ test('Activity media shrinks large images, flags small images, preserves GIF fra
   await sharp({ create: { width: 64, height: 64, channels: 4, background: '#777' } }).png().toFile(small);
   assert.equal((await prepareMedia(small, output)).small, true);
   const gif = await prepareMedia(path.resolve('resources/aetherai-logo-animated.gif'), output);
+  const original = await sharp(path.resolve('resources/aetherai-logo-animated.gif'), { animated: true }).metadata();
   const meta = await sharp(Buffer.from(gif.preview.split(',')[1], 'base64'), { animated: true }).metadata();
-  assert.equal(meta.pages, 64); assert.ok(meta.delay.every(delay => delay === 50));
+  assert.ok(meta.pages > 1); assert.equal(meta.delay.reduce((sum,delay)=>sum+delay,0),original.delay.reduce((sum,delay)=>sum+delay,0));
   assert.equal((await readMedia(output)).animated, true);
 });

@@ -358,11 +358,12 @@ button:focus-visible,summary:focus-visible,select:focus-visible { outline:1px so
 /* AetherAI flowing A: motion is limited to hover and active generation. */
 .aetherai-mark-img { color:var(--text-primary); }
 .aetherai-mark-img g { fill:currentColor; }
-.side-logo:hover .aether-crown { animation:aetherCrown 2.8s ease-in-out infinite; }
-.side-logo:hover .aether-ribbon { animation:aetherRibbon 2.8s ease-in-out infinite; }
-@keyframes aetherCrown { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
-@keyframes aetherRibbon { 0%,100%{transform:translateY(0)} 50%{transform:translateY(4px)} }
 .thinking-logo { width:28px;height:28px; }
 .thinking-logo-line { filter:none;animation:aetherThinking 2.2s ease-in-out infinite; }
 @keyframes aetherThinking { 0%,100%{clip-path:inset(100% 0 0 0);opacity:.5} 45%,65%{clip-path:inset(0 0 0 0);opacity:1} }
 @media(prefers-reduced-motion:reduce){.side-logo:hover .aether-crown,.side-logo:hover .aether-ribbon,.thinking-logo-line{animation:none}.thinking-logo-line{clip-path:none;opacity:.7}}
+.message-text .math-block{display:block;max-width:100%;overflow-x:auto;margin:14px 0;padding:5px 2px;}
+.message-text .math-inline{white-space:normal;}
+.message-text .katex{font-size:1.08em;color:inherit;}
+.message-text .katex-display{margin:0;}
+.message-text .math-source{white-space:pre-wrap;overflow-wrap:anywhere;}

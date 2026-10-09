@@ -58,6 +58,13 @@ jobs:
         if: runner.os != 'Linux'
         run: npx electron tests/model-mode-smoke.cjs
 
+      - name: Check formulas and logo animation (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron --no-sandbox tests/math-logo-smoke.cjs
+      - name: Check formulas and logo animation
+        if: runner.os != 'Linux'
+        run: npx electron tests/math-logo-smoke.cjs
+
       - name: Build native packages
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
 

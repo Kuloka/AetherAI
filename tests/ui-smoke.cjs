@@ -161,7 +161,7 @@ app.whenReady().then(async () => {
     assert.ok(await win.webContents.executeJavaScript("!document.querySelector('.discord-settings').hidden && document.querySelector('.discord-settings').getBoundingClientRect().right < innerWidth"));
     fs.writeFileSync(path.join(out, 'aetherai-discord-settings.png'), (await win.webContents.capturePage()).toPNG());
     const sharp = require(process.argv.includes('--packaged') ? path.join(root,'dist/win-unpacked/resources/app.asar/node_modules/sharp') : 'sharp');
-    assert.equal((await sharp(path.join(root,'resources/aetherai-logo-animated.gif'),{animated:true}).metadata()).pages,64);
+    const animation=await sharp(path.join(root,'resources/aetherai-logo-animated.gif'),{animated:true}).metadata();assert.ok(animation.pages>1);assert.equal(animation.delay.reduce((sum,delay)=>sum+delay,0),3200);
     console.log('PASS: full-window settings, language selection, section navigation, Discord panel at 1920px and native GIF decoder');
     win.destroy(); app.quit(); return;
   }

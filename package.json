@@ -1,6 +1,6 @@
 {
   "name": "aetherai",
-  "version": "1.24.0",
+  "version": "1.24.1",
   "description": "AetherAI - local AI workspace with collaborative agents",
   "main": "electron/main.js",
   "scripts": {
@@ -76,7 +76,8 @@
   },
   "devDependencies": {
     "electron": "^44.7.0",
-    "electron-builder": "^26.15.3"
+    "electron-builder": "^26.15.3",
+    "katex": "0.19.0"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",

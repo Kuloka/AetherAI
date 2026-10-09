@@ -1,7 +1,7 @@
 const net = require('net');
 const path = require('path');
 const { randomUUID } = require('crypto');
-const DEFAULT_IMAGE = 'https://raw.githubusercontent.com/Kuloka/AetherAI/main/resources/aetherai-logo-animated.gif';
+const DEFAULT_IMAGE = 'https://raw.githubusercontent.com/Kuloka/AetherAI/main/resources/aetherai-logo-flow-v1.gif';
 
 function frame(op, value) {
   const body = Buffer.isBuffer(value) ? value : Buffer.from(JSON.stringify(value));
@@ -76,7 +76,9 @@ function createDiscordActivity({ connect = name => net.createConnection(name), r
     });
   }
   function configure(value = {}) {
-    const next = { enabled: value.enabled === true, applicationId: '1547289218902921226', image: String(value.image || '').trim().replace('resources/multimind-logo-animated.gif','resources/aetherai-logo-animated.gif') || DEFAULT_IMAGE };
+    const image=String(value.image||'').trim();
+    const legacyDefault=/^https:\/\/raw\.githubusercontent\.com\/Kuloka\/(?:MultiMind|AetherAI)\/main\/resources\/(?:multimind|aetherai)-logo-animated\.gif$/.test(image);
+    const next = { enabled: value.enabled === true, applicationId: '1547289218902921226', image: !image||legacyDefault?DEFAULT_IMAGE:image };
     if (JSON.stringify(config) === JSON.stringify(next)) return status();
     stop(); config = next;
     if (!next.enabled) return status();

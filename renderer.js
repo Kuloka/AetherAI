@@ -3155,7 +3155,8 @@
     // Убираем <think>...</think> блоки из видимого вывода
     let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
     cleaned = cleaned.replace(/<think>/gi, "").replace(/<\/think>/gi, "");
-    let html = escapeHtml(cleaned);
+    const math = window.AetherAIMath.extract(cleaned);
+    let html = escapeHtml(math.text);
 
     // Блочные элементы обрабатываем построчно
     const lines = html.split("\n");
@@ -3217,7 +3218,7 @@
     body = body.replace(/(<\/(?:ul|ol|pre|h1|h2|h3|blockquote|table)>)<br>/g, "$1");
     // удаляем пустые <p></p>
     body = body.replace(/<p>\s*<\/p>/g, "");
-    return `<p>${body}</p>`;
+    return math.restore(`<p>${body}</p>`);
   }
 
   // инлайн-форматирование: code, bold, italic
@@ -3267,7 +3268,7 @@
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
       acceptNode(node) {
         if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
-        if (node.parentElement?.closest("pre, code, textarea, input, button")) return NodeFilter.FILTER_REJECT;
+        if (node.parentElement?.closest("pre, code, textarea, input, button, .math-inline, .math-block, .katex, math")) return NodeFilter.FILTER_REJECT;
         return NodeFilter.FILTER_ACCEPT;
       }
     });

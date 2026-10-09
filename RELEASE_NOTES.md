@@ -1,3 +1,5 @@
-AetherAI 1.24.0
+AetherAI 1.24.1
 
-MultiMind is now AetherAI. A new flowing A logo appears throughout the app, sign-in, website and desktop packages, with matching hover and thinking animations. Existing chats, models, presets and account data use their established storage identifiers so upgrades preserve them.
+Mathematical replies now render fractions, roots, powers, sums, integrals and matrices offline. Formula rendering keeps code examples literal and blocks untrusted links, images and HTML commands.
+
+The logo morphs from A into flowing waves and back on hover. Discord uses a new animated GIF URL to avoid the old cached image. Reduced motion keeps the app logo still.
