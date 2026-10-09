@@ -1,0 +1,24 @@
+(function(root){
+  const catalog={
+    en:{forms:['Explain {topic} simply','Tell me a fun fact about {topic}','Write a short story about {topic}','Give me five ideas about {topic}'],topics:['cat breeds','black holes','tiny robots','weekend trips','the ocean','ancient cities','music','origami','the Moon','dinosaurs','space travel','rainforests','video games','coffee','photography','dreams','chess','volcanoes','future cities','gardening','puzzles','street food','wild animals','inventions','snowflakes','dragons','painting','deep-sea creatures','time travel','the northern lights','islands','architecture','mountains','paper airplanes','hidden treasures']},
+    ru:{forms:['Расскажи просто: {topic}','Назови необычный факт: {topic}','Напиши короткую историю: {topic}','Придумай пять идей на тему «{topic}»'],topics:['породы кошек','чёрные дыры','маленькие роботы','выходные','океан','древние города','музыка','оригами','Луна','динозавры','космические путешествия','тропические леса','видеоигры','кофе','фотография','сны','шахматы','вулканы','города будущего','садоводство','головоломки','уличная еда','дикие животные','изобретения','снежинки','драконы','живопись','морские глубины','путешествия во времени','северное сияние','острова','архитектура','горы','бумажные самолёты','спрятанные сокровища']},
+    de:{forms:['Erkläre {topic} einfach','Erzähle etwas Spannendes über {topic}','Schreibe eine Geschichte über {topic}'],topics:['Katzen','schwarze Löcher','Roboter','das Meer','Musik','Origami','den Mond','Dinosaurier','Schach','Vulkane','Raumfahrt','Videospiele']},
+    fr:{forms:['Explique simplement {topic}','Raconte un fait sur {topic}','Écris une histoire sur {topic}'],topics:['les chats','les trous noirs','les robots','la mer','la musique','les origamis','la Lune','les dinosaures','les échecs','les volcans','les voyages spatiaux','les jeux vidéo']},
+    es:{forms:['Explica {topic} de forma sencilla','Cuéntame algo curioso sobre {topic}','Escribe una historia sobre {topic}'],topics:['los gatos','los agujeros negros','los robots','el océano','la música','el origami','la Luna','los dinosaurios','el ajedrez','los volcanes','los viajes espaciales','los videojuegos']},
+    pt:{forms:['Explique {topic} de forma simples','Conte uma curiosidade sobre {topic}','Escreva uma história sobre {topic}'],topics:['os gatos','os buracos negros','os robôs','o oceano','a música','o origami','a Lua','os dinossauros','o xadrez','os vulcões','as viagens espaciais','os videogames']},
+    it:{forms:['Spiega in modo semplice {topic}','Raccontami qualcosa su {topic}','Scrivi una storia su {topic}'],topics:['i gatti','i buchi neri','i robot','il mare','la musica','gli origami','la Luna','i dinosauri','gli scacchi','i vulcani','i viaggi spaziali','i videogiochi']},
+    tr:{forms:['{topic} hakkında basitçe anlat','{topic} hakkında ilginç bir bilgi ver','{topic} hakkında bir hikâye yaz'],topics:['Kediler','Kara delikler','Robotlar','Okyanuslar','Müzik','Origami','Ay','Dinozorlar','Satranç','Volkanlar','Uzay yolculuğu','Video oyunları']},
+    pl:{forms:['Wyjaśnij prosto temat: {topic}','Podaj ciekawostkę: {topic}','Napisz krótką historię: {topic}'],topics:['koty','czarne dziury','roboty','ocean','muzyka','origami','Księżyc','dinozaury','szachy','wulkany','podróże kosmiczne','gry wideo']},
+    uk:{forms:['Поясни просто: {topic}','Назви цікавий факт: {topic}','Напиши коротку історію: {topic}'],topics:['коти','чорні діри','роботи','океан','музика','оригамі','Місяць','динозаври','шахи','вулкани','космічні подорожі','відеоігри']}
+  };
+  function create(storage,random=Math.random){
+    const states=new Map();
+    return {next(language){const lang=Object.hasOwn(catalog,language)?language:'en',entry=catalog[lang],bank=entry.forms.flatMap(form=>entry.topics.map(topic=>form.replace('{topic}',topic))),key='aetherai.prompt-cycle.v1.'+lang;
+      let state=states.get(lang);
+      if(!state){try{state=JSON.parse(storage?.getItem(key)||'null');}catch{}if(!state||!Array.isArray(state.remaining)||new Set(state.remaining).size!==state.remaining.length||state.remaining.some(id=>!Number.isInteger(id)||id<0||id>=bank.length)||!Number.isInteger(state.last))state={remaining:[],last:-1};states.set(lang,state);}
+      if(!state.remaining.length){state.remaining=bank.map((_,i)=>i);for(let i=state.remaining.length-1;i>0;i--){const j=Math.floor(random()*(i+1));[state.remaining[i],state.remaining[j]]=[state.remaining[j],state.remaining[i]];}if(state.remaining.at(-1)===state.last)[state.remaining[0],state.remaining[state.remaining.length-1]]=[state.remaining.at(-1),state.remaining[0]];}
+      state.last=state.remaining.pop();try{storage?.setItem(key,JSON.stringify(state));}catch{}return bank[state.last];
+    }};
+  }
+  const api={create};root.AetherAIPrompts=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof globalThis!=='undefined'?globalThis:window);

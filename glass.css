@@ -24,6 +24,14 @@ body { --glass-fill:color-mix(in srgb,var(--bg-surface) 72%,transparent);--glass
 .composer-field .composer-field-content,.composer-field.composer-expanded .composer-field-content { border-radius:15px 15px 0 0; }
 .composer-controls,.composer-field.composer-expanded + .composer-controls { border-radius:0 0 15px 15px;margin-top:0; }
 .composer { background:transparent; }
+.composer-input-slot { position:relative;flex:1;min-width:0;display:flex; }
+.composer-input-slot #userInput { width:100%;min-width:0; }
+.composer-input-slot[data-prompt=true] #userInput { caret-color:transparent; }
+.composer-prompt { position:absolute;inset:9px 0 auto;z-index:3;display:flex;align-items:center;gap:3px;max-width:100%;overflow:hidden;pointer-events:none;color:var(--text-muted);font-size:14px;line-height:1.5; }
+#composerPromptText { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.composer-prompt-caret { flex:0 0 .6em;width:.6em;height:1em;background:currentColor;animation:promptCaret 1s steps(1,end) infinite; }
+@keyframes promptCaret { 50% { opacity:0; } }
+@media(prefers-reduced-motion:reduce){.composer-prompt-caret{animation:none;display:none}}
 .profile-btn,.profile-menu,.modal:not(.settings-modal),.model-dropdown,.access-dropdown,.think-dropdown,.cloud-plan-grid article {
   background:var(--glass-fill);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);
   box-shadow:0 8px 30px #00000008;

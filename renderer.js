@@ -1457,7 +1457,7 @@
       [modelsSearch, t("modelSearch")],
       [$("groupInput"), t("folderPlaceholder")],
     ];
-    placeholders.forEach(([el, text]) => { if (el) el.placeholder = text; });
+    placeholders.forEach(([el, text]) => { if (el === inputEl) { el.placeholder=''; el.setAttribute('aria-label',text); } else if (el) el.placeholder = text; });
     const navLabels = [
       ["newChatBtn", t("newChat")],
       ["openProjectsBtn", t("projects")],

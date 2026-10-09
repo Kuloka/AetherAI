@@ -1,7 +1,7 @@
-AetherAI 1.24.3
+AetherAI 1.24.4
 
-The composer now uses a single glass surface with consistent rounded edges, removing the color seam between the text area and controls.
+Composer suggestions now start immediately with a blinking terminal block cursor, without first showing the generic placeholder.
 
-Settings open in a centered, rounded window over a blurred workspace. The dialog fits smaller windows and keeps its contents scrollable.
+Suggestions use a shuffled queue that persists across app restarts: 140 examples each in English and Russian, and 36 each in the other supported languages. Questions do not repeat until the queue finishes, and adjacent repeats are prevented across cycles.
 
-The sign-in wordmark stays readable in the light theme.
+Each question remains visible for five seconds before erasing. Suggestions disappear while writing or composing text, and reduced motion shows a static example without a blinking cursor.
