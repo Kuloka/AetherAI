@@ -10,6 +10,7 @@ body { --glass-fill:color-mix(in srgb,var(--bg-surface) 72%,transparent);--glass
 .welcome-brand-logo { display:block;width:68px;height:68px;flex-shrink:0;margin:0 auto 24px;position:relative;z-index:1;color:var(--text-primary); }
 .welcome-screen { padding-top:clamp(28px,6vh,62px); }
 .auth-brand svg g { fill:var(--text-primary); }
+.auth-brand { color:var(--text-primary); }
 .auth-screen { background:var(--bg-main)!important;color:var(--text-primary); }
 .auth-heading h1,.auth-heading h2 { color:var(--text-primary); }
 .auth-heading p,.auth-divider,.auth-footnote,.auth-status,.auth-text-button,.auth-code-actions button,.auth-guest,#accountCodeHint,#accountSetupNote { color:var(--text-secondary); }
@@ -18,7 +19,10 @@ body { --glass-fill:color-mix(in srgb,var(--bg-surface) 72%,transparent);--glass
 .auth-screen input { background:var(--glass-fill);color:var(--text-primary);border-color:var(--glass-edge); }
 .auth-google,.auth-google:hover:not(:disabled) { background:var(--glass-fill);color:var(--text-primary);border-color:var(--glass-edge); }
 .composer-inner { border:1px solid var(--glass-edge);border-radius:16px;background:var(--glass-fill);backdrop-filter:blur(20px); }
-.composer-field,.composer-controls { background:transparent!important; }
+.composer-field,.composer-field-content,.composer-controls,body.is-generating .composer-field-content { background:transparent!important; }
+.composer-field,.composer-field.composer-expanded,.composer-field:focus-within,
+.composer-field .composer-field-content,.composer-field.composer-expanded .composer-field-content { border-radius:15px 15px 0 0; }
+.composer-controls,.composer-field.composer-expanded + .composer-controls { border-radius:0 0 15px 15px;margin-top:0; }
 .composer { background:transparent; }
 .profile-btn,.profile-menu,.modal:not(.settings-modal),.model-dropdown,.access-dropdown,.think-dropdown,.cloud-plan-grid article {
   background:var(--glass-fill);border:1px solid var(--glass-edge);backdrop-filter:blur(20px);
@@ -38,3 +42,29 @@ body { --glass-fill:color-mix(in srgb,var(--bg-surface) 72%,transparent);--glass
 #providerForm > div:last-child { display:flex;gap:12px;align-items:center; }
 body.theme-light .thinking-logo-line { filter:brightness(0); }
 @media(max-height:650px){.welcome-brand-logo{width:48px;height:48px;margin-bottom:14px}.welcome-screen{padding-top:24px}}
+
+/* Settings float over the workspace inside the native window frame. */
+#settingsModal,body.theme-light #settingsModal {
+  inset:32px 0 0;padding:24px;background:#00000038;backdrop-filter:blur(6px);
+  align-items:center;justify-content:center;
+}
+#settingsModal .settings-modal {
+  box-sizing:border-box;width:min(1040px,100%);height:min(740px,100%);max-width:100%;max-height:100%;
+  border:1px solid var(--glass-edge);border-radius:24px;overflow:hidden;
+  background:color-mix(in srgb,var(--bg-main) 96%,transparent);
+  box-shadow:0 24px 80px #00000026;grid-template-columns:200px minmax(0,1fr);grid-template-rows:72px minmax(0,1fr);font-size:14px;
+}
+#settingsModal .modal-header { padding:20px 26px;border-bottom:1px solid var(--glass-edge); }
+#settingsModal .settings-nav { min-height:0;overflow:auto;padding:14px 12px;background:transparent;border-right:1px solid var(--glass-edge); }
+#settingsModal .settings-body { min-height:0;padding:24px 30px; }
+#settingsModal .settings-body > section { max-width:100%; }
+@media(max-width:720px){
+  #settingsModal { padding:12px; }
+  #settingsModal .settings-modal { border-radius:20px;grid-template-columns:minmax(0,1fr);grid-template-rows:64px 54px minmax(0,1fr); }
+  #settingsModal .modal-header { padding:16px 20px; }
+  #settingsModal .settings-nav { flex-direction:row;gap:6px;padding:7px 10px;border-right:0;border-bottom:1px solid var(--glass-edge); }
+  #settingsModal .settings-nav button { flex:0 0 auto;white-space:nowrap;font-size:12px;padding:9px 12px; }
+  #settingsModal .settings-body { padding:20px; }
+  #settingsModal .settings-language > .settings-title,#settingsModal .settings-language > .settings-desc { width:100%; }
+  #settingsModal .language-picker { position:relative;top:auto;right:auto;width:100%;margin-top:12px; }
+}

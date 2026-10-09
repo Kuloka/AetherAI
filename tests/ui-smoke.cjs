@@ -50,6 +50,7 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(root, process.argv.includes('--packaged') ? 'dist/win-unpacked/resources/app.asar/index.html' : 'index.html'));
   await waitFor(win, `document.querySelector('#localSetupBtn').textContent === ${JSON.stringify(process.env.AETHERAI_PREVIEW_LANGUAGE === 'en' ? 'Quick setup' : 'Быстрая настройка')}`);
   await new Promise(resolve => setTimeout(resolve, 1800));
+  await win.webContents.executeJavaScript("if(document.querySelector('#accountModal').classList.contains('show'))document.querySelector('#accountClose').click()");
   fs.writeFileSync(path.join(out, 'aetherai-welcome.png'), (await win.webContents.capturePage()).toPNG());
   const backgroundState = await win.webContents.executeJavaScript("({api:!!window.AetherAIGatewayFlow,context:!!document.querySelector('#gatewayFlowBg').getContext('2d'),flow:document.querySelector('#gatewayFlowBg').dataset.gatewayFlow,interactive:document.querySelector('#gatewayFlowBg').dataset.gatewayInteractive})");
   assert.deepEqual(backgroundState, { api: true, context: true, flow: 'active', interactive: 'false' }, JSON.stringify(errors));
@@ -146,7 +147,10 @@ app.whenReady().then(async () => {
   }
   if (process.argv.includes('--settings')) {
     await win.webContents.executeJavaScript("document.querySelector('#settingsBtn').click()");
-    assert.ok(await win.webContents.executeJavaScript("document.querySelector('.settings-modal').getBoundingClientRect().width === innerWidth"));
+    await new Promise(resolve=>setTimeout(resolve,300));
+    assert.ok(await win.webContents.executeJavaScript("(()=>{const r=document.querySelector('.settings-modal').getBoundingClientRect();return r.width<innerWidth && r.height<innerHeight-32 && Math.abs((r.left+r.right)/2-innerWidth/2)<1 && Math.abs((r.top+r.bottom)/2-(innerHeight+32)/2)<1 && getComputedStyle(document.querySelector('.settings-modal')).borderRadius==='24px'})()"));
+    assert.equal(await win.webContents.executeJavaScript("getComputedStyle(document.querySelector('.composer-field-content')).backgroundColor"),'rgba(0, 0, 0, 0)');
+    assert.equal(await win.webContents.executeJavaScript("getComputedStyle(document.querySelector('.composer-controls')).backgroundColor"),'rgba(0, 0, 0, 0)');
     await win.webContents.executeJavaScript("document.querySelector('#languageToggle').click()");
     assert.equal(await win.webContents.executeJavaScript("document.querySelector('#languageToggle').getAttribute('aria-expanded')"), 'true');
     await new Promise(resolve => setTimeout(resolve, 400));
@@ -168,7 +172,7 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(out, 'aetherai-discord-settings.png'), (await win.webContents.capturePage()).toPNG());
     const sharp = require(process.argv.includes('--packaged') ? path.join(root,'dist/win-unpacked/resources/app.asar/node_modules/sharp') : 'sharp');
     const animation=await sharp(path.join(root,'resources/aetherai-logo-animated.gif'),{animated:true}).metadata();assert.ok(animation.pages>1);assert.equal(animation.delay.reduce((sum,delay)=>sum+delay,0),3200);
-    console.log('PASS: full-window settings, language selection, section navigation, Discord panel at 1920px and native GIF decoder');
+    console.log('PASS: centered rounded settings, unified composer surface, language selection, section navigation, Discord panel at 1920px and native GIF decoder');
     win.destroy(); app.quit(); return;
   }
   if (process.argv.includes('--preview')) { win.destroy(); app.quit(); return; }
