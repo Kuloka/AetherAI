@@ -2,7 +2,7 @@
   <img src="resources/branding/aetherai-github.png" alt="AetherAI - your ideas, your models, your space" width="100%">
 </p>
 <p align="center">
-  <a href="https://github.com/Kuloka/AetherAI/releases/tag/v1.24.0">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
+  <a href="https://github.com/Kuloka/AetherAI/releases/tag/v1.24.1">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
   <a href="#development">Development</a>
 </p>
 
