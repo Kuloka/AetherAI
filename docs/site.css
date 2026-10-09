@@ -6,6 +6,7 @@
 @media(max-width:600px){.hero h1{font-size:clamp(42px,12vw,60px);letter-spacing:-2.3px}}
 #page{position:relative;z-index:1}#page>.nav{position:relative;z-index:5}.nav nav{margin-left:auto}.nav{gap:24px}
 .language-picker{position:relative;flex-shrink:0}.language-picker button{cursor:pointer;color:#ccc;border:0;background:transparent;font-size:13px}
+.static-language-links{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;padding:12px 24px 28px;color:#aaa;font-size:12px}.static-language-links a:hover{color:#fff}.js .static-language-links{display:none}
 #language-toggle{display:flex;align-items:center;gap:10px;background:#202020;border-radius:10px;padding:11px 13px;min-height:42px}
 #language-toggle svg{transition:transform .22s}#language-toggle[aria-expanded=true] svg{transform:rotate(180deg)}
 #language-options{position:absolute;right:0;top:calc(100% + 8px);width:200px;padding:7px;background:#222;border-radius:12px;box-shadow:0 16px 44px #0008;opacity:0;pointer-events:none;transform:translateY(-7px) scale(.97);transform-origin:top right;transition:opacity .2s,transform .2s;max-height:min(450px,70vh);overflow-y:auto}

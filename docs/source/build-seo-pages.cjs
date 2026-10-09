@@ -16,7 +16,7 @@ for(const lang of langs){
 <meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${escape(copy.meta[0])}"><meta name="twitter:description" content="${escape(copy.meta[1])}"><meta name="twitter:image" content="${SITE_ORIGIN}/assets/social.png">
 <link rel="icon" href="/assets/logo.svg" type="image/svg+xml"><link rel="canonical" href="${url}">${alternates}
 <style>${style}</style><script id="siteStructuredData" type="application/ld+json">${schema}</script>
-</head><body><div id="page">${siteMarkup(lang)}</div><script>${boot}</script></body></html>\n`);
+</head><body><div id="page">${siteMarkup(lang).replace('class="language-picker"','class="language-picker" hidden')}</div><nav class="static-language-links" aria-label="Language">${langs.map(code=>`<a href="${siteLanguagePath(code)}" lang="${code}" hreflang="${code}">${escape(SITE_LANGUAGES[code])}</a>`).join(' ')}</nav><script>${boot}</script></body></html>\n`);
 }
 fs.writeFileSync(path.join(root,'robots.txt'),`User-agent: *\nAllow: /\n\nSitemap: ${SITE_ORIGIN}/sitemap.xml\n`);
 fs.writeFileSync(path.join(root,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${langs.map(lang=>`  <url><loc>${SITE_ORIGIN+siteLanguagePath(lang)}</loc>${langs.map(other=>`<xhtml:link rel="alternate" hreflang="${other}" href="${SITE_ORIGIN+siteLanguagePath(other)}"/>`).join('')}<xhtml:link rel="alternate" hreflang="x-default" href="${SITE_ORIGIN}/"/></url>`).join('\n')}\n</urlset>\n`);
