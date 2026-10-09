@@ -1,16 +1,13 @@
 (function(){
-  const $=id=>document.getElementById(id),modal=$('modelInfoModal');let model=null,controller=null;
-  function saved(){try{return JSON.parse(localStorage.getItem('multimind-model-checks')||'{}');}catch{return {};}}
-  function checkText(){const check=saved()[model?.name];$('modelCheckResult').textContent=check?`${check.ok?'Answered':'Failed'} · ${check.seconds}s · ${check.language} · ${new Date(check.date).toLocaleString()}\n${check.sample}`:'Not tested on this device. Provider metadata is not a quality benchmark.';}
-  function close(){controller?.abort();modal.classList.remove('show');}
-  $('modelInfoClose').onclick=close;modal.onclick=e=>{if(e.target===modal)close();};modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();close();}});
-  $('modelCheckBtn').onclick=async()=>{if(document.body.classList.contains('is-generating')){$('modelCheckResult').textContent='Finish the current chat before testing another model.';return;}
-    const tested=model,button=$('modelCheckBtn');button.disabled=true;controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000),start=performance.now();$('modelCheckResult').textContent='Checking response…';
-    try{const response=await AetherAI.chatFetch('http://127.0.0.1:11434/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:tested.name,stream:false,think:false,options:{temperature:0,num_predict:96},messages:[{role:'system',content:AetherAIIntent.prompt('hello')},{role:'user',content:'hello'}]}),signal:controller.signal});
-      if(!response.ok)throw Error('HTTP '+response.status);const data=await response.json();if(data.error)throw Error(typeof data.error==='string'?data.error:JSON.stringify(data.error));const answer=String(data.message?.content||'').trim();if(!answer)throw Error('Empty response');
-      const checks=saved();checks[tested.name]={ok:true,seconds:((performance.now()-start)/1000).toFixed(1),language:/[\u0600-\u06ff]/.test(answer)?'Arabic detected':/[А-Яа-я]/.test(answer)?'Cyrillic detected':'Latin/other response',date:Date.now(),sample:answer.slice(0,350)};localStorage.setItem('multimind-model-checks',JSON.stringify(checks));if(model===tested)checkText();
-    }catch(e){if(model===tested)$('modelCheckResult').textContent=e.name==='AbortError'?'Check stopped.':AetherAIErrors.format(e);}finally{clearTimeout(timer);controller=null;button.disabled=false;}
-  };
-  window.AetherAIModelInfo={show(value){controller?.abort();model=value;$('modelInfoTitle').textContent=value.cloudName||value.name;const grid=$('modelInfoFacts');grid.replaceChildren();const facts={Provider:value.provider||value.backend||'Local',Context:value.contextLength?value.contextLength.toLocaleString()+' tokens':'Not reported',Languages:/allam/i.test(value.name)?'Arabic / English; other languages not confirmed':'Not reported by the provider',Images:value.capabilities?.includes('vision')?'Supported (provider metadata)':'Not confirmed',Size:value.size?(value.size/1e9).toFixed(2)+' GB':'Cloud / not reported',Quantization:value.details?.quantization_level||'Not reported'};
-    for(const [title,text]of Object.entries(facts)){const row=document.createElement('div'),label=document.createElement('span'),content=document.createElement('strong');label.textContent=title;content.textContent=text;row.append(label,content);grid.append(row);}checkText();modal.classList.add('show');$('modelInfoClose').focus();}};
+  const $=id=>document.getElementById(id),modal=$('modelInfoModal');
+  function close(){modal.classList.remove('show');$('modelBtn')?.focus();}
+  $('modelInfoClose').onclick=close;modal.onclick=event=>{if(event.target===modal)close();};modal.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();close();}});
+  window.AetherAIModelInfo={show(value){$('modelInfoTitle').textContent=value.cloudName||value.name;const grid=$('modelInfoFacts');grid.replaceChildren();const ru=document.documentElement.lang==='ru',facts=[];
+    const add=(english,russian,text)=>{if(text)facts.push([ru?russian:english,text]);};
+    add('Provider','Провайдер',({groq:'Groq',openrouter:'OpenRouter',gemini:'Google Gemini',cerebras:'Cerebras',sambanova:'SambaNova'})[value.provider]||value.provider||value.backend||'Local');
+    add('Context','Контекст',value.contextLength?value.contextLength.toLocaleString()+(ru?' токенов':' tokens'):null);
+    add('Languages','Языки',Array.isArray(value.languages)?value.languages.join(', '):/allam/i.test(value.name)?'Arabic / English':null);
+    add('Images','Изображения',Array.isArray(value.capabilities)?value.capabilities.includes('vision')?(ru?'Поддерживаются':'Supported'):(ru?'Только текст':'Text only'):null);
+    add('Size','Размер',value.size?(value.size/1e9).toFixed(2)+' GB':null);add('Quantization','Квантизация',value.details?.quantization_level);
+    for(const [title,text]of facts){const row=document.createElement('div'),label=document.createElement('span'),content=document.createElement('strong');label.textContent=title;content.textContent=text;row.append(label,content);grid.append(row);}modal.classList.add('show');$('modelInfoClose').focus();}};
 })();

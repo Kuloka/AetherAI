@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const assert = require('assert/strict');
 const root = path.resolve(__dirname, '..');
+if(['--polish','--cancel','--catalog'].some(flag=>process.argv.includes(flag)))process.env.AETHERAI_PREVIEW_LOCAL='true';
 const out = path.join(root, 'artifacts');
 const testCloud=require('../electron/ollama-cloud').createCloud(path.join(out,'ui-cloud'),require('electron').safeStorage,async()=>Response.json({models:[{name:'gpt-oss:120b'},{name:'test-cloud'}]}));
 if(process.argv.includes('--cloud'))testCloud.disconnect();
@@ -47,6 +48,8 @@ app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 1200, height: 780, frame: false, show: false, webPreferences: { preload: path.join(__dirname, 'ui-preload.cjs'), offscreen: true } });
   const errors = [];
   win.webContents.on('console-message', (_event, level, message) => { if (level === 3 && !/ERR_|Content Security|Failed to load resource/.test(message)) errors.push(message); });
+  const execute=win.webContents.executeJavaScript.bind(win.webContents);
+  win.webContents.executeJavaScript=async(...args)=>{try{return await execute(...args);}catch(error){console.error('Failed UI check:',args[0]);throw error;}};
   await win.loadFile(path.join(root, process.argv.includes('--packaged') ? 'dist/win-unpacked/resources/app.asar/index.html' : 'index.html'));
   await waitFor(win, `document.querySelector('#localSetupBtn').textContent === ${JSON.stringify(process.env.AETHERAI_PREVIEW_LANGUAGE === 'en' ? 'Quick setup' : 'Быстрая настройка')}`);
   await new Promise(resolve => setTimeout(resolve, 1800));
@@ -119,16 +122,42 @@ app.whenReady().then(async () => {
     fs.mkdirSync(path.join(out,'ui-projects'),{recursive:true});
     await win.webContents.executeJavaScript("document.querySelector('#settingsBtn').click();document.querySelector('[data-settings-tab=plugins]').click()");
     await waitFor(win,"document.querySelectorAll('#pluginPresets .preset-card').length===3");
+    assert.equal(await win.webContents.executeJavaScript("document.querySelector('#pluginsTitle').textContent"),'Плагины');
+    assert.ok(await win.webContents.executeJavaScript("document.querySelector('#pluginPresets').textContent.includes('Файлы проекта')"));
+    await win.webContents.executeJavaScript("document.querySelector('#pluginPicker').click()");
+    assert.ok(await win.webContents.executeJavaScript("(()=>{const menu=document.querySelector('#pluginOptions'),r=menu.getBoundingClientRect();return menu.parentElement===document.body&&!menu.hidden&&r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight})()"),'Connection menu must escape settings clipping and stay in the viewport');
+    await win.webContents.executeJavaScript("document.querySelector('#pluginOptions [data-value=stdio]').click()");
+    assert.ok(await win.webContents.executeJavaScript("!document.querySelector('#pluginCommandRow').hidden&&!document.querySelector('#pluginArgsRow').hidden&&document.querySelector('#pluginUrlRow').hidden"));
+    await win.webContents.executeJavaScript("document.querySelector('#pluginPicker').click();document.querySelector('#pluginOptions [data-value=http]').click()");
+    assert.ok(await win.webContents.executeJavaScript("document.querySelector('#pluginCommandRow').hidden&&!document.querySelector('#pluginUrlRow').hidden"));
+    await win.webContents.executeJavaScript("document.querySelector('#pluginPicker').click();document.querySelector('#pluginOptions [data-value=builtin]').click();document.querySelector('#pluginPicker').click();document.querySelector('#pluginOptions').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));");
+    assert.equal(await win.webContents.executeJavaScript("document.activeElement.dataset.value"),'stdio');
+    await win.webContents.executeJavaScript("document.querySelector('#pluginOptions').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))");
+    assert.equal(await win.webContents.executeJavaScript("document.activeElement.id"),'pluginPicker');
+    for(const width of [760,520]) {
+      win.setSize(width,760);await new Promise(resolve=>setTimeout(resolve,150));
+      assert.ok(await win.webContents.executeJavaScript("(()=>{const parent=document.querySelector('.settings-body').getBoundingClientRect();return [...document.querySelectorAll('#pluginPresets .preset-card,#pluginForm input,#pluginPicker')].filter(el=>el.getBoundingClientRect().width).every(el=>{const r=el.getBoundingClientRect();return r.left>=parent.left&&r.right<=parent.right})})()"),'Plugin cards and fields must fit narrow settings');
+    }
+    win.setSize(1280,900);await new Promise(resolve=>setTimeout(resolve,150));
     await win.webContents.executeJavaScript("document.querySelector('#pluginPresets .preset-install').click()");
     await waitFor(win,"!!document.querySelector('#pluginsList .activity-switch')");
     await win.webContents.executeJavaScript("document.querySelector('#pluginsList .activity-switch').click()");
-    await waitFor(win,"document.querySelector('#pluginsList').textContent.includes('connected') && document.querySelector('#pluginsList').textContent.includes('list_projects')");
+    await waitFor(win,"document.querySelector('#pluginsList').textContent.includes('Подключён') && document.querySelector('#pluginsList').textContent.includes('list_projects')");
     await win.webContents.executeJavaScript("document.querySelector('#pluginsList details').open=true");
     fs.writeFileSync(path.join(out,'aetherai-plugins.png'),(await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript("document.querySelector('[data-settings-tab=general]').click();document.querySelector('#languageToggle').click();document.querySelector('[data-lang=en]').click();document.querySelector('[data-settings-tab=plugins]').click()");
+    await waitFor(win,"document.querySelector('#pluginPresets').textContent.includes('Workspace Files')&&document.querySelector('#pluginsList').textContent.includes('connected')");
+    await win.webContents.executeJavaScript("document.querySelector('#pluginPicker').click();document.querySelector('[data-settings-tab=discord]').click()");
+    assert.ok(await win.webContents.executeJavaScript("document.querySelector('#pluginOptions').hidden&&!document.querySelector('#discordAddImage')&&!document.querySelector('#discordImageUrl')"));
+    await win.webContents.executeJavaScript("document.querySelector('[data-settings-tab=plugins]').click();document.querySelector('#pluginsList .activity-switch').click()");
+    await waitFor(win,"document.querySelector('#pluginsList').textContent.includes('disabled')");
+    await win.webContents.executeJavaScript("document.querySelector('#pluginsList .catalog-btn').click()");
+    await waitFor(win,"!document.querySelector('#pluginsList .plugin-row')");
     assert.deepEqual(errors,[]);
-    await pluginHost.close();console.log('PASS: Plugins UI adds, enables and discovers real stdio tools under Electron');win.destroy();app.quit();return;
+    await pluginHost.close();console.log('PASS: plugin menu positioning, keyboard, transport fields, narrow layouts, RU/EN refresh, installation, real tools, disable and remove; custom Discord media absent');win.destroy();app.quit();return;
   }
   if (process.argv.includes('--polish')) {
+    await waitFor(win,"!!document.querySelector('.worker-picker-trigger')");
     const radius = await win.webContents.executeJavaScript("getComputedStyle(document.querySelector('.composer-field')).borderTopLeftRadius");
     await win.webContents.executeJavaScript("document.querySelector('#userInput').focus()");
     assert.equal(await win.webContents.executeJavaScript("getComputedStyle(document.querySelector('.composer-field')).borderTopLeftRadius"), radius);

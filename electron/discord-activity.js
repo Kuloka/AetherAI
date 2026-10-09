@@ -76,14 +76,11 @@ function createDiscordActivity({ connect = name => net.createConnection(name), r
     });
   }
   function configure(value = {}) {
-    const image=String(value.image||'').trim();
-    const legacyDefault=/^https:\/\/raw\.githubusercontent\.com\/Kuloka\/(?:MultiMind|AetherAI)\/main\/resources\/(?:multimind|aetherai)-logo-animated\.gif$/.test(image);
-    const next = { enabled: value.enabled === true, applicationId: '1547289218902921226', image: !image||legacyDefault?DEFAULT_IMAGE:image };
+    const next = { enabled: value.enabled === true, applicationId: '1547289218902921226', image: DEFAULT_IMAGE };
     if (JSON.stringify(config) === JSON.stringify(next)) return status();
     stop(); config = next;
     if (!next.enabled) return status();
     if (!/^\d{17,20}$/.test(next.applicationId)) { state = 'needs-id'; return status(); }
-    if (next.image && !/^(https:\/\/[^\s]+|[a-zA-Z0-9_-]{1,128})$/.test(next.image)) { state = 'error'; message = 'Use an HTTPS image URL or Discord asset name.'; return status(); }
     state = 'connecting'; attempt(0, revision); return status();
   }
   return { configure, status, stop };

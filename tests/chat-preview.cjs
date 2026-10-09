@@ -1,0 +1,46 @@
+const {app,BrowserWindow,ipcMain}=require('electron'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+app.disableHardwareAcceleration();const output=path.resolve(__dirname,'../artifacts/chat-preview');app.setPath('userData',path.join(output,'profile'));
+let data={groups:[],chats:[]},settings={appLanguage:'en',teamEnabled:false},imagePrompt='';
+ipcMain.handle('mode:data-get',()=>data);ipcMain.handle('mode:data-save',(_e,value)=>{data=value;return {};});ipcMain.handle('mode:settings',()=>settings);ipcMain.handle('mode:save',(_e,value)=>{settings=value;return {};});ipcMain.handle('mode:account-status',()=>({configured:false,user:null}));ipcMain.handle('mode:memory-list',()=>[]);ipcMain.handle('mode:memory-context',()=> '');
+ipcMain.handle('mode:chat',(_e,body)=>body.messages[0].content.startsWith('Turn the user request')?JSON.stringify({prompt:'A black banner with the exact white lettering "AetherAI 1337".'}):{chunks:['<think>private reasoning','</think>','Hello! This answer is arriving progressively. ','Here is the next part, with a practical example. ','That is the complete answer.'],delay:400});
+ipcMain.handle('mode:image',(_e,prompt)=>{imagePrompt=prompt;return {ok:true,path:path.join(output,'fixture-image.png')};});
+app.whenReady().then(async()=>{
+ fs.mkdirSync(output,{recursive:true});await require('sharp')({create:{width:600,height:400,channels:3,background:'#252525'}}).png().toFile(path.join(output,'fixture-image.png'));
+ const win=new BrowserWindow({width:1200,height:850,show:false,webPreferences:{offscreen:true,preload:path.join(__dirname,'chat-preview-preload.cjs')}}),errors=[];win.webContents.on('console-message',(_event,level,message)=>{if(level===3)errors.push(message);});const evaluate=code=>win.webContents.executeJavaScript(code),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+ await win.loadFile(path.resolve(__dirname,'../index.html'));await wait(600);await evaluate("document.querySelector('#accountClose').click()");await wait(80);
+ assert.equal(await evaluate("document.querySelector('#composerPrompt').hidden"),false);
+ await evaluate("document.querySelector('#userInput').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));document.querySelector('#userInput').focus()");await wait(180);
+ assert.equal(await evaluate("document.querySelector('#composerPrompt').hidden"),true);assert.equal(await evaluate("document.activeElement.id"),'userInput');assert.notEqual(await evaluate("getComputedStyle(document.querySelector('#userInput')).caretColor"),'rgba(0, 0, 0, 0)');assert.equal(await evaluate("document.querySelector('#userInput').selectionStart"),0);
+ await evaluate("document.querySelector('#userInput').blur()");await wait(80);assert.equal(await evaluate("document.querySelector('#composerPrompt').hidden"),false);
+ for(const width of [1200,760,520]) {
+   win.setSize(width,850);await wait(120);
+   assert.ok(await evaluate("(()=>{const buttons=[...document.querySelectorAll('.composer-right button')],rects=buttons.map(button=>button.getBoundingClientRect());return rects.length===5&&rects.every(rect=>Math.abs(rect.top-rects[0].top)<1&&Math.abs(rect.width-rects[0].width)<1&&rect.height===32)})()"),'All five actions have equal width and height on a single row');
+   assert.ok(await evaluate("(()=>{const row=document.querySelector('.composer-right'),parent=row.getBoundingClientRect();return [...row.querySelectorAll('button')].every(button=>{const rect=button.getBoundingClientRect();return rect.left>=parent.left-1&&rect.right<=parent.right+1})&&getComputedStyle(row).overflowX==='visible'})()"),'Buttons fit the row without horizontal overflow or a scrollbar');
+   for(const [trigger,menu] of [['thinkBtn','thinkDropdown'],['accessBtn','accessDropdown']]) {
+     await evaluate(`document.querySelector('#${trigger}').click()`);await wait(200);
+     assert.ok(await evaluate(`(()=>{const button=document.querySelector('#${trigger}'),menu=document.querySelector('#${menu}'),a=button.getBoundingClientRect(),b=menu.getBoundingClientRect();return menu.parentElement===document.body&&button.getAttribute('aria-expanded')==='true'&&Math.abs(a.top-b.bottom-8)<2&&b.left>=0&&b.right<=innerWidth&&!button.hasAttribute('title')&&getComputedStyle(button,'::after').display==='none'})()`),'Menu attaches to its actual button without duplicate tooltips, even on wrapped controls');
+     await evaluate(`document.querySelector('#${menu} button.active').focus();document.querySelector('#${menu}').dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`);
+     assert.equal(await evaluate('document.activeElement.id'),trigger);
+   }
+ }
+ win.setSize(1200,850);await wait(120);
+ const inactiveAgent=await evaluate("getComputedStyle(document.querySelector('#teamToggle')).backgroundColor");
+ await evaluate("document.querySelector('#teamToggle').click()");await wait(80);
+ assert.equal(await evaluate("document.querySelector('#teamToggle').getAttribute('aria-pressed')"),'true');
+ assert.notEqual(await evaluate("getComputedStyle(document.querySelector('#teamToggle')).backgroundColor"),inactiveAgent,'Enabled agents must visibly highlight');
+ await evaluate("document.querySelector('#teamToggle').click()");await wait(80);
+ assert.equal(await evaluate("getComputedStyle(document.querySelector('#teamToggle')).backgroundColor"),inactiveAgent);
+ await evaluate("document.querySelector('#thinkBtn').click();document.querySelector('#thinkDropdown [data-think=high]').click()");await wait(80);
+ assert.equal(settings.thinkLevel,'high');assert.equal(await evaluate("document.querySelector('#thinkDropdown [data-think=high]').getAttribute('aria-checked')"),'true');
+ await evaluate("document.querySelector('#thinkBtn').click()");await wait(200);fs.writeFileSync(path.join(output,'thinking-menu.png'),(await win.webContents.capturePage()).toPNG());
+ await evaluate("document.querySelector('#thinkDropdown [data-think=medium]').click();document.querySelector('#accessBtn').click();document.querySelector('#accessDropdown [data-access=plan]').click()");await wait(80);assert.equal(settings.accessMode,'plan');
+ await evaluate("document.querySelector('#accessBtn').click();document.querySelector('#accessDropdown [data-access=full]').click()");await wait(80);
+ await evaluate("document.querySelector('#modelBtn').click();document.querySelector('#modelSearchInput').click();document.querySelector('#modelSearchInput').value='apodex';document.querySelector('#modelSearchInput').dispatchEvent(new Event('input'))");
+ await wait(250);assert.equal(await evaluate("document.querySelectorAll('.model-item').length"),1);assert.match(await evaluate("document.querySelector('.model-item').textContent"),/Apodex/);await evaluate("document.querySelector('#modelSearchInput').focus();document.querySelector('#modelSearchInput').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}))");assert.equal(await evaluate("document.activeElement.classList.contains('model-select-button')"),true);fs.writeFileSync(path.join(output,'model-selector.png'),(await win.webContents.capturePage()).toPNG());
+ await evaluate("document.querySelector('#modelBtn').click();document.querySelector('#userInput').value='hello';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(1150);
+ assert.ok(await evaluate("!!document.querySelector('.streaming-answer')"));assert.match(await evaluate("document.querySelector('.streaming-answer .message-text').textContent"),/Hello/);assert.doesNotMatch(await evaluate("document.querySelector('.streaming-answer .message-text').textContent"),/private reasoning/);fs.writeFileSync(path.join(output,'streaming-answer.png'),(await win.webContents.capturePage()).toPNG());
+ await evaluate("document.querySelector('#stopBtn').click()");await wait(150);assert.equal(data.chats[0].messages.at(-1).interrupted,true);assert.match(data.chats[0].messages.at(-1).content,/Hello/);assert.doesNotMatch(data.chats[0].messages.at(-1).content,/private reasoning/);
+ await evaluate("document.querySelector('#userInput').value='Create a banner with the text \"AetherAI 1337\" on a black background';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(700);
+ assert.equal(imagePrompt,'A black banner with the exact white lettering "AetherAI 1337".');const image=data.chats[0].messages.at(-1);assert.equal(image.content,'');assert.match(image.imageGeneration.prompt,/1337/);assert.ok(image.images.length===1);assert.ok(await evaluate("[...document.querySelectorAll('.message.assistant img')].some(image=>image.naturalWidth===600)"));assert.doesNotMatch(await evaluate("document.querySelector('.message.assistant:last-child .message-text').textContent"),/Prompt|A black banner/);
+ fs.writeFileSync(path.join(output,'image-result.png'),(await win.webContents.capturePage()).toPNG());assert.deepEqual(errors,[]);console.log('PASS: anchored composer menus at three widths, tooltip suppression, Escape and persisted choices; searchable keyboard picker; progressive answer and stop; image descriptions stay hidden.');win.destroy();app.quit();
+}).catch(error=>{console.error(error);app.exit(1);});

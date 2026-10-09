@@ -14,7 +14,7 @@ test('Discord uses built-in ID, handles split frames and ping, clears activity w
   socket.destroy = () => socket.emit('close');
   socket.end = data => { writes.push(data); socket.emit('close'); };
   const rpc = createDiscordActivity({ connect: () => socket });
-  rpc.configure({ enabled: true }); socket.emit('connect');
+  rpc.configure({ enabled: true, image:'https://example.com/old-custom.gif' }); socket.emit('connect');
   assert.equal(JSON.parse(writes[0].subarray(8)).client_id, '1547289218902921226');
   const ready = frame(1, { evt: 'READY' });
   socket.emit('data', ready.subarray(0, 5)); socket.emit('data', ready.subarray(5));

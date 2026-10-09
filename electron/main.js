@@ -65,6 +65,7 @@ const discordActivity = require('./discord-activity').createDiscordActivity();
 const discordMedia = require('./discord-media');
 const DISCORD_MEDIA_DIR = path.join(DATA_DIR, 'discord-media');
 handleIpc('discord:status', () => discordActivity.status());
+handleIpc('discord:open-application', () => shell.openExternal('https://discord.com/developers/applications/1547289218902921226/information'));
 handleIpc('discord:media', () => discordMedia.readMedia(DISCORD_MEDIA_DIR));
 handleIpc('discord:import', async event => {
   const result = await dialog.showOpenDialog(BrowserWindow.fromWebContents(event.sender), { title: 'Activity image', properties: ['openFile'], filters: [{ name: 'Image or GIF', extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'] }] });
@@ -940,23 +941,12 @@ handleIpc('internet:search', async (event, query, preferredDomains) => {
   }
 });
 
-handleIpc('image:generate-online', async (_event, prompt) => {
-  try {
-    const text = String(prompt || '').trim().slice(0, 1200);
-    if (!text) return { ok: false, error: 'Empty image prompt.' };
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(text)}?width=768&height=768&nologo=true`;
-    const response = await fetch(url, { headers: { 'User-Agent': 'AetherAI/1.1.7' } });
-    if (!response.ok) return { ok: false, error: `Image service HTTP ${response.status}` };
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (!bytes.length) return { ok: false, error: 'Image service returned an empty file.' };
-    ensureDataDir();
-    const output = path.join(FLUX_OUTPUT_DIR, `sana-${Date.now()}.jpg`);
-    fs.writeFileSync(output, bytes);
-    return { ok: true, path: output };
-  } catch (err) {
-    return { ok: false, error: err.message };
-  }
-});
+const imageProvider=require('./image-provider').createImageProvider(DATA_DIR,require('electron').safeStorage);
+handleIpc('image:status',()=>imageProvider.status());
+handleIpc('image:save',(_event,key)=>imageProvider.save(key));
+handleIpc('image:disconnect',()=>imageProvider.disconnect());
+handleIpc('image:open',()=>shell.openExternal('https://enter.pollinations.ai'));
+handleIpc('image:generate-online',async(_event,prompt)=>{try{return await imageProvider.generate(prompt);}catch(error){return {ok:false,error:error.message};}});
 
 // Открыть ссылку во внешнем браузере
 handleIpc('shell:open', async (_e, url) => {

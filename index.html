@@ -244,7 +244,8 @@
               <div class="think-item" data-think="none">No thinking</div>
             </div>
             </div>
-          </div>
+          <div class="composer-quota" id="composerQuota" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="quota-track" cx="12" cy="12" r="9"/><circle id="composerQuotaFill" cx="12" cy="12" r="9"/></svg><span id="composerQuotaPercent">—</span></div>
+</div>
         </div>
 
       </div>
@@ -338,29 +339,24 @@
         <p id="cloudError" role="status"></p>
         <div class="discord-heading"><h4 id="cloudModelsTitle">Cloud models</h4><button type="button" class="catalog-btn" id="cloudRefresh">Refresh</button></div><div id="cloudModelsList"></div>
       </section>
+      <section class="settings-block image-provider-settings" data-settings-panel="models" hidden><h3 id="imageProviderTitle">Image generation</h3><p id="imageProviderHelp">Connect Pollinations for cloud images. Without a key, images use local SD Turbo. Cloud generations use your provider balance.</p><form id="imageProviderForm"><label id="imageProviderKeyLabel" for="imageProviderKey">Image API key</label><input id="imageProviderKey" type="password" autocomplete="off" placeholder="Paste your image API key" required><div><button id="imageProviderOpen" type="button" class="catalog-btn">Get image API key</button><button id="imageProviderAction" class="catalog-btn primary" type="submit">Connect</button></div></form><p id="imageProviderStatus" role="status"></p></section>
       <section class="settings-block plugins-settings" data-settings-panel="plugins" hidden>
-        <h3>Plugins</h3><p>MCP tools for your models. Enable a connection to make its tools available in chat.</p>
+        <h3 id="pluginsTitle">Plugins</h3><p id="pluginsHint">MCP tools for your models. Enable a connection to make its tools available in chat.</p>
         <div class="preset-grid" id="pluginPresets"></div>
         <form id="pluginForm">
-          <label>Name<input id="pluginName" value="Workspace" maxlength="80" required></label>
-          <label>Connection<select id="pluginType"><option value="builtin">Built-in Workspace</option><option value="stdio">Local MCP server (stdio)</option><option value="http">Remote MCP server (HTTP)</option></select></label>
-          <label id="pluginCommandRow" hidden>Executable<input id="pluginCommand" placeholder="node / npx / full executable path"></label>
-          <label id="pluginArgsRow" hidden>Arguments (JSON array)<input id="pluginArgs" value="[]" placeholder='["server.js"]'></label>
-          <label id="pluginUrlRow" hidden>MCP URL<input id="pluginUrl" placeholder="https://example.com/mcp"></label>
+          <label><span id="pluginNameLabel">Name</span><input id="pluginName" value="Workspace" maxlength="80" required></label>
+          <label><span id="pluginTypeLabel">Connection</span><select id="pluginType"><option value="builtin">Built-in Workspace</option><option value="stdio">Local MCP server (stdio)</option><option value="http">Remote MCP server (HTTP)</option></select></label>
+          <label id="pluginCommandRow" hidden><span id="pluginCommandLabel">Executable</span><input id="pluginCommand" placeholder="node / npx / full executable path"></label>
+          <label id="pluginArgsRow" hidden><span id="pluginArgsLabel">Arguments (JSON array)</span><input id="pluginArgs" value="[]" placeholder='["server.js"]'></label>
+          <label id="pluginUrlRow" hidden><span id="pluginUrlLabel">MCP URL</span><input id="pluginUrl" placeholder="https://example.com/mcp"></label>
           <p id="pluginTransportHint">Reads project folders and text files inside your local project folder. No extra installation.</p>
-          <button class="catalog-btn" type="submit">Add connection</button>
+          <button id="pluginAddConnection" class="catalog-btn" type="submit">Add connection</button>
         </form>
         <p id="pluginsError" role="status"></p><div id="pluginsList"></div>
       </section>
       <section class="settings-block discord-settings" data-settings-panel="discord" hidden>
         <div class="discord-heading"><div><h3>Discord Activity</h3><p id="discordDescription"></p></div><button id="discordToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Discord Activity"><span></span></button></div>
-        <p id="discordStatus" role="status"></p>
-        <h4>Custom image or GIF</h4>
-        <button id="discordAddImage" type="button" class="activity-image-add" aria-label="Add image or GIF"><img id="discordImagePreview" alt="Activity image preview" hidden><span id="discordImagePlaceholder"><svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="4" y="4" width="24" height="24" rx="5"/><circle cx="12" cy="12" r="2"/><path d="m5 24 8-8 5 5 4-5 6 7"/></svg><span>Add</span></span></button>
-        <p id="discordImageSize">PNG, JPG, WebP, GIF</p><p id="discordImageWarning" role="status"></p>
-        <button id="discordExportImage" class="catalog-btn" type="button" hidden>Save prepared image</button>
-        <label class="discord-field"><span id="discordImageLinkLabel">Image URL or Discord asset name</span><input id="discordImageUrl" type="text" placeholder="https://.../image.gif" maxlength="2048"></label>
-        <p id="discordImageHelp"></p>
+        <p id="discordStatus" role="status"></p><p id="discordNameHelp"></p><button id="discordRenameApp" type="button" class="catalog-btn">Rename Discord application</button>
       </section>
       <section class="settings-block app-skills" data-settings-panel="skills" hidden>
         <strong>Skills</strong>
@@ -479,7 +475,7 @@
   </section>
 </div>
 <div class="modal-overlay" id="memoryModal"><section class="modal account-dialog" role="dialog" aria-modal="true" aria-labelledby="memoryTitle"><header class="modal-header"><h2 id="memoryTitle">Presets</h2><button class="modal-close" id="memoryClose" aria-label="Close presets">&times;</button></header><div class="modal-body"><p id="memoryScopeNote">Tell AetherAI how you want it to respond.</p><form id="memoryForm"><label for="memoryText">Your response preferences</label><textarea id="memoryText" maxlength="1500" rows="4" placeholder="Keep answers short, explain things simply, and reply in English…" required></textarea><div><button class="catalog-btn primary" type="submit">Save preset</button><button class="catalog-btn" type="button" id="memoryCancelEdit">Cancel edit</button></div></form><div id="memoryList"></div><button type="button" class="catalog-btn" id="memorySync">Sync presets</button><p id="memoryError" role="status"></p></div></section></div>
-<div class="modal-overlay" id="modelInfoModal"><section class="modal account-dialog" role="dialog" aria-modal="true" aria-labelledby="modelInfoTitle"><header class="modal-header"><h2 id="modelInfoTitle">Model details</h2><button class="modal-close" id="modelInfoClose" aria-label="Close model details">&times;</button></header><div class="modal-body"><div id="modelInfoFacts"></div><h3>Response check</h3><p>Checks that the model answers an English greeting. Uses one API request; paid models may charge for it. This is not a general quality score.</p><button class="catalog-btn primary" type="button" id="modelCheckBtn">Run quick check</button><p id="modelCheckResult" role="status"></p></div></section></div>
+<div class="modal-overlay" id="modelInfoModal"><section class="modal account-dialog" role="dialog" aria-modal="true" aria-labelledby="modelInfoTitle"><header class="modal-header"><h2 id="modelInfoTitle">Model details</h2><button class="modal-close" id="modelInfoClose" aria-label="Close model details">&times;</button></header><div class="modal-body"><div id="modelInfoFacts"></div></div></section></div>
 <script src="gateway-flow.js"></script>
 <script src="appearance.js"></script>
 <script src="background-effects.js"></script>
@@ -490,10 +486,13 @@
 <script src="plugins-chat.js"></script>
 <script src="avatar-profile.js"></script>
 <script src="account-memory.js"></script>
+<script src="model-quota.js"></script>
 <script src="model-info.js"></script>
 <script src="resources/katex/katex.min.js"></script>
 <script src="math-renderer.js"></script>
 <script src="logo-motion.js"></script>
+<script src="streaming-text.js"></script>
+<script src="image-prompt.js"></script>
 <script src="renderer.js"></script>
 <script src="prompt-examples.js"></script>
 <script src="composer-prompts.js"></script>

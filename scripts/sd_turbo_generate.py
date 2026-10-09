@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import shutil
+import secrets
 import sys
 
 
@@ -73,10 +74,12 @@ def main():
             pipe.enable_attention_slicing()
 
         status("generating", "Generating image")
-        generator = torch.Generator(device=device).manual_seed(abs(hash(args.prompt)) % (2 ** 32))
+        generator = torch.Generator(device=device).manual_seed(secrets.randbits(32))
         image = pipe(
             prompt=args.prompt,
-            num_inference_steps=2,
+            num_inference_steps=4,
+            width=512,
+            height=512,
             guidance_scale=0.0,
             generator=generator,
         ).images[0]

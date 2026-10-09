@@ -1,0 +1,8 @@
+(function(root){
+  function clean(value){return String(value||'').trim().replace(/^(?:(?:please\s+)?(?:generate|create|draw|make|render)\s+(?:(?:me|an?|the)\s+)*(?:(?:image|picture)(?:\s+of)?\s*[:,-]?\s*)?|(?:пожалуйста\s+)?(?:сгенерируй|создай|нарисуй|сделай)\s+(?:(?:мне|для меня)\s+)?(?:(?:изображение|картинку)\s*[:,-]?\s*)?)/i,'').trim();}
+  function extract(output,original){const fallback=clean(original)||String(original||'').trim();let value='';try{const data=JSON.parse(String(output).replace(/^```(?:json)?\s*|\s*```$/g,''));value=data.prompt;}catch{value=String(output||'').trim();}if(typeof value!=='string')return fallback;value=value.trim();if(!value||value.length>600||/[\r\n]/.test(value)||/^(?:sorry|i cannot|i can't|i am unable)/i.test(value))return fallback;
+    const required=String(original).match(/\d+(?:[.,]\d+)?|["«“]([^"»”]+)["»”]/g)||[];if(required.some(item=>!value.includes(item.replace(/^["«“]|["»”]$/g,''))))return fallback;return value;
+  }
+  const instruction='Turn the user request into a concise English visual description for an image model. Preserve the subject, action, setting, composition, requested style and colours. Preserve every requested number and exact quoted lettering, including non-English lettering. Put the subject and essential details first. Use at most 60 words. Do not add a style, objects or text the user did not request. Do not use chat instructions, explanations, quality slogans, negative prompts or breed disclaimers. Return only JSON: {"prompt":"visual description"}.';
+  const api={clean,extract,instruction};root.AetherAIImagePrompt=api;if(typeof module!=='undefined')module.exports=api;
+})(typeof globalThis!=='undefined'?globalThis:window);

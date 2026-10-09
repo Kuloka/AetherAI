@@ -40,8 +40,16 @@
     { id:'sequential-thinking', name:'Sequential Thinking', description:'Break complex work into checked reasoning steps.', config:{ name:'Sequential Thinking', type:'stdio', command:navigator.platform.startsWith('Win')?'npx.cmd':'npx', args:['-y','@modelcontextprotocol/server-sequential-thinking'] } }
   ];
   function presetCard(item, installed, kind) {
+    const translated = settings.appLanguage === 'ru' ? {
+      workspace:['Файлы проекта','Читайте и редактируйте файлы в проектах AetherAI.'],
+      memory:['Память','Сохраняйте полезные факты между задачами.'],
+      'sequential-thinking':['Пошаговое мышление','Разбивайте сложные задачи на проверяемые шаги.'],
+      'code-review':['Проверка кода','Находите ошибки, регрессии и рискованные изменения.'],
+      'clear-writing':['Ясные ответы','Делайте ответы короче, понятнее и удобнее для чтения.'],
+      'project-planner':['Планирование проекта','Превращайте идею в последовательность практических шагов.']
+    }[item.id] : null;
     const label=settings.appLanguage==='ru'?(installed?'Установлено':'Установить'):(installed?'Installed':'Install');
-    return `<article class="preset-card"><div><strong>${escapeHtml(item.title || item.name)}</strong><p>${escapeHtml(item.description)}</p></div><button class="preset-install${installed?' installed':''}" data-preset-kind="${kind}" data-preset="${escapeHtml(item.id)}" ${installed?'disabled':''}>${label}</button></article>`;
+    return `<article class="preset-card"><div><strong>${escapeHtml(translated?.[0] || item.title || item.name)}</strong><p>${escapeHtml(translated?.[1] || item.description)}</p></div><button class="preset-install${installed?' installed':''}" data-preset-kind="${kind}" data-preset="${escapeHtml(item.id)}" ${installed?'disabled':''}>${label}</button></article>`;
   }
   function renderSkills(entries) {
     activeSkillContext = entries.filter(entry => entry.enabled).map(entry => `Skill: ${entry.name}\n${entry.content}`).join("\n\n");
@@ -71,6 +79,7 @@
   let availableModels = [];          // установленные модели [{name,size,details}]
   let allAvailableModels = [];
   let providerUsage = {};
+  const answerSources=new Map();
   window.addEventListener('provider-usage', event => {
     providerUsage[event.detail.model || event.detail.provider] = event.detail.usage;
     renderModelDropdown();
@@ -789,7 +798,8 @@
 
   function setTooltip(el, text) {
     if (!el || !text) return;
-    el.setAttribute("title", text);
+    // Use the styled tooltip only; native title otherwise shows a second label.
+    el.removeAttribute("title");
     el.setAttribute("aria-label", text);
     el.setAttribute("data-tooltip", text);
   }
@@ -1232,7 +1242,7 @@
     }
   }
 
-  let discordMediaPreview = null;
+
   async function refreshCloudStatus(){
     if(!window.api?.cloudStatus)return;
     const status=await window.api.cloudStatus();const ru=settings.appLanguage==='ru';
@@ -1314,20 +1324,28 @@
     if(event.key==='Tab'){event.preventDefault();(document.activeElement===$('providerLimitAdd')?$('providerLimitClose'):$('providerLimitAdd')).focus();}
   });
   function renderPlugins(entries) {
-    const list=$('pluginsList');const signature=JSON.stringify(entries);if(list.dataset.signature===signature)return;list.dataset.signature=signature;list.replaceChildren();renderPluginPresets(entries);
+    const list=$('pluginsList');const signature=JSON.stringify([settings.appLanguage,entries]);if(list.dataset.signature===signature)return;list.dataset.signature=signature;list.replaceChildren();renderPluginPresets(entries);
     if(!entries.length){list.textContent=settings.appLanguage==='ru'?'Подключений пока нет.':'No connections yet.';return;}
     entries.forEach(plugin=>{
       const row=document.createElement('section');row.className='plugin-row';
       const head=document.createElement('div');head.className='discord-heading';
-      const title=document.createElement('strong');title.textContent=plugin.name;
+      const title=document.createElement('strong');title.textContent=settings.appLanguage==='ru'?({'Workspace Files':'Файлы проекта',Memory:'Память','Sequential Thinking':'Пошаговое мышление'}[plugin.name]||plugin.name):plugin.name;
       const toggle=document.createElement('button');toggle.type='button';toggle.className='activity-switch';toggle.setAttribute('role','switch');toggle.setAttribute('aria-label',plugin.name);toggle.setAttribute('aria-checked',String(plugin.enabled));toggle.innerHTML='<span></span>';
       toggle.addEventListener('click',async()=>{toggle.disabled=true;try{renderPlugins(await window.api.pluginsToggle(plugin.id,!plugin.enabled));}catch(error){$('pluginsError').textContent=error.message;toggle.disabled=false;}});
       head.append(title,toggle);row.append(head);
-      const status=document.createElement('p');status.textContent=`${plugin.state} · ${plugin.type} · ${plugin.tools.length} tools${plugin.error?' · '+plugin.error:''}`;row.append(status);
-      const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Tools';details.append(summary);
-      plugin.tools.forEach(tool=>{const item=document.createElement('p');const name=document.createElement('strong');name.textContent=tool.name;item.append(name,document.createTextNode(' — '+tool.description));details.append(item);});row.append(details);
-      if(plugin.enabled&&plugin.state!=='connected'){const retry=document.createElement('button');retry.type='button';retry.className='catalog-btn';retry.textContent='Reconnect';retry.onclick=async()=>{retry.disabled=true;try{renderPlugins(await window.api.pluginsToggle(plugin.id,true));}catch(error){$('pluginsError').textContent=error.message;retry.disabled=false;}};row.append(retry);}
-      const remove=document.createElement('button');remove.type='button';remove.className='catalog-btn';remove.textContent='Remove';remove.onclick=async()=>{try{renderPlugins(await window.api.pluginsRemove(plugin.id));}catch(error){$('pluginsError').textContent=error.message;}};row.append(remove);list.append(row);
+      const status=document.createElement('p');status.textContent=settings.appLanguage==='ru' ?                 `${({connected:'Подключён',disabled:'Выключен',connecting:'Подключение',error:'Ошибка',disconnected:'Отключён'}[plugin.state]||plugin.state)} · ${({builtin:'Встроенный',stdio:'Локальный',http:'Удалённый'}[plugin.type]||plugin.type)} · Инструментов: ${plugin.tools.length}${plugin.error?' · '+plugin.error:''}` : `${plugin.state} · ${plugin.type} · ${plugin.tools.length} tools${plugin.error?' · '+plugin.error:''}`;row.append(status);
+      const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=settings.appLanguage==='ru'?'Инструменты':'Tools';details.append(summary);
+      plugin.tools.forEach(tool=>{
+        const item=document.createElement('p'),name=document.createElement('strong');name.textContent=tool.name;
+        const description=settings.appLanguage==='ru'&&plugin.type==='builtin'?({
+          list_projects:'Список папок в каталоге проектов.',
+          list_files:'Список файлов проекта. Путь задаётся относительно каталога проектов.',
+          read_text_file:'Чтение текстового файла UTF-8 в проекте размером до 32 КБ.'
+        }[tool.name]||tool.description):tool.description;
+        item.append(name,document.createTextNode(' — '+description));details.append(item);
+      });row.append(details);
+      if(plugin.enabled&&plugin.state!=='connected'){const retry=document.createElement('button');retry.type='button';retry.className='catalog-btn';retry.textContent=settings.appLanguage==='ru'?'Переподключить':'Reconnect';retry.onclick=async()=>{retry.disabled=true;try{renderPlugins(await window.api.pluginsToggle(plugin.id,true));}catch(error){$('pluginsError').textContent=error.message;retry.disabled=false;}};row.append(retry);}
+      const remove=document.createElement('button');remove.type='button';remove.className='catalog-btn';remove.textContent=settings.appLanguage==='ru'?'Удалить':'Remove';remove.onclick=async()=>{try{renderPlugins(await window.api.pluginsRemove(plugin.id));}catch(error){$('pluginsError').textContent=error.message;}};row.append(remove);list.append(row);
     });
   }
   function renderPluginPresets(entries) {
@@ -1335,11 +1353,75 @@
     root.innerHTML=PLUGIN_PRESETS.map(item=>presetCard(item,entries.some(entry=>entry.name===item.name),'plugin')).join('');
     root.querySelectorAll('[data-preset-kind=plugin]:not(:disabled)').forEach(button=>button.onclick=async()=>{const item=PLUGIN_PRESETS.find(entry=>entry.id===button.dataset.preset);button.classList.add('installing');button.disabled=true;try{renderPlugins(await window.api.pluginsAdd(item.config));$('pluginsError').textContent='';}catch(error){button.classList.remove('installing');button.disabled=false;$('pluginsError').textContent=error.message;}});
   }
+  const pluginSelect = $('pluginType');
+  const pluginPicker = document.createElement('button');
+  pluginPicker.id='pluginPicker';pluginPicker.type='button';pluginPicker.className='plugin-picker';
+  pluginPicker.setAttribute('aria-haspopup','listbox');pluginPicker.setAttribute('aria-expanded','false');
+  pluginPicker.setAttribute('aria-labelledby','pluginTypeLabel pluginPicker');
+  pluginPicker.setAttribute('aria-controls','pluginOptions');
+  pluginSelect.hidden=true;pluginSelect.after(pluginPicker);
+  const pluginOptions = document.createElement('div');
+  pluginOptions.id='pluginOptions';pluginOptions.className='plugin-options';pluginOptions.role='listbox';
+  pluginOptions.setAttribute('aria-labelledby','pluginTypeLabel');pluginOptions.hidden=true;document.body.append(pluginOptions);
+  function closePluginPicker(restoreFocus=false) {
+    pluginOptions.hidden=true;pluginPicker.setAttribute('aria-expanded','false');
+    if(restoreFocus)pluginPicker.focus();
+  }
+  function openPluginPicker() {
+    pluginOptions.replaceChildren();
+    for(const option of pluginSelect.options) {
+      const button=document.createElement('button');button.type='button';button.role='option';
+      button.dataset.value=option.value;button.textContent=option.textContent;
+      button.setAttribute('aria-selected',String(option.selected));
+      button.onclick=()=>{pluginSelect.value=option.value;pluginSelect.dispatchEvent(new Event('change'));closePluginPicker(true);};
+      pluginOptions.append(button);
+    }
+    pluginOptions.hidden=false;pluginPicker.setAttribute('aria-expanded','true');
+    const rect=pluginPicker.getBoundingClientRect(),margin=12;
+    const width=Math.min(rect.width,innerWidth-margin*2);
+    pluginOptions.style.width=width+'px';pluginOptions.style.left=Math.max(margin,Math.min(rect.left,innerWidth-width-margin))+'px';
+    const height=pluginOptions.getBoundingClientRect().height;
+    pluginOptions.style.top=(rect.bottom+height+margin<innerHeight?rect.bottom+6:Math.max(margin,rect.top-height-6))+'px';
+    pluginOptions.querySelector('[aria-selected=true]')?.focus();
+  }
+  pluginPicker.onclick=()=>pluginOptions.hidden?openPluginPicker():closePluginPicker(true);
+  pluginPicker.onkeydown=event=>{if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();openPluginPicker();}};
+  pluginOptions.onkeydown=event=>{
+    const buttons=[...pluginOptions.querySelectorAll('button')],index=buttons.indexOf(document.activeElement);
+    if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closePluginPicker(true);}
+    else if(event.key==='Tab')closePluginPicker(true);
+    else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
+      event.preventDefault();buttons[event.key==='Home'?0:event.key==='End'?buttons.length-1:(index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length]?.focus();
+    }
+  };
+  document.addEventListener('pointerdown',event=>{if(!pluginOptions.contains(event.target)&&!pluginPicker.contains(event.target))closePluginPicker();});
+  window.addEventListener('resize',()=>closePluginPicker());
+  document.addEventListener('scroll',event=>{if(!pluginOptions.contains(event.target))closePluginPicker();},true);
+  new MutationObserver(()=>{if(!settingsModal.classList.contains('show')||document.querySelector('.plugins-settings').hidden)closePluginPicker();}).observe(settingsModal,{attributes:true,subtree:true,attributeFilter:['class','hidden']});
+  function renderPluginLanguage() {
+    const ru=settings.appLanguage==='ru';
+    const labels={
+      pluginsTitle:['Плагины','Plugins'],pluginsHint:['Инструменты MCP для моделей. Включите подключение, чтобы использовать его инструменты в чате.','MCP tools for your models. Enable a connection to make its tools available in chat.'],
+      pluginNameLabel:['Название','Name'],pluginTypeLabel:['Подключение','Connection'],pluginCommandLabel:['Исполняемый файл','Executable'],
+      pluginArgsLabel:['Аргументы (массив JSON)','Arguments (JSON array)'],pluginUrlLabel:['Адрес MCP','MCP URL'],pluginAddConnection:['Добавить подключение','Add connection']
+    };
+    for(const [id,text] of Object.entries(labels))$(id).textContent=text[ru?0:1];
+    const options=ru?['Встроенные файлы проекта','Локальный сервер MCP (stdio)','Удалённый сервер MCP (HTTP)']:['Built-in Workspace','Local MCP server (stdio)','Remote MCP server (HTTP)'];
+    [...pluginSelect.options].forEach((option,index)=>option.textContent=options[index]);
+    pluginPicker.textContent=pluginSelect.selectedOptions[0]?.textContent||options[0];
+    $('pluginCommand').placeholder=ru?'node / npx / полный путь к программе':'node / npx / full executable path';
+    $('pluginTransportHint').textContent=({
+      builtin:ru?'Читает папки и текстовые файлы внутри вашего проекта. Дополнительная установка не нужна.':'Reads project folders and text files inside your local project folder. No extra installation.',
+      stdio:ru?'Включение запускает указанную программу на вашем компьютере. Нужная среда выполнения должна быть установлена.':'Enabling starts the executable on your computer. Its runtime must already be installed.',
+      http:ru?'Адрес Streamable HTTP. OAuth и дополнительные заголовки авторизации пока не поддерживаются.':'Streamable HTTP endpoint. OAuth and custom authentication headers are not supported yet.'
+    })[pluginSelect.value];
+    closePluginPicker();
+  }
   async function refreshPlugins(){if(!window.api?.pluginsList)return;try{renderPlugins(await window.api.pluginsList());}catch(error){$('pluginsError').textContent=error.message;}}
   $('pluginType').addEventListener('change',()=>{
     const type=$('pluginType').value;
     $('pluginCommandRow').hidden=$('pluginArgsRow').hidden=type!=='stdio';$('pluginUrlRow').hidden=type!=='http';
-    $('pluginTransportHint').textContent=type==='builtin'?'Reads project folders and text files inside your local project folder. No extra installation.':type==='stdio'?'Enabling starts the executable on your computer. Its runtime must already be installed.':'Streamable HTTP endpoint. OAuth and custom authentication headers are not supported yet.';
+    renderPluginLanguage();
   });
   $('pluginForm').addEventListener('submit',async event=>{
     event.preventDefault();$('pluginsError').textContent='';const button=event.target.querySelector('[type=submit]');button.disabled=true;
@@ -1353,60 +1435,31 @@
     const labels = ru ? { disabled: 'Активность выключена', connecting: 'Подключение к Discord…', waiting: 'Ожидание приложения Discord', active: 'Активность включена', error: 'Ошибка Discord', 'needs-id': 'Не задан Application ID' } : { disabled: 'Activity is off', connecting: 'Connecting to Discord…', waiting: 'Waiting for Discord desktop', active: 'Activity is on', error: 'Discord error', 'needs-id': 'Application ID required' };
     $('discordStatus').textContent = (labels[result.state] || result.state) + (result.message ? ': ' + result.message : '');
   }
+  $('discordRenameApp').onclick=()=>window.api?.discordOpenApplication();
   function renderDiscordSettings() {
     const ru = settings.appLanguage === 'ru';
+    $('discordNameHelp').textContent=ru?'Название Multimind в верхней строке меняется в Discord Developer Portal: General Information → Name → AetherAI → Save Changes.':'The top activity name is managed by Discord: General Information → Name → AetherAI → Save Changes.';
+    $('discordRenameApp').textContent=ru?'Переименовать приложение Discord':'Rename Discord application';
     $('discordToggle').setAttribute('aria-checked', String(settings.discordActivity?.enabled === true));
     $('discordDescription').textContent = ru ? 'Показывать AetherAI в вашем профиле Discord.' : 'Show AetherAI on your Discord profile.';
-    if (document.activeElement !== $('discordImageUrl')) $('discordImageUrl').value = settings.discordActivity?.image || '';
-    $('discordImageLinkLabel').textContent = ru ? 'Ссылка на изображение или имя ресурса Discord' : 'Image URL or Discord asset name';
-    $('discordImageHelp').textContent = ru ? 'Discord использует публичную HTTPS-ссылку. Файл из Add сохраняется локально: разместите подготовленное изображение и вставьте ссылку сюда. GIF работает по ссылке; загруженные ресурсы Discord — без анимации.' : 'Discord uses a public HTTPS URL. Add prepares a local file: host the prepared image and paste its URL here. GIF works by URL; uploaded Discord assets are static.';
-    $('discordImageUrl').placeholder = ru ? 'Пусто — анимированный логотип AetherAI' : 'Leave empty for the animated AetherAI logo';
-    $('discordImageHelp').textContent = (ru ? 'По умолчанию в Discord играет анимация логотипа AetherAI. Для своей картинки вставьте публичную HTTPS-ссылку. ' : 'Discord uses the animated AetherAI logo by default. For a custom image, paste a public HTTPS URL. ') + (ru ? 'Add подготавливает локальный файл для размещения.' : 'Add prepares a local file for hosting.');
-    $('discordExportImage').textContent = ru ? 'Сохранить подготовленный файл' : 'Save prepared image';
-    if (discordMediaPreview) {
-      const m = discordMediaPreview;
-      $('discordImagePreview').src = m.preview;
-      $('discordImagePreview').hidden = false;
-      $('discordImagePlaceholder').hidden = true;
-      $('discordExportImage').hidden = false;
-      $('discordImageSize').textContent = `${m.width} × ${m.height} px${m.animated ? ' · GIF' : ''}${m.resized ? ` (${m.originalWidth} × ${m.originalHeight})` : ''}`;
-      $('discordImageWarning').textContent = m.small ? (ru ? 'Маленькое изображение будет выглядеть пиксельным. Рекомендуем 1024 × 1024.' : 'This small image will look pixelated. We recommend 1024 × 1024.') : '';
-    }
     updateDiscordStatus().catch(() => {});
   }
   $('discordToggle').addEventListener('click', async () => {
     settings.discordActivity = { ...settings.discordActivity, enabled: !settings.discordActivity?.enabled };
     await persist(); renderDiscordSettings();
   });
-  $('discordImageUrl').addEventListener('change', async () => {
-    settings.discordActivity = { ...settings.discordActivity, image: $('discordImageUrl').value.trim() };
-    await persist(); renderDiscordSettings();
-  });
-  $('discordAddImage').addEventListener('click', async () => {
-    if (!window.api?.discordImport) return;
-    const button = $('discordAddImage'); button.disabled = true;
-    try {
-      const result = await window.api.discordImport();
-      if (result.error) $('discordImageWarning').textContent = result.error;
-      else if (result.media) { discordMediaPreview = result.media; renderDiscordSettings(); }
-    } catch (error) { $('discordImageWarning').textContent = error.message; }
-    finally { button.disabled = false; }
-  });
-  $('discordExportImage').addEventListener('click', async () => {
-    const result = await window.api?.discordExport();
-    if (result?.error) $('discordImageWarning').textContent = result.error;
-  });
-  window.api?.discordMedia?.().then(media => { discordMediaPreview = media; }).catch(() => {});
   setInterval(() => { if (settingsModal.classList.contains('show')) { updateDiscordStatus().catch(() => {}); if(!document.querySelector('[data-settings-panel="plugins"]').hidden)refreshPlugins(); } }, 2000);
 
   function renderSettings() {
     renderDiscordSettings();
+    renderPluginLanguage();
     refreshCloudStatus();
     refreshPlugins();
+    window.api?.skillsPresets?.().then(renderSkillPresets).catch(error=>{$('skillsError').textContent=error.message;});
     applyAppLanguageBasics();
     const russian = settings.appLanguage === "ru";
     settingsModal.querySelectorAll('[data-settings-tab]').forEach(button => {
-      button.textContent = ({general: russian ? 'Общие' : 'General', customization: russian ? 'Оформление' : 'Customization', models: russian ? 'Модели' : 'Models', skills: 'Skills', plugins: 'Plugins', cloud: 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: 'Discord Activity'})[button.dataset.settingsTab];
+      button.textContent = ({general: russian ? 'Общие' : 'General', customization: russian ? 'Оформление' : 'Customization', models: russian ? 'Модели' : 'Models', skills: russian ? 'Навыки' : 'Skills', plugins: russian ? 'Плагины' : 'Plugins', cloud: russian ? 'Провайдеры' : 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: russian ? 'Активность Discord' : 'Discord Activity'})[button.dataset.settingsTab];
     });
     renderAppearance();
     if (languagePackList) {
@@ -1437,12 +1490,12 @@
     updateAetherAIControls();
     updateComposerModeToggles();
     $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
-    document.querySelector('[data-settings-tab="cloud"]').textContent = 'Providers';
+    document.querySelector('[data-settings-tab="cloud"]').textContent = settings.appLanguage==='ru'?'Провайдеры':'Providers';
     const textById = {
       setupTitle: t("setupTitle"),
       groupModalTitle: t("newFolder"),
       saveGroupBtn: t("create"),
-      accessLabel: t(`access.${settings.accessMode || "ask"}`),
+      accessLabel: compactAccessLabel(settings.accessMode || "ask"),
       approvalTitle: t("approvalTitle"),
       approvalAcceptBtn: t("accept"),
       approvalAcceptChatBtn: t("acceptInChat"),
@@ -1824,6 +1877,11 @@
     $('localAiToggle').disabled = isGenerating;
     $('localAiToggle').setAttribute('aria-checked', String(settings.localAi));
     const ru = settings.appLanguage === "ru";
+    const thinkNames=ru?{max:'Максимальное',high:'Высокое',medium:'Среднее',low:'Низкое',none:'Без рассуждений'}:{max:'Maximum',high:'High',medium:'Medium',low:'Low',none:'No thinking'};
+    thinkLabel.textContent=thinkNames[settings.thinkLevel||'medium'];
+    thinkDropdown.querySelectorAll('[data-think]').forEach(item=>item.textContent=thinkNames[item.dataset.think]);
+    const skillTitle=document.querySelector('.app-skills > strong');if(skillTitle)skillTitle.textContent=ru?'Навыки':'Skills';
+    const discordTitle=document.querySelector('.discord-settings h3');if(discordTitle)discordTitle.textContent=ru?'Активность Discord':'Discord Activity';
     $("skillsHint").textContent = ru ? "Импортируй инструкции из Markdown и включи нужные для следующих запросов." : "Import Markdown instructions and enable them for your next requests.";
     $("importSkillBtn").textContent = ru ? "Импорт .md" : "Import .md";
     $("skillsFolderBtn").textContent = ru ? "Открыть папку" : "Open folder";
@@ -2021,42 +2079,36 @@
     return details.length ? `<span class="model-parameter-meta">${escapeHtml(details.join(' · '))}</span>` : '';
   }
 
-  function buildModelLimits(model) {
-    const root = document.createElement('div'); root.className = 'model-limits';
-    const ru = settings.appLanguage === 'ru';
-    const usage = providerUsage[model.name] || (model.provider !== 'openrouter' ? {} : providerUsage[model.provider]) || {};
-    const limits = usage.limits || {};
-    const rows = Object.values(limits).map(value => [value.label, value]);
-    for (const [label, limit] of rows) {
-      const row = document.createElement('div'); row.className = 'model-limit-row';
-      const known = limit && limit.total > 0 && Number.isFinite(limit.remaining);
-      const percentage = known ? Math.round(Math.max(0, Math.min(1, limit.remaining / limit.total)) * 100) : null;
-      row.innerHTML = `<span>${escapeHtml(label)}</span><span>${known ? percentage + '%' : '—'}</span><div class="model-limit-track"><span class="model-limit-fill" style="width:${known ? percentage : 0}%"></span></div>`;
-      if(known){
-        const count=document.createElement('small');count.className='model-limit-count';count.textContent=`${limit.remaining} / ${limit.total} ${ru?'осталось':'remaining'}`;row.append(count);
-        const track=row.querySelector('.model-limit-track');track.setAttribute('role','meter');track.setAttribute('aria-label',label);track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax','100');track.setAttribute('aria-valuenow',String(percentage));
-      }
-      row.title = known ? `${limit.remaining} / ${limit.total}${limit.reset ? ' · Reset: ' + limit.reset : ''}` : (ru ? 'Провайдер не сообщает лимит за этот период.' : 'The provider does not report a limit for this period.');
-      root.append(row);
-    }
-    const note = document.createElement('p'); note.className = 'model-limit-note';
-    note.textContent = rows.length ? (ru ? 'Осталось' : 'Remaining') + (usage.updatedAt ? ' · ' + new Date(usage.updatedAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '') : (ru ? 'Провайдер пока не сообщил остаток лимита.' : 'Quota has not been reported yet.');
-    root.append(note);
-    if (usage.exhausted) {
-      const alert = document.createElement('div'); alert.className = 'model-limit-alert'; alert.setAttribute('role', 'status');
-      alert.textContent = (ru ? 'Лимит провайдера исчерпан.' : 'Provider limit reached.') + (usage.retryAt ? (ru ? ' Повторите после ' : ' Retry after ') + new Date(usage.retryAt).toLocaleTimeString() : ''); root.append(alert);
-    }
-    return root;
+  function renderComposerQuota(){
+    const root=$('composerQuota'),model=availableModels.find(item=>item.name===settings.selectedModel);if(!root)return;root.hidden=!model||!isCloudModel(model.name);if(root.hidden)return;
+    const usage=providerUsage[model.name]||(model.provider==='openrouter'?providerUsage[model.provider]:null)||{},info=window.AetherAIQuota.describe(usage,model),ru=settings.appLanguage==='ru';
+    $('composerQuotaPercent').textContent=info.known?info.percentage+'%':'—';$('composerQuotaFill').style.strokeDashoffset=String(56.55*(1-(info.percentage||0)/100));
+    const description=info.known?(ru?'Осталось ':'Remaining ')+info.percentage+'% · '+info.label+' · '+info.remaining+' / '+info.total+(info.reset?' · '+info.reset:''):(ru?'Провайдер ещё не сообщил остаток лимита':'The provider has not reported the remaining quota yet');root.title=description;root.setAttribute('aria-label',description);root.setAttribute('role',info.known?'meter':'img');
+    if(info.known){root.setAttribute('aria-valuemin','0');root.setAttribute('aria-valuemax','100');root.setAttribute('aria-valuenow',String(info.percentage));}else for(const name of ['aria-valuemin','aria-valuemax','aria-valuenow'])root.removeAttribute(name);
   }
 
+  document.body.append(modelDropdown);
+  function positionModelPicker(){if(!modelDropdown.classList.contains('show'))return;const anchor=modelBtn.getBoundingClientRect(),composer=$('composerInner').getBoundingClientRect();modelDropdown.style.maxHeight=Math.max(100,Math.min(560,composer.top-52))+'px';const rect=modelDropdown.getBoundingClientRect();modelDropdown.style.left=Math.max(16,Math.min(anchor.left,innerWidth-rect.width-16))+'px';modelDropdown.style.top=Math.max(44,composer.top-rect.height-10)+'px';}
+  const pickerObserver=new MutationObserver(()=>{if(document.body.classList.contains('auth-visible')&&modelDropdown.classList.contains('show'))modelDropdown.classList.remove('show');const open=modelDropdown.classList.contains('show');modelDropdown.inert=!open;modelBtn.setAttribute('aria-expanded',String(open));if(open)positionModelPicker();});pickerObserver.observe(modelDropdown,{attributes:true,attributeFilter:['class']});pickerObserver.observe(document.body,{attributes:true,attributeFilter:['class']});
+  new ResizeObserver(positionModelPicker).observe($('composerInner'));window.addEventListener('resize',positionModelPicker);
+  modelDropdown.addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();modelDropdown.classList.remove('show');modelBtn.focus();syncComposerExpanded();}});
+  let modelSearchQuery='';
   function renderModelDropdown() {
-    modelDropdown.innerHTML = "";
+    renderComposerQuota();
+    requestAnimationFrame(positionModelPicker);
+    const oldSearch=$('modelSearchInput'),restoreFocus=document.activeElement===oldSearch,start=oldSearch?.selectionStart,end=oldSearch?.selectionEnd;
+    modelDropdown.innerHTML = '';
+    modelDropdown.setAttribute('role','dialog');modelDropdown.setAttribute('aria-label',settings.appLanguage==='ru'?'Выбор модели':'Choose a model');
+    const header=document.createElement('div');header.className='model-picker-header';const title=document.createElement('strong');title.textContent=settings.appLanguage==='ru'?'Модели':'Models';
+    const search=document.createElement('input');search.id='modelSearchInput';search.type='search';search.autocomplete='off';search.placeholder=settings.appLanguage==='ru'?'Найти модель…':'Search models…';search.setAttribute('aria-label',search.placeholder);search.value=modelSearchQuery;
+    search.oninput=()=>{modelSearchQuery=search.value;renderModelDropdown();$('modelSearchInput')?.focus();};search.onkeydown=event=>{if(event.key==='ArrowDown'){event.preventDefault();modelDropdown.querySelector('.model-select-button')?.focus();}};
+    header.append(title,search);modelDropdown.append(header);
+    if(restoreFocus){search.focus();try{search.setSelectionRange(start,end);}catch{}}
     const selected = availableModels.find(model => model.name === settings.selectedModel);
     if (selected) {
       const card = document.createElement('div'); card.className = 'model-active-card';
-      card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check">Selected</span></div>`;
-      if (isCloudModel(selected.name)) card.append(buildModelLimits(selected));
-      const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='Model details';info.onclick=()=>{modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(selected);};card.append(info);
+      card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check">${settings.appLanguage==='ru'?'Выбрана':'Selected'}</span></div>`;
+        const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='Model details';info.onclick=()=>{modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(selected);};card.append(info);
       modelDropdown.append(card);
     }
     if (!settings.localAi && !availableModels.length) {
@@ -2106,6 +2158,7 @@
     Object.entries(levels).forEach(([level, models]) => {
       const visibleModels = models.filter(model => {
         if (model.name === settings.selectedModel) return false;
+        if(modelSearchQuery&&!((model.cloudName||'')+' '+model.name+' '+(model.provider||'')).toLowerCase().includes(modelSearchQuery.toLowerCase()))return false;
         if (settings.localAi || priceFilter === 'all') return true;
         if (priceFilter === 'free') return model.free === true;
         return model.free !== true && model.pricing && Object.values(model.pricing).some(price => Number(price) > 0);
@@ -2118,33 +2171,22 @@
       modelDropdown.appendChild(label);
       visibleModels.forEach(m => {
         if (m.name === settings.selectedModel) return;
-        const item = document.createElement("div");
-        item.className = "model-item" + (m.name === settings.selectedModel ? " selected" : "");
-        const flags = [];
-        if (modelSupportsVision(m.name)) flags.push("Vision");
-        if (modelSupportsThink(m.name)) flags.push("Think");
-        item.innerHTML = `
-          <span class="model-item-icon" aria-hidden="true">${providerIconMarkup(m)}</span>
-          <span class="model-item-name">${escapeHtml(m.cloudName || m.name)}${modelParameterMarkup(m)}</span>
-          ${flags.length ? `<span class="model-capability-badge">${flags.join(' · ')}</span>` : ''}
-          ${m.size ? `<span class="model-item-size">${formatSize(m.size)}</span>` : ""}
-        `;
-        item.addEventListener("click", () => {
-          selectModel(m.name);
-          modelDropdown.classList.remove("show");
-          syncComposerExpanded();
-        });
-        const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='ⓘ';info.setAttribute('aria-label','Details for '+(m.cloudName||m.name));info.onclick=event=>{event.stopPropagation();modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(m);};item.append(info);
-        modelDropdown.appendChild(item);
+        const item=document.createElement('div');item.className='model-item';
+        const choice=document.createElement('button');choice.type='button';choice.className='model-select-button';choice.dataset.model=m.name;
+        const flags=[];if(modelSupportsVision(m.name))flags.push('Vision');if(modelSupportsThink(m.name))flags.push('Think');
+        choice.innerHTML=`<span class="model-item-icon" aria-hidden="true">${providerIconMarkup(m)}</span><span class="model-item-name">${escapeHtml(m.cloudName||m.name)}${modelParameterMarkup(m)}</span>${flags.length?'<span class="model-capability-badge">'+flags.join(' · ')+'</span>':''}${m.size?'<span class="model-item-size">'+formatSize(m.size)+'</span>':''}`;
+        const choose=()=>{selectModel(m.name);modelDropdown.classList.remove('show');modelBtn.setAttribute('aria-expanded','false');modelBtn.focus();syncComposerExpanded();};
+        item.onclick=choose;choice.onkeydown=event=>{if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;event.preventDefault();const options=[...modelDropdown.querySelectorAll('.model-select-button')],index=options.indexOf(choice),next=event.key==='Home'?0:event.key==='End'?options.length-1:(index+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;options[next]?.focus();};
+        const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='ⓘ';info.setAttribute('aria-label',(settings.appLanguage==='ru'?'Сведения о модели ':'Details for ')+(m.cloudName||m.name));info.onclick=event=>{event.stopPropagation();modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(m);};item.append(choice,info);modelDropdown.append(item);
       });
     });
 
     // кнопка "ещё модели" → модалка
     if (!settings.localAi) {
-      if (!visibleCount && priceFilter !== 'all') {
+      if (!visibleCount && (priceFilter !== 'all' || modelSearchQuery)) {
         const empty = document.createElement('div');
         empty.className = 'model-empty';
-        empty.textContent = priceFilter === 'free' ? 'No other free models' : 'No other paid models';
+        empty.textContent = modelSearchQuery ? (settings.appLanguage==='ru'?'Ничего не найдено':'No matching models') : priceFilter === 'free' ? 'No other free models' : 'No other paid models';
         modelDropdown.append(empty);
       }
       return;
@@ -2163,6 +2205,7 @@
   }
 
   function renderSelectedModel(name) {
+    renderComposerQuota();
     window.AetherAIAccount?.setModel(availableModels.find(model=>model.name===name));
     if (modelLabel) modelLabel.textContent = availableModels.find(model => model.name === name)?.cloudName || name || t("chooseModel");
     if (modelBtnIcon) {
@@ -2186,8 +2229,9 @@
     e.stopPropagation();
     thinkDropdown.classList.remove("show");
     accessDropdown?.classList.remove("show");
-    modelDropdown.classList.toggle("show");
+    const opening=!modelDropdown.classList.contains('show');if(opening)modelSearchQuery='';modelDropdown.classList.toggle('show');modelBtn.setAttribute('aria-haspopup','dialog');modelBtn.setAttribute('aria-expanded',String(opening));
     renderModelDropdown();
+    if(opening){positionModelPicker();$('modelSearchInput')?.focus();}
     syncComposerExpanded();
     const selected = availableModels.find(model => model.name === settings.selectedModel);
     if (selected?.provider && window.api?.providersUsage) {
@@ -2198,6 +2242,53 @@
   // ============================================================
   //  THINKING SELECTOR
   // ============================================================
+  const composerMenus = [[thinkBtn,thinkDropdown,'.think-item'],[accessBtn,accessDropdown,'.access-item']];
+  function positionComposerMenus() {
+    for(const [trigger,menu] of composerMenus) {
+      if(!menu?.classList.contains('show'))continue;
+      const anchor=trigger.getBoundingClientRect(),margin=12;
+      menu.style.maxHeight=Math.max(100,Math.max(anchor.top-44,innerHeight-anchor.bottom-margin)-8)+'px';
+      const width=menu.offsetWidth,height=menu.offsetHeight;
+      menu.style.left=Math.max(margin,Math.min(anchor.left,innerWidth-width-margin))+'px';
+      menu.style.top=(anchor.top-height-8>=36?anchor.top-height-8:Math.min(anchor.bottom+8,innerHeight-height-margin))+'px';
+      menu.style.transformOrigin=anchor.top-height-8>=36?'bottom left':'top left';
+    }
+  }
+  for(const [trigger,menu,selector] of composerMenus) {
+    if(!trigger||!menu)continue;
+    document.body.append(menu);menu.role='menu';menu.setAttribute('aria-labelledby',trigger.id);menu.inert=true;
+    trigger.setAttribute('aria-haspopup','menu');trigger.setAttribute('aria-controls',menu.id);trigger.setAttribute('aria-expanded','false');
+    menu.querySelectorAll(selector).forEach(item=>{
+      const button=document.createElement('button');button.type='button';button.className=item.className;
+      for(const [key,value] of Object.entries(item.dataset))button.dataset[key]=value;
+      button.innerHTML=item.innerHTML;button.role='menuitemradio';button.setAttribute('aria-checked',String(item.classList.contains('active')));item.replaceWith(button);
+    });
+    const close=()=>{menu.classList.remove('show');trigger.focus();syncComposerExpanded();};
+    new MutationObserver(()=>{
+      const open=menu.classList.contains('show');trigger.setAttribute('aria-expanded',String(open));menu.inert=!open;
+      if(open)positionComposerMenus();
+      menu.querySelectorAll(selector).forEach(item=>item.setAttribute('aria-checked',String(item.classList.contains('active'))));
+    }).observe(menu,{attributes:true,subtree:true,attributeFilter:['class']});
+    trigger.addEventListener('keydown',event=>{
+      if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();if(!menu.classList.contains('show'))trigger.click();menu.inert=false;menu.querySelector('.active')?.focus();}
+    });
+    menu.addEventListener('keydown',event=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopPropagation();close();}
+      else if(event.key==='Tab')close();
+      else if(['ArrowDown','ArrowUp','Home','End'].includes(event.key)){
+        event.preventDefault();const items=[...menu.querySelectorAll(selector)],index=items.indexOf(document.activeElement);
+        items[event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus();
+      }
+    });
+  }
+  new ResizeObserver(positionComposerMenus).observe($('composerInner'));
+  window.addEventListener('resize',positionComposerMenus);
+  document.addEventListener('scroll',positionComposerMenus,true);
+  const composerMenuVisibility = new MutationObserver(()=>{
+    if(document.body.classList.contains('auth-visible')||settingsModal.classList.contains('show'))composerMenus.forEach(([,menu])=>menu?.classList.remove('show'));
+  });
+  composerMenuVisibility.observe(document.body,{attributes:true,attributeFilter:['class']});
+  composerMenuVisibility.observe(settingsModal,{attributes:true,attributeFilter:['class']});
   const THINK_LABELS = {
     max:    "Thinking: Max",
     high:   "Thinking: High",
@@ -2207,7 +2298,7 @@
   };
   function setThinkLevel(level) {
     settings.thinkLevel = level;
-    thinkLabel.textContent = THINK_LABELS[level];
+    thinkLabel.textContent = settings.appLanguage==='ru'?({max:'Максимальное',high:'Высокое',medium:'Среднее',low:'Низкое',none:'Без рассуждений'}[level]):({max:'Maximum',high:'High',medium:'Medium',low:'Low',none:'No thinking'}[level]);
     thinkDropdown.querySelectorAll(".think-item").forEach(it => {
       it.classList.toggle("active", it.dataset.think === level);
     });
@@ -2219,11 +2310,13 @@
     accessDropdown?.classList.remove("show");
     thinkDropdown.classList.toggle("show");
     syncComposerExpanded();
+    positionComposerMenus();
   });
   thinkDropdown.querySelectorAll(".think-item").forEach(it => {
     it.addEventListener("click", () => {
       setThinkLevel(it.dataset.think);
       thinkDropdown.classList.remove("show");
+      thinkBtn.focus();
       syncComposerExpanded();
     });
   });
@@ -2234,9 +2327,13 @@
     plan: "Plan mode",
     full: "Full access",
   };
+  function compactAccessLabel(mode) {
+    const labels=settings.appLanguage==='ru'?{ask:'Спрашивать',auto:'Автоматически',plan:'План',full:'Полный доступ'}:{ask:'Ask first',auto:'Auto edit',plan:'Plan mode',full:'Full access'};
+    return labels[mode]||labels.ask;
+  }
   function setAccessMode(mode) {
     settings.accessMode = mode || "ask";
-    if (accessLabel) accessLabel.textContent = t(`access.${settings.accessMode}`) || ACCESS_LABELS[settings.accessMode] || ACCESS_LABELS.ask;
+    if (accessLabel) accessLabel.textContent = compactAccessLabel(settings.accessMode);
     if (accessDropdown) {
       accessDropdown.querySelectorAll(".access-item").forEach(it => {
         it.classList.toggle("active", it.dataset.access === settings.accessMode);
@@ -2250,11 +2347,13 @@
     thinkDropdown.classList.remove("show");
     accessDropdown?.classList.toggle("show");
     syncComposerExpanded();
+    positionComposerMenus();
   });
   accessDropdown?.querySelectorAll(".access-item").forEach(it => {
     it.addEventListener("click", () => {
       setAccessMode(it.dataset.access);
       accessDropdown.classList.remove("show");
+      accessBtn.focus();
       syncComposerExpanded();
     });
   });
@@ -2272,7 +2371,7 @@
 
   // закрытие дропдаунов по клику вне
   document.addEventListener("click", event => {
-    if (event.target.closest(".composer-controls")) return;
+    if (event.target.closest(".composer-controls,#modelDropdown,#thinkDropdown,#accessDropdown")) return;
     modelDropdown.classList.remove("show");
     thinkDropdown.classList.remove("show");
     accessDropdown?.classList.remove("show");
@@ -2584,7 +2683,8 @@
 
   function formatDuration(milliseconds) {
     const seconds = Math.max(0, milliseconds || 0) / 1000;
-    return seconds < 10 ? `${seconds.toFixed(1)}s` : `${Math.round(seconds)}s`;
+    const unit = settings.appLanguage === "ru" ? "с" : "s";
+    return `${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)}${unit}`;
   }
 
   function collapseThinkingToThought() {
@@ -2728,7 +2828,7 @@
     domains.forEach(rememberPreferredWebSource);
   }
 
-  async function collectInternetContext(query, force = false) {
+  async function collectInternetContext(query, force = false, generationId) {
     if (!window.api?.internetSearch || !shouldUseInternetSmart(query, force)) return "";
     setThinkingSearchingWeb();
     rememberPreferredWebSourcesFromText(query);
@@ -2743,6 +2843,7 @@
       removeProgressListener?.();
     }
     if (!result?.ok || !Array.isArray(result.results) || result.results.length === 0) return "";
+    if(generationId===activeGenerationId)answerSources.set(generationId,result.results.slice(0,5).map(item=>({title:String(item.title||''),url:String(item.url||'')})));
     const lines = result.results.slice(0, 5).map((item, index) => {
       const pageText = item.content ? `\nPage content:\n${item.content}` : "";
       return `${index + 1}. ${item.title}\nURL: ${item.url}\nSource: ${item.domain || "web"}\nSnippet: ${item.snippet || ""}${pageText}`;
@@ -3159,7 +3260,7 @@
   }
   function renderMarkdown(text) {
     // Убираем <think>...</think> блоки из видимого вывода
-    let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
+    let cleaned = window.AetherAIStreaming.visibleText(text);
     cleaned = cleaned.replace(/<think>/gi, "").replace(/<\/think>/gi, "");
     const math = window.AetherAIMath.extract(cleaned);
     let html = escapeHtml(math.text);
@@ -3354,7 +3455,7 @@
       workMeta.className = "assistant-work-meta";
       const label = document.createElement("span");
       label.className = "assistant-work-label";
-      label.textContent = "Worked";
+      label.textContent = settings.appLanguage === "ru" ? "Готово" : "Worked";
       const line = document.createElement("span");
       line.className = "assistant-work-line";
       const time = document.createElement("span");
@@ -3366,7 +3467,8 @@
 
     const textEl = document.createElement("div");
     textEl.className = "message-text";
-    const visibleAssistantText = msg.codeActivity ? stripCodeBlocks(msg.content || "") : (msg.content || "");
+    const legacyImagePrompt=role==='assistant'&&msg.images?.length&&/^\*\*(?:Prompt|Запрос)\*\*:/i.test(msg.content||'');
+    const visibleAssistantText = role==='assistant'&&(msg.imageGeneration||legacyImagePrompt)?'':msg.codeActivity ? stripCodeBlocks(msg.content || "") : (msg.content || "");
     textEl.innerHTML = role === "user" ? escapeHtml(msg.content) : renderMarkdown(visibleAssistantText);
     if (role === "assistant" && !visibleAssistantText.trim()) textEl.style.display = "none";
     if (role === "assistant" && msg.animateOnRender) {
@@ -3374,6 +3476,16 @@
       delete msg.animateOnRender;
     }
     body.appendChild(textEl);
+    if(role==='assistant'&&Array.isArray(msg.sources)&&msg.sources.length){
+      const links=document.createElement('div');links.className='answer-sources';const label=document.createElement('strong');label.textContent=settings.appLanguage==='ru'?'Источники':'Sources';links.append(label);
+      msg.sources.slice(0,5).forEach((source,index)=>{let url;try{url=new URL(source.url);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return;}catch{return;}
+        const link=document.createElement('button');link.type='button';link.className='answer-source';const title=document.createElement('span');title.textContent=(index+1)+'. '+String(source.title||url.hostname).slice(0,120);const domain=document.createElement('small');domain.textContent=url.hostname;link.append(title,domain);link.onclick=()=>window.api?.openExternal(url.href);links.append(link);
+      });if(links.children.length>1)body.append(links);
+    }
+    if(role==='assistant'&&!msg.images?.length&&!msg.codeActivity&&!msg.interrupted&&visibleAssistantText.length>160){
+      const followups=document.createElement('div');followups.className='answer-followups';for(const title of (settings.appLanguage==='ru'?['Объясни подробнее','Приведи пример']:['Explain in more detail','Give me an example'])){const button=document.createElement('button');button.type='button';button.textContent=title;button.onclick=()=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+title;autoResize();updateSendBtn();inputEl.focus();};followups.append(button);}body.append(followups);
+    }
+
     if (role === "assistant" && msg.codeActivity) {
       const activityWrap = document.createElement("div");
       activityWrap.className = "code-activity-wrap";
@@ -3426,7 +3538,7 @@
       body.appendChild(att);
     }
 
-    if (role === "assistant") {
+    if (role === "assistant" && !(msg.images?.length&&!visibleAssistantText.trim())) {
       const actions = document.createElement("div");
       actions.className = "message-actions";
       const copyBtn = document.createElement("button");
@@ -3555,7 +3667,7 @@
     return text.slice(0, 2).toUpperCase();
   }
 
-  async function generateResponse(userText, userImages, generationId) {
+  async function generateResponse(userText, userImages, generationId, onAnswer) {
     const intent=AetherAIIntent.classify(userText);
     let requestModel = settings.selectedModel;
     if(userImages?.length&&!modelSupportsVision(requestModel||''))return AetherAICapabilities.notice(availableModels.find(model=>model.name===requestModel)?.cloudName||requestModel,settings.localAi,settings.appLanguage);
@@ -3591,7 +3703,7 @@
     }
     const useInternet = shouldUseInternetSmart(userText || currentUserContent, composerSmartSearch);
     if (generationId !== activeGenerationId) return "_STOPPED_";
-    const internetContext = useInternet ? await collectInternetContext(userText || currentUserContent, composerSmartSearch) : "";
+    const internetContext = useInternet ? await collectInternetContext(userText || currentUserContent, composerSmartSearch,generationId) : "";
     if (generationId !== activeGenerationId) return "_STOPPED_";
     if (internetContext) {
       currentUserContent += `\n\nUse this internet context when relevant. Cite source domains or URLs in the answer.\n${internetContext}`;
@@ -3701,6 +3813,7 @@
               else restoreThinkingDefault("answer");
             }
             fullText += content;
+            if(!intent.files)onAnswer?.(fullText);
           }
         } catch {
           // A malformed line is ignored; incomplete JSON stays in streamBuffer until its newline arrives.
@@ -3872,7 +3985,7 @@
     ];
     const imageWords = [
       "\u0444\u043e\u0442\u043e", "\u043a\u0430\u0440\u0442\u0438\u043d", "\u0438\u0437\u043e\u0431\u0440\u0430\u0436", "\u0440\u0438\u0441\u0443\u043d", "\u043b\u043e\u0433\u043e",
-      "photo", "image", "picture", "drawing", "logo", "poster", "avatar", "wallpaper"
+      "photo", "image", "picture", "drawing", "logo", "poster", "avatar", "wallpaper", "banner", "баннер", "illustration", "иллюстрац"
     ];
     const objectWords = [
       "\u0431\u0430\u043d\u0430\u043d", "\u043a\u043e\u0442", "\u043a\u043e\u0442\u0438\u043a", "\u0441\u043e\u0431\u0430\u043a", "\u0434\u043e\u043c", "\u043c\u0430\u0448\u0438\u043d",
@@ -4207,41 +4320,17 @@
     return canvas.toDataURL("image/png");
   }
 
-  function buildOnlineImagePrompt(prompt) {
-    const raw = String(prompt || "").trim();
-    const lower = raw.toLowerCase();
-    const has = (...words) => words.some(word => lower.includes(word));
-    // Keep every detail from the user's request.  Replacing it with a generic
-    // subject (for example, just "a banana") made the generated picture ignore
-    // its requested setting, style and composition.
-    const subject = raw || "simple object";
-    const clarifiers = [];
-    if (has("\u0431\u0430\u043d\u0430\u043d", "banana")) {
-      clarifiers.push("if a banana is requested, make it a clearly recognizable whole banana");
-    } else if (has("\u043a\u043e\u0442", "\u043a\u043e\u0442\u0438\u043a", "cat", "kitten")) {
-      clarifiers.push("if a cat is requested, use natural feline anatomy");
-    } else if (has("\u0441\u043e\u0431\u0430\u043a", "\u043f\u0435\u0441", "\u043f\u0451\u0441", "dog", "puppy")) {
-      clarifiers.push("if a dog is requested, use natural canine anatomy");
-    } else if (has("\u0434\u043e\u043c", "house")) {
-      clarifiers.push("if a house is requested, keep its architecture clear and coherent");
-    } else if (has("\u043c\u0430\u0448\u0438\u043d", "\u0430\u0432\u0442\u043e", "car")) {
-      clarifiers.push("if a vehicle is requested, keep its geometry coherent");
-    } else if (has("\u0446\u0432\u0435\u0442\u043e\u043a", "\u0446\u0432\u0435\u0442\u044b", "flower")) {
-      clarifiers.push("if a flower is requested, show detailed petals");
-    }
-    // Image models are much more reliable with the canonical English breed name
-    // than with a transliterated Russian name. Keep the user's Russian request,
-    // but add visual traits that distinguish easily-confused breeds.
-    const breedHints = [
-      { words: ["\u043c\u043e\u043f\u0441", "pug"], hint: "The dog must be a purebred pug: small compact body, fawn coat with a black mask, flat short muzzle, round prominent eyes, folded ears and a tightly curled tail; not a collie, shepherd or long-snouted dog." },
-      { words: ["\u0445\u0430\u0441\u043a\u0438", "husky"], hint: "The dog must be a Siberian husky with erect triangular ears, thick double coat and characteristic blue or multicoloured eyes." },
-      { words: ["\u043a\u043e\u0440\u0433\u0438", "corgi"], hint: "The dog must be a Welsh corgi: very short legs, long low body, large upright ears and a fox-like face." },
-      { words: ["\u0431\u0443\u043b\u044c\u0434\u043e\u0433", "bulldog"], hint: "The dog must be a bulldog with a broad wrinkled face, short muzzle and stocky muscular body." },
-      { words: ["\u0442\u0430\u043a\u0441\u0430", "dachshund"], hint: "The dog must be a dachshund: a long low body, very short legs and long floppy ears." }
-    ];
-    const breed = breedHints.find(item => has(...item.words));
-    if (breed) clarifiers.push(breed.hint);
-    return `Create an image that follows this request exactly: ${subject}. Preserve the requested subject, setting, style, colours, composition and all important details. ${clarifiers.join(". ")}. High quality, detailed, no text or watermark unless the request explicitly asks for text.`;
+  function buildOnlineImagePrompt(prompt) { return window.AetherAIImagePrompt.clean(prompt); }
+  async function prepareImagePrompt(request,signal){
+    const fallback=window.AetherAIImagePrompt.clean(request)||request;
+    if(!settings.selectedModel)return fallback;
+    const timeout=AbortSignal.timeout(15000),combined=AbortSignal.any([signal,timeout]);
+    try{
+      const response=await AetherAI.chatFetch('http://127.0.0.1:11434/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:combined,body:JSON.stringify({model:settings.selectedModel,stream:true,think:false,messages:[{role:'system',content:window.AetherAIImagePrompt.instruction},{role:'user',content:request}],options:{temperature:.2,num_predict:180}})});
+      if(!response.ok)return fallback;
+      const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='',output='';
+      try{while(true){const part=await reader.read();if(part.done)break;buffer+=decoder.decode(part.value,{stream:true});let end;while((end=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,end);buffer=buffer.slice(end+1);try{output+=JSON.parse(line).message?.content||'';}catch{}}if(output.length>2000)break;}buffer+=decoder.decode();if(buffer.trim())try{output+=JSON.parse(buffer).message?.content||'';}catch{}return window.AetherAIImagePrompt.extract(output,request);}finally{await reader.cancel().catch(()=>{});}
+    }catch(error){if(signal.aborted)throw error;return fallback;}
   }
 
   function preloadImage(src, timeoutMs = 45000) {
@@ -4271,10 +4360,21 @@
     return encodeURI(`file:///${normalized.replace(/^\/+/, "")}`);
   }
 
+  async function refreshImageProvider(){
+    const ru=settings.appLanguage==='ru',status=await window.api?.imageProviderStatus?.()||{configured:false};const action=$('imageProviderAction');action.dataset.connected=String(status.configured);action.type=status.configured?'button':'submit';action.textContent=ru?(status.configured?'Отключить':'Подключить'):(status.configured?'Disconnect':'Connect');$('imageProviderKey').required=!status.configured;$('imageProviderKey').disabled=status.configured;
+    $('imageProviderStatus').textContent=ru?(status.configured?'Облачный генератор подключён.':'Без ключа используется локальный SD Turbo.'):(status.configured?'Cloud image generator connected.':'Without an image key, local SD Turbo is used.');
+    $('imageProviderHelp').textContent=ru?'Подключите Pollinations для облачных изображений. Запросы расходуют баланс этого сервиса. Без ключа используется локальный SD Turbo.':'Connect Pollinations for cloud images. Generations use your provider balance. Without a key, local SD Turbo is used.';
+    $('imageProviderTitle').textContent=ru?'Генерация изображений':'Image generation';$('imageProviderKeyLabel').textContent=ru?'API-ключ изображений':'Image API key';$('imageProviderOpen').textContent=ru?'Получить ключ изображений':'Get image API key';
+  }
+  $('imageProviderOpen').onclick=()=>window.api?.imageProviderOpen();
+  $('imageProviderForm').onsubmit=async event=>{event.preventDefault();const action=$('imageProviderAction');if(action.disabled||action.dataset.connected==='true')return;action.disabled=true;try{await window.api.imageProviderSave($('imageProviderKey').value);$('imageProviderKey').value='';await refreshImageProvider();}catch(error){$('imageProviderStatus').textContent=error.message;}finally{action.disabled=false;}};
+  $('imageProviderAction').onclick=async()=>{const action=$('imageProviderAction');if(action.dataset.connected!=='true'||action.disabled)return;action.disabled=true;try{await window.api.imageProviderDisconnect();await refreshImageProvider();}catch(error){$('imageProviderStatus').textContent=error.message;}finally{action.disabled=false;}};
+  document.querySelector('[data-settings-tab=models]').addEventListener('click',()=>refreshImageProvider().catch(error=>{$('imageProviderStatus').textContent=error.message;}));
+
   async function tryGenerateInstantImage(prompt) {
     if (!window.api?.generateOnlineImage) return null;
     const result = await window.api.generateOnlineImage(buildOnlineImagePrompt(prompt));
-    return result?.ok && result.path ? filePathToUrl(result.path) : null;
+    if(result?.ok&&result.path)return filePathToUrl(result.path);if(result?.error&&!result.unconfigured)throw new Error(result.error);return null;
   }
 
   async function tryGenerateFluxImage(prompt) {
@@ -4513,10 +4613,21 @@
     ].some(word => lower.includes(word));
     if (!vague) return text;
     const chat = getCurrentChat();
-    const previous = (chat?.messages || []).slice().reverse().find(msg => msg.role === "assistant" && msg.images?.length && msg.content);
+    const previous = (chat?.messages || []).slice().reverse().find(msg => msg.role === "assistant" && msg.images?.length);
     const match = String(previous?.content || "").match(/(?:Prompt|\u0417\u0430\u043f\u0440\u043e\u0441)\*\*:\s*(.+)$/i);
-    const prompt = match ? match[1].trim() : "";
+    const prompt = previous?.imageGeneration?.request || previous?.imageGeneration?.prompt || (match ? match[1].trim() : "");
     return prompt ? `${prompt}. ${text}` : text;
+  }
+
+  let liveAnswer=null;
+  function stopLiveAnswer(){if(!liveAnswer)return '';const text=liveAnswer.writer.stop();liveAnswer.root.remove();liveAnswer=null;return text;}
+  function updateLiveAnswer(value,generationId){
+    if(generationId!==activeGenerationId)return;
+    const visible=window.AetherAIStreaming.visibleText(value);if(!visible.trim())return;
+    if(!liveAnswer){const message={role:'assistant',content:''},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');const caret=document.createElement('span');caret.className='answer-stream-caret';caret.setAttribute('aria-hidden','true');body.append(caret);messagesEl.append(root);
+      const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;text.innerHTML=renderMarkdown(content);const tail=text.querySelector(':scope > p:last-child,:scope > ul:last-child > li:last-child,:scope > ol:last-child > li:last-child')||text;tail.append(caret);if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};
+    }
+    liveAnswer.message.content=visible;liveAnswer.writer.update(visible);
   }
 
   async function sendMessage() {
@@ -4569,12 +4680,16 @@
       stopBtn.style.display = "flex";
       isGenerating = true;
       updateHomeMode();
-      const imagePrompt = imagePromptFromChatFallback(displayText || text);
-      showThinkingMessage("image", imagePrompt);
+      const imageRequest = imagePromptFromChatFallback(displayText || text);
+      const imageController=new AbortController();abortController=imageController;
+      let imagePrompt=window.AetherAIImagePrompt.clean(imageRequest);
+      showThinkingMessage('image');
       setNeuralProgressStep(0);
       let imageDataUrl = null;
       let imageError = null;
       try {
+        imagePrompt=await prepareImagePrompt(imageRequest,imageController.signal);
+        if(generationId!==activeGenerationId)return;
         imageDataUrl = await renderImageGenerationPlaceholder(imagePrompt);
       } catch (err) {
         if (isFluxDependencyError(err)) {
@@ -4606,7 +4721,8 @@
       chat.messages.push(imageDataUrl
         ? {
           role: "assistant",
-          content: `**${t("imagePrompt")}:** ${imagePrompt}`,
+          content: "",
+          imageGeneration:{request:imageRequest,prompt:imagePrompt},
           images: [imageDataUrl],
           animateOnRender: true,
           animateImageOnRender: true
@@ -4634,9 +4750,11 @@
     updateHomeMode();
     showThinkingMessage("answer", text, shouldUseInternetSmart(text, composerSmartSearch));
 
-    const reply = await generateResponse(text, imgs, generationId);
+    const reply = await generateResponse(text, imgs, generationId,value=>updateLiveAnswer(value,generationId));
     if (generationId !== activeGenerationId) return;
 
+    stopLiveAnswer();
+    const responseSources=answerSources.get(generationId)||[];answerSources.delete(generationId);
     const totalDurationMs = thinkingStartedAt ? Date.now() - thinkingStartedAt : 0;
     const thoughtDurationMs = thinkingThoughtDurationMs || (thinkingHasReasoning ? totalDurationMs : 0);
     removeThinkingMessage();
@@ -4649,7 +4767,8 @@
       const assistantMsg = {
         role: "assistant",
         content: reply,
-        animateOnRender: true,
+        sources:responseSources,
+        animateOnRender: false,
         workMeta: { thoughtDurationMs, totalDurationMs, agents: teamRows.filter(row => row.id.startsWith("worker-")).map(row => ({ ...row })) }
       };
       if (lastCodeActivity) {
@@ -4665,6 +4784,7 @@
   }
 
   stopBtn.addEventListener("click", () => {
+    const streamChatId=liveAnswer?.chatId;const partial=stopLiveAnswer();if(partial){const chat=data.chats.find(item=>item.id===streamChatId);if(chat)chat.messages.push({role:"assistant",content:partial,interrupted:true});renderMessages();}
     activeGenerationId = ++generationSerial;
     if (abortController) abortController.abort();
     renderTeam(teamRows.map(row => ["working", "queued"].includes(row.status) ? { ...row, status: "stopped", elapsed: row.started ? Date.now() - row.started : 0 } : row));

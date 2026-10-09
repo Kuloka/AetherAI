@@ -1,0 +1,13 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),os=require('node:os'),{createImageProvider}=require('../electron/image-provider');
+const storage={isEncryptionAvailable:()=>true,getSelectedStorageBackend:()=> 'dpapi',encryptString:value=>Buffer.from('encrypted:'+Buffer.from(value).toString('base64')),decryptString:buffer=>Buffer.from(buffer.toString().slice(10),'base64').toString()};
+test('image API uses an encrypted opt-in key and current endpoint, writes decoded images, and disconnects',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-image-test-'));t.after(()=>{assert.ok(directory.startsWith(path.join(os.tmpdir(),'aetherai-image-test-')));return fs.rm(directory,{recursive:true,force:true});});
+ const png=await require('sharp')({create:{width:16,height:16,channels:3,background:'#333'}}).png().toBuffer();let calls=0,lastUrl;
+ const provider=createImageProvider(directory,storage,async(url,options)=>{calls++;lastUrl=url;assert.equal(new URL(url).hostname,'gen.pollinations.ai');assert.equal(options.headers.Authorization,'Bearer fixture-image-key-123');assert.ok(!url.includes('fixture-image-key'));return new Response(png,{headers:{'Content-Type':'image/png'}});});
+ assert.deepEqual(await provider.generate('A cat'),{ok:false,unconfigured:true});assert.equal(calls,0);provider.save('fixture-image-key-123');assert.deepEqual(provider.status(),{configured:true});assert.ok(!(await fs.readFile(path.join(directory,'image-provider.key'),'utf8')).includes('fixture-image-key-123'));
+ const result=await provider.generate('A photo of a cat');assert.ok(result.ok);assert.equal((await require('sharp')(result.path).metadata()).format,'jpeg');const seed=new URL(lastUrl).searchParams.get('seed');await provider.generate('A photo of a cat');assert.notEqual(new URL(lastUrl).searchParams.get('seed'),seed);provider.disconnect();assert.equal(provider.status().configured,false);
+});
+test('image service failures stay readable and never reveal provider error bodies or credentials',async t=>{
+ const directory=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-image-test-'));t.after(()=>{assert.ok(directory.startsWith(path.join(os.tmpdir(),'aetherai-image-test-')));return fs.rm(directory,{recursive:true,force:true});});
+ const provider=createImageProvider(directory,storage,async()=>new Response('secret upstream body',{status:402}));provider.save('fixture-image-key-123');await assert.rejects(provider.generate('A cat'),/balance or key budget/);assert.throws(()=>provider.save('invalid\nheader-key-123'),/valid image API key/);
+});

@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('api', {
   pluginsCall: (id, name, args, requestId) => ipcRenderer.invoke('plugins:call', id, name, args, requestId),
   pluginsCancel: requestId => ipcRenderer.invoke('plugins:cancel', requestId),
   discordStatus: () => ipcRenderer.invoke('discord:status'),
+  discordOpenApplication: () => ipcRenderer.invoke('discord:open-application'),
   discordMedia: () => ipcRenderer.invoke('discord:media'),
   discordImport: () => ipcRenderer.invoke('discord:import'),
   discordExport: () => ipcRenderer.invoke('discord:export'),
@@ -99,6 +100,10 @@ contextBridge.exposeInMainWorld('api', {
   // Внешние ссылки
   openExternal:   (url)           => ipcRenderer.invoke('shell:open', url),
   internetSearch: (query, preferredDomains) => ipcRenderer.invoke('internet:search', query, preferredDomains),
+  imageProviderStatus: ()=>ipcRenderer.invoke('image:status'),
+  imageProviderSave: key=>ipcRenderer.invoke('image:save',key),
+  imageProviderDisconnect: ()=>ipcRenderer.invoke('image:disconnect'),
+  imageProviderOpen: ()=>ipcRenderer.invoke('image:open'),
   generateOnlineImage: (prompt)   => ipcRenderer.invoke('image:generate-online', prompt),
   onInternetSearchProgress: (cb)  => {
     const handler = (_e, data) => cb(data);

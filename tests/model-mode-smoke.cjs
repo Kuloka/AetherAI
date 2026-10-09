@@ -80,11 +80,11 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate("document.querySelector('[data-settings-panel=ollama-cloud]').hidden"), false);
   await evaluate("document.querySelector('#closeSettingsBtn').click();document.querySelector('#userInput').focus();document.querySelector('#modelBtn').click()"); await wait();
   assert.match(await evaluate("document.querySelector('.model-active-card').textContent"), /Free test/);
-  assert.match(await evaluate("document.querySelector('.model-active-card').textContent"), /50%/);
-  assert.match(await evaluate("document.querySelector('.model-limit-alert').textContent"), /limit reached/);
+  assert.equal(await evaluate("document.querySelector('#composerQuotaPercent').textContent"), '50%');
+  assert.equal(await evaluate("document.querySelector('.model-usage-details')"), null);
   assert.equal(await evaluate("document.querySelector('.model-active-check').textContent"), 'Selected');
-  assert.equal(await evaluate("document.querySelector('#modelDropdown').getBoundingClientRect().width"), 300);
-  assert.equal(await evaluate("document.querySelector('.model-limit-track').getBoundingClientRect().height"), 7);
+  assert.equal(await evaluate("document.querySelector('#modelDropdown').getBoundingClientRect().width"), 360);
+  assert.equal(await evaluate("document.querySelector('#composerQuota').getAttribute('aria-valuenow')"), '50');
   assert.match(await evaluate("document.querySelector('#modelDropdown').textContent"), /Up to 8B/);
   assert.match(await evaluate("document.querySelector('#modelDropdown').textContent"), /128K context/);
   assert.match(await evaluate("document.querySelector('#modelDropdown').textContent"), /Paid/);
@@ -97,7 +97,7 @@ app.whenReady().then(async () => {
   await win.webContents.reload();await wait();await evaluate("document.querySelector('#accountClose').click()");
   assert.equal(await evaluate("document.querySelector('#providerSelect').value"), 'groq');
   assert.equal(settings.selectedModel,'cloud:openrouter/test/free');
-  assert.match(await evaluate("document.querySelector('.model-active-card').textContent"), /50%/);
+  assert.equal(await evaluate("document.querySelector('#composerQuotaPercent').textContent"), '50%');
   assert.deepEqual(errors, []);
   await evaluate("window.dispatchEvent(new CustomEvent('ollama-cloud-problem',{detail:{kind:'rate',provider:'openrouter',upstream:true}}))");await wait();
   assert.equal(await evaluate("document.querySelector('#providerLimitModal').classList.contains('show')"),true);
@@ -149,7 +149,7 @@ app.whenReady().then(async () => {
   assert.notEqual(settings.appearance.surface,null);
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.main-area')).backgroundColor"),'rgb(18, 18, 18)');
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.sidebar')).backgroundColor"),'rgb(23, 23, 23)');
-  assert.equal(await evaluate("getComputedStyle(document.querySelector('#accentColor')).borderRadius"),'10px');
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('#accentColor')).borderRadius"),'12px');
   assert.equal(await evaluate("[...document.querySelectorAll('.background-preview img')].every(image=>image.complete&&image.naturalWidth>0)"),true);
   await evaluate("document.querySelector('#accentColor').value='#91baff';document.querySelector('#accentColor').dispatchEvent(new Event('change'));document.querySelector('[data-background=pixel]').click()");await wait();
   assert.equal(await evaluate("document.body.style.getPropertyValue('--accent')"),'#91baff');
@@ -210,7 +210,8 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate("AetherAIAccount.context(null,'cloud:another/model')"),'');
   await evaluate("document.querySelector('#memoryClose').click();document.querySelector('.model-active-card .model-info-button').click()");await wait();
   assert.match(await evaluate("document.querySelector('#modelInfoFacts').textContent"),/Provider/);
-  assert.match(await evaluate("document.querySelector('#modelCheckResult').textContent"),/Not tested/);
+  assert.equal(await evaluate("document.querySelector('#modelCheckBtn')"),null);
+  assert.doesNotMatch(await evaluate("document.querySelector('#modelInfoFacts').textContent"),/Not reported|Not confirmed/);
   assert.deepEqual(errors,[]);
   console.log('PASS: profile, editable memory, explicit destination-specific consent and model details');
   accountState={configured:true,user:null};

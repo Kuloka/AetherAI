@@ -14,7 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   skillsInstallPreset: id => ipcRenderer.invoke('test:skills-install', id),
   skillsToggle: (name, enabled) => ipcRenderer.invoke('test:skills-toggle', name, enabled),
   dataGet: async () => ({ groups: [], chats: [] }), dataSave: async () => ({}),
-  settingsGet: async () => ({ appLanguage: process.env.AETHERAI_PREVIEW_LANGUAGE || 'ru', theme: 'dark', teamEnabled: true, downloadedLanguages: ['en', 'ru'] }), settingsSave: async () => ({}),
+  settingsGet: async () => ({ appLanguage: process.env.AETHERAI_PREVIEW_LANGUAGE || 'ru', localAi:process.env.AETHERAI_PREVIEW_LOCAL==='true', theme: 'dark', teamEnabled: true, downloadedLanguages: ['en', 'ru'] }), settingsSave: async () => ({}),
   ollamaStatus: async () => ({ running: false, models: [] }),
   localStatus: () => ipcRenderer.invoke('test:status'),
   localSetup: () => ipcRenderer.invoke('test:setup'),
