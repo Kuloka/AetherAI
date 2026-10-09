@@ -1,7 +1,7 @@
 const net = require('net');
 const path = require('path');
 const { randomUUID } = require('crypto');
-const DEFAULT_IMAGE = 'https://raw.githubusercontent.com/Kuloka/MultiMind/main/resources/aetherai-logo-animated.gif';
+const DEFAULT_IMAGE = 'https://raw.githubusercontent.com/Kuloka/AetherAI/main/resources/aetherai-logo-animated.gif';
 
 function frame(op, value) {
   const body = Buffer.isBuffer(value) ? value : Buffer.from(JSON.stringify(value));

@@ -2,13 +2,13 @@
   <img src="resources/branding/aetherai-github.png" alt="AetherAI - your ideas, your models, your space" width="100%">
 </p>
 <p align="center">
-  <a href="https://github.com/Kuloka/MultiMind/releases/tag/v1.23.2">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
+  <a href="https://github.com/Kuloka/AetherAI/releases/tag/v1.24.0">Download for Windows, macOS and Linux</a> &nbsp; / &nbsp;
   <a href="#development">Development</a>
 </p>
 
 # AetherAI
 
-[Product website](https://multimind-ai.pages.dev/) · [Latest downloads](https://github.com/Kuloka/MultiMind/releases/latest)
+[Product website](https://aetherai-chat.pages.dev/) · [Latest downloads](https://github.com/Kuloka/AetherAI/releases/latest)
 
 Local desktop AI studio built with Electron. AetherAI can prepare a compact model without installing Ollama, and split a request between specialist agents before producing a combined answer.
 

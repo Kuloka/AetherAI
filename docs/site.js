@@ -1,6 +1,6 @@
 'use strict';
-let language='en', observer;
-try{const saved=localStorage.getItem('multimind-site-language')||localStorage.getItem('musical-site-language');if(Object.hasOwn(SITE_COPY,saved))language=saved;}catch{}
+const languageFromPath=()=>{const code=location.pathname.split('/')[1];return Object.hasOwn(SITE_COPY,code)?code:'en';};
+let language=languageFromPath(), observer;
 function renderSite(lang){
  language=lang;
  const c=SITE_COPY[lang];
@@ -8,6 +8,13 @@ function renderSite(lang){
  document.querySelector('meta[name="description"]').content=c.meta[1];
  document.querySelector('meta[property="og:title"]').content=c.meta[0];
  document.querySelector('meta[property="og:description"]').content=c.meta[1];
+ const canonical=SITE_ORIGIN+siteLanguagePath(lang);
+ document.querySelector('link[rel="canonical"]').href=canonical;
+ document.querySelector('meta[property="og:url"]').content=canonical;
+ document.querySelector('meta[property="og:locale"]').content=lang==='en'?'en_US':lang==='pt'?'pt_BR':lang+'_'+lang.toUpperCase();
+ document.querySelector('meta[name="twitter:title"]').content=c.meta[0];
+ document.querySelector('meta[name="twitter:description"]').content=c.meta[1];
+ document.getElementById('siteStructuredData').textContent=JSON.stringify(siteStructuredData(lang));
  document.getElementById('page').innerHTML=siteMarkup(lang);
  const toggle=document.getElementById('language-toggle'),list=document.getElementById('language-options');
  const options=[...list.querySelectorAll('[data-language]')];
@@ -15,7 +22,7 @@ function renderSite(lang){
  toggle.addEventListener('click',()=>open(toggle.getAttribute('aria-expanded')!=='true',true));
  toggle.addEventListener('keydown',event=>{if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();open(true,true);}});
  options.forEach((option,index)=>{
-  option.addEventListener('click',()=>{try{localStorage.setItem('multimind-site-language',option.dataset.language);}catch{}renderSite(option.dataset.language);document.getElementById('language-toggle').focus();});
+  option.addEventListener('click',event=>{if(event.metaKey||event.ctrlKey||event.shiftKey||event.altKey)return;event.preventDefault();history.pushState(null,'',siteLanguagePath(option.dataset.language)+location.hash);renderSite(option.dataset.language);document.getElementById('language-toggle').focus();});
   option.addEventListener('keydown',event=>{let next;if(event.key==='ArrowDown')next=(index+1)%options.length;else if(event.key==='ArrowUp')next=(index-1+options.length)%options.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=options.length-1;if(next!==undefined){event.preventDefault();options[next].focus();}});
  });
  document.querySelector('.language-picker').addEventListener('keydown',event=>{if(event.key==='Escape'){open(false);toggle.focus();}else if(event.key==='Tab'){open(false);toggle.focus();}});
@@ -27,4 +34,5 @@ function renderSite(lang){
  document.dispatchEvent(new Event('site:render'));
 }
 document.addEventListener('pointerdown',event=>{if(!event.target.closest('.language-picker')){document.getElementById('language-toggle').setAttribute('aria-expanded','false');document.getElementById('language-options').inert=true;}});
+window.addEventListener('popstate',()=>renderSite(languageFromPath()));
 renderSite(language);

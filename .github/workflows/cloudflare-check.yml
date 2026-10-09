@@ -19,8 +19,8 @@ jobs:
           node <<'JS'
           const fs = require('fs');
           (async () => {
-            const base = 'https://multimind-ai.pages.dev/';
-            for (const file of ['index.html', 'site-core.js', 'site.js', 'render.js', 'locales.js', 'locales-west.js', 'locales-east.js', 'effects.js', 'effects.css', 'assets/app.png']) {
+            const base = 'https://aetherai-chat.pages.dev/';
+            for (const file of ['index.html', 'site-core.js', 'site.js', 'render.js', 'locales.js', 'locales-west.js', 'locales-east.js', 'effects.js', 'effects.css', 'assets/app.png', 'seo.js', 'robots.txt', 'sitemap.xml', ...['ru','es','pt','fr','de','it','tr','pl','uk'].map(lang=>lang+'/index.html')]) {
               const url = base + (file === 'index.html' ? '' : file);
               const response = await fetch(url, { signal: AbortSignal.timeout(30000) });
               console.log(response.status + ' ' + url);
@@ -36,7 +36,7 @@ jobs:
             }
             console.log('PASS: Cloudflare serves the current English page and all language/effect assets.');
             const page = fs.readFileSync('docs/index.html', 'utf8');
-            const links = [...page.matchAll(/href="(https:\/\/github\.com\/Kuloka\/MultiMind\/releases\/download\/[^" ]+)"/g)].map(match => match[1]);
+            const links = [...page.matchAll(/href="(https:\/\/github\.com\/Kuloka\/AetherAI\/releases\/download\/[^" ]+)"/g)].map(match => match[1]);
             if (new Set(links).size !== 6) throw new Error('Expected six native downloads');
             for (const url of links) {
               const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(30000) });

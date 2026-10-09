@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aetherai-chat.pages.dev/sitemap.xml

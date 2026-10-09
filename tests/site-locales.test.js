@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs');
-require('../docs/locales');require('../docs/locales-west');require('../docs/locales-east');require('../docs/render');
+require('../docs/locales');require('../docs/locales-west');require('../docs/locales-east');require('../docs/seo');require('../docs/render');
 function shape(value){return Array.isArray(value)?value.map(shape):typeof value==='object'?Object.fromEntries(Object.entries(value).map(([k,v])=>[k,shape(v)])):typeof value;}
 test('All desktop languages have complete website copy and six native download links',()=>{
  const renderer=fs.readFileSync(require.resolve('../renderer.js'),'utf8');
