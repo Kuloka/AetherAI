@@ -65,6 +65,10 @@ jobs:
         if: runner.os != 'Linux'
         run: npx electron tests/math-logo-smoke.cjs
 
+      - name: Check chat visual preferences
+        if: runner.os == 'Windows'
+        run: npx electron tests/style-visual-smoke.cjs
+
       - name: Build native packages
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
 

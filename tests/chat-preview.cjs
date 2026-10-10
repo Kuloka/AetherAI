@@ -1,13 +1,25 @@
 const {app,BrowserWindow,ipcMain}=require('electron'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 app.disableHardwareAcceleration();const output=path.resolve(__dirname,'../artifacts/chat-preview');app.setPath('userData',path.join(output,'profile'));
-let data={groups:[],chats:[]},settings={appLanguage:'en',teamEnabled:false},imagePrompt='';
+let data={groups:[],chats:[]},settings={appLanguage:'en',teamEnabled:false},imagePrompt='',lastChatPrompt='';
 ipcMain.handle('mode:data-get',()=>data);ipcMain.handle('mode:data-save',(_e,value)=>{data=value;return {};});ipcMain.handle('mode:settings',()=>settings);ipcMain.handle('mode:save',(_e,value)=>{settings=value;return {};});ipcMain.handle('mode:account-status',()=>({configured:false,user:null}));ipcMain.handle('mode:memory-list',()=>[]);ipcMain.handle('mode:memory-context',()=> '');
-ipcMain.handle('mode:chat',(_e,body)=>body.messages[0].content.startsWith('Turn the user request')?JSON.stringify({prompt:'A black banner with the exact white lettering "AetherAI 1337".'}):{chunks:['<think>private reasoning','</think>','Hello! This answer is arriving progressively. ','Here is the next part, with a practical example. ','That is the complete answer.'],delay:400});
+ipcMain.handle('mode:chat',(_e,body)=>{lastChatPrompt=body.messages[0].content;return lastChatPrompt.startsWith('Turn the user request')?JSON.stringify({prompt:'A black banner with the exact white lettering "AetherAI 1337".'}):{chunks:['<think>private reasoning','</think>','Hello! This answer is arriving progressively. ','Here is the next part, with a practical example. ','That is the complete answer.'],delay:400};});
 ipcMain.handle('mode:image',(_e,prompt)=>{imagePrompt=prompt;return {ok:true,path:path.join(output,'fixture-image.png')};});
 app.whenReady().then(async()=>{
  fs.mkdirSync(output,{recursive:true});await require('sharp')({create:{width:600,height:400,channels:3,background:'#252525'}}).png().toFile(path.join(output,'fixture-image.png'));
  const win=new BrowserWindow({width:1200,height:850,show:false,webPreferences:{offscreen:true,preload:path.join(__dirname,'chat-preview-preload.cjs')}}),errors=[];win.webContents.on('console-message',(_event,level,message)=>{if(level===3)errors.push(message);});const evaluate=code=>win.webContents.executeJavaScript(code),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
  await win.loadFile(path.resolve(__dirname,'../index.html'));await wait(600);await evaluate("document.querySelector('#accountClose').click()");await wait(80);
+ win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
+ assert.ok(await evaluate("!document.querySelector('#aetherMascot')&&!document.querySelector('#mascotToggle')"));
+ assert.equal(await evaluate("document.querySelectorAll('#chatStyleOptions [data-chat-style]').length"),4);
+ for(const id of ['deepseek','chatgpt','aetherai','claude']){
+   await evaluate(`document.querySelector('#chatStyleOptions [data-chat-style=${id}]').click()`);await wait(100);
+   assert.equal(settings.chatStyle,id);assert.equal(await evaluate(`document.querySelector('#chatStyleOptions [data-chat-style=${id}]').getAttribute('aria-pressed')`),'true');
+   assert.equal(await evaluate('document.body.dataset.chatStyle'),id);
+   assert.equal(await evaluate("document.querySelector('.aetherai-wordmark').textContent"),{aetherai:'AetherAI',claude:'Claude',chatgpt:'ChatGPT',deepseek:'DeepSeek'}[id]);
+   assert.equal(await evaluate("document.querySelectorAll('.service-sidebar-logo').length"),id==='aetherai'?0:1);
+   if(id!=='aetherai')assert.ok(await evaluate("document.querySelector('.service-sidebar-logo').naturalWidth>0"));
+ }
+ await evaluate("document.querySelector('#chatStyleOptions [data-chat-style=aetherai]').click()");await wait(50);
  const codeContrast=await evaluate(`(()=>{
    const light=document.body.classList.contains('theme-light'),fixture=document.createElement('div');fixture.className='message-text';fixture.innerHTML='<pre><code>print("Hello")</code></pre><p><code>operator.add</code></p>';document.body.append(fixture);
    const luminance=color=>{const channels=color.match(/\\d+/g).slice(0,3).map(Number).map(value=>{value/=255;return value<=.04045?value/12.92:((value+.055)/1.055)**2.4;});return channels[0]*.2126+channels[1]*.7152+channels[2]*.0722;};
@@ -41,7 +53,18 @@ app.whenReady().then(async()=>{
  await evaluate("document.querySelector('#accessBtn').click();document.querySelector('#accessDropdown [data-access=full]').click()");await wait(80);
  await evaluate("document.querySelector('#modelBtn').click();document.querySelector('#modelSearchInput').click();document.querySelector('#modelSearchInput').value='apodex';document.querySelector('#modelSearchInput').dispatchEvent(new Event('input'))");
  await wait(250);assert.equal(await evaluate("document.querySelectorAll('.model-item').length"),1);assert.match(await evaluate("document.querySelector('.model-item').textContent"),/Apodex/);await evaluate("document.querySelector('#modelSearchInput').focus();document.querySelector('#modelSearchInput').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}))");assert.equal(await evaluate("document.activeElement.classList.contains('model-select-button')"),true);fs.writeFileSync(path.join(output,'model-selector.png'),(await win.webContents.capturePage()).toPNG());
- await evaluate("document.querySelector('#modelBtn').click();document.querySelector('#userInput').value='hello';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(1150);
+ await evaluate("document.querySelector('#modelBtn').click();document.querySelector('#userInput').value='hello';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(200);
+ assert.equal(await evaluate("document.querySelectorAll('.thinking-logo .logo-fragment').length"),6);
+ assert.doesNotMatch(lastChatPrompt,/presentation preference|Use calm, natural prose/);assert.equal(await evaluate('document.body.dataset.chatStyle'),'aetherai');
+ for(const id of ['claude','chatgpt','deepseek']){
+   await evaluate(`document.querySelector('#chatStyleOptions [data-chat-style=${id}]').click()`);await wait(60);
+   assert.ok(await evaluate(`!!document.querySelector('.thinking-logo ${id==='claude'?'.claude-thinking-spark':id==='chatgpt'?'.chatgpt-thinking-dot':'.deepseek-working'}')`));
+   assert.equal(await evaluate("document.querySelectorAll('.thinking-logo .logo-fragment').length"),0);
+ }
+ await evaluate("document.querySelector('#chatStyleOptions [data-chat-style=aetherai]').click()");await wait(50);
+ const waveOffset=await evaluate("document.querySelector('.logo-fragment').getAttribute('transform')");await wait(250);
+ assert.notEqual(await evaluate("document.querySelector('.logo-fragment').getAttribute('transform')"),waveOffset);
+ fs.writeFileSync(path.join(output,'thinking-wave.png'),(await win.webContents.capturePage()).toPNG());await wait(700);
  assert.ok(await evaluate("!!document.querySelector('.streaming-answer')"));assert.match(await evaluate("document.querySelector('.streaming-answer .message-text').textContent"),/Hello/);assert.doesNotMatch(await evaluate("document.querySelector('.streaming-answer .message-text').textContent"),/private reasoning/);fs.writeFileSync(path.join(output,'streaming-answer.png'),(await win.webContents.capturePage()).toPNG());
  await evaluate("document.querySelector('#stopBtn').click()");await wait(150);assert.equal(data.chats[0].messages.at(-1).interrupted,true);assert.match(data.chats[0].messages.at(-1).content,/Hello/);assert.doesNotMatch(data.chats[0].messages.at(-1).content,/private reasoning/);
  await evaluate("document.querySelector('#userInput').value='Create a banner with the text \"AetherAI 1337\" on a black background';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(700);

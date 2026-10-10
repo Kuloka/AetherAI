@@ -6,3 +6,5 @@ assert.deepEqual(files.filter(f=>privatePath.test(f)),[],'Private files in packa
 const config=asar.extractFile(file,'electron/account-config.js').toString();assert.ok(config.includes('sb_publishable_'));assert.ok(!config.includes('sb_secret_'));
 assert.ok(files.includes('/math-renderer.js'));assert.ok(files.includes('/logo-motion.js'));assert.ok(files.includes('/resources/katex/katex.min.js'));assert.ok(files.includes('/resources/katex/katex.min.css'));assert.ok(files.some(file=>file.startsWith('/resources/katex/fonts/')&&file.endsWith('.woff2')));
 console.log('PASS: packaged application contains runtime assets and no matching private configs, templates, databases or credentials');
+for(const asset of ['brand-motion.js','chat-style.js','chat-style.css','claude-mark.js','resources/model-icons/claude-color.svg','resources/model-icons/openai.svg','resources/model-icons/deepseek-color.svg'])assert.ok(files.includes('/'+asset),'Missing logo preference asset: '+asset);
+assert.ok(!files.includes('/cli.js')&&!files.includes('/electron/terminal-backend.js'),'Removed CMD chat must not be packaged');

@@ -19,7 +19,8 @@
     element.addEventListener('pointerenter',()=>{if(reduced.matches||request!==null)return;const started=root.performance.now();element.dataset.logoMotion='flow';function tick(now){const progress=(now-started)/2600;if(progress>=1||reduced.matches||root.document.hidden){reset();return;}frame(progress).forEach((value,i)=>parts[i].setAttribute('d',value));request=root.requestAnimationFrame(tick);}request=root.requestAnimationFrame(tick);});
     reduced.addEventListener('change',()=>{if(reduced.matches)reset();});root.document.addEventListener('visibilitychange',()=>{if(root.document.hidden)reset();});
   }
-  const api={A,waves,frame,attach};root.AetherAILogo=api;if(typeof module!=='undefined')module.exports=api;
+  function thinkingMarkup(){return root.AetherAIChatStyle.thinkingMarkup(root.document?.body.dataset.chatStyle);}
+  const api={A,waves,frame,attach,thinkingMarkup};root.AetherAILogo=api;if(typeof module!=='undefined')module.exports=api;
   root.document?.querySelectorAll('.side-logo').forEach(attach);
   const welcome=root.document?.querySelector('.welcome-brand-logo');
   if(welcome){

@@ -1,0 +1,5 @@
+const test=require('node:test'),assert=require('node:assert/strict'),style=require('../chat-style');
+test('Unknown saved styles fall back to the original appearance',()=>{for(const id of [null,undefined,'constructor','missing'])assert.equal(style.apply(id),'aetherai');});
+test('Visual styles do not provide instructions for model responses',()=>{assert.equal(style.prompt,undefined);assert.deepEqual(Object.keys(style.presets),['aetherai','claude','chatgpt','deepseek']);});
+test('Logo preferences do not replace the welcome text',()=>{assert.equal(style.greeting,undefined);});
+test('Thinking marks use distinct indicators and unique Claude clipping identifiers',()=>{global.AetherAIClaudePath=require('../claude-mark');const a=style.thinkingMarkup('claude'),b=style.thinkingMarkup('claude');assert.doesNotMatch(a,/undefined/);assert.equal((a.match(/class="claude-spark-ray"/g)||[]).length,16);assert.notEqual(a.match(/id="([^"]+-shape)"/)[1],b.match(/id="([^"]+-shape)"/)[1]);assert.match(style.thinkingMarkup('chatgpt'),/chatgpt-thinking-dot/);assert.equal((style.thinkingMarkup('deepseek').match(/<i>/g)||[]).length,3);});

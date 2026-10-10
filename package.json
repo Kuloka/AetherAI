@@ -1,6 +1,6 @@
 {
   "name": "aetherai",
-  "version": "1.24.5",
+  "version": "1.24.6",
   "description": "AetherAI - local AI workspace with collaborative agents",
   "main": "electron/main.js",
   "scripts": {
@@ -61,7 +61,7 @@
     },
     "linux": {
       "category": "Utility",
-      "icon": "resources/aetherai-logo.png",
+      "icon": "resources/model-icons/aetherai-logo.png",
       "target": [
         "AppImage",
         "deb"

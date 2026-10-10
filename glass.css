@@ -197,6 +197,7 @@ input[type=range]::-webkit-slider-thumb { border-radius:50%!important; }
   .composer-right .composer-mode-toggle span { display:none; }
 }
 @container(max-width:420px) { .composer-right #accessLabel,.composer-right #thinkLabel { display:none; } }
+@container(max-width:300px) { .composer-action-row .model-btn-label { display:none; } .composer-action-row .model-btn { min-width:48px; } }
 
 /* Code surfaces follow the theme instead of combining dark backgrounds with light-theme text. */
 .message-text :not(pre) > code { background:var(--bg-input);color:var(--text-primary); }
@@ -206,3 +207,7 @@ input[type=range]::-webkit-slider-thumb { border-radius:50%!important; }
 .message-text pre code,.panel-code-preview code,.panel-file-viewer pre code,.team-row pre code {
   background:transparent;color:inherit;
 }
+
+.thinking-main { align-items:center;gap:9px; }
+.thinking-logo { display:inline-flex;width:36px;height:36px;overflow:visible;flex-shrink:0;color:var(--text-primary); }
+.aether-thinking-mark { display:block;width:100%;height:100%;overflow:visible;fill:currentColor; }

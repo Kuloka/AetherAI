@@ -1,0 +1,2 @@
+const test=require('node:test'),assert=require('node:assert/strict'),brand=require('../brand-motion');
+test('Fragment animation stays finite and returns to the original logo',()=>{assert.deepEqual(brand.fragmentFrame(0),brand.fragmentFrame(1));const figures=[0,.25,.5,.75].map(p=>brand.fragmentFrame(p).join('|'));assert.equal(new Set(figures).size,4);for(let n=0;n<300;n++){const parts=brand.fragmentFrame(n/300);assert.equal(parts.length,6);assert.ok(parts.every(p=>!/NaN|Infinity/.test(p)&&Number(p.match(/scale\(([^)]+)/)[1])>0));}});

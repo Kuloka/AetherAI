@@ -14,7 +14,7 @@
   for(const [modal,button] of [[accountModal,$('accountClose')],[memoryModal,$('memoryClose')]]){button.onclick=()=>close(modal);modal.addEventListener('click',e=>{if(e.target===modal&&modal!==accountModal)close(modal);});modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();close(modal);}if(e.key==='Tab'){const controls=[...modal.querySelectorAll('button,input,textarea,select')].filter(el=>!el.disabled&&el.getClientRects().length);const first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}});}
   function render(){
     const owner=account.user?.id||'local';if(renderedOwner!==owner){useMemory.checked=false;renderedOwner=owner;editing=null;$('memoryText').value='';$('memoryList').replaceChildren();if(memoryModal.classList.contains('show'))renderMemory().catch(e=>{$('memoryError').textContent=e.message;});}
-    $('profileName').textContent=account.user?.email||'Local profile';$('profileStatus').textContent=account.user?'Signed in':'Presets & account';
+    syncProfileCopy();
     $('accountSignedOut').hidden=!!account.user;$('accountSignedIn').hidden=!account.user;
     $('accountEmail').textContent=account.user?.email||'';
     $('openMemory').textContent='Presets';
@@ -25,6 +25,8 @@
     $('memorySync').disabled=!account.user;
     $('memoryScopeNote').textContent='Set the tone, language, length, and style of answers across your chats.';renderAvatar();$('profileSignOut').hidden=!account.user;
   }
+  function syncProfileCopy(){const ru=document.documentElement.lang==='ru';$('profileName').textContent=account.user?.email||(ru?'Локальный профиль':'Local profile');$('profileStatus').textContent=account.user?(ru?'Вход выполнен':'Signed in'):(ru?'Пресеты и аккаунт':'Presets & account');}
+  new MutationObserver(syncProfileCopy).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   async function refresh(){if(window.api?.accountStatus)account=await window.api.accountStatus();render();}
   async function action(button,fn){if(busy.size)return;busy.add(button.id);updateAuthControls();$('accountError').textContent='';try{await fn();}catch(e){$('accountError').textContent=e.message;}finally{busy.delete(button.id);button.disabled=false;render();}}
   function avatarKey(){return 'multimind.avatar.'+(account.user?.id||'local');}

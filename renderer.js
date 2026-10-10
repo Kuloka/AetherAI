@@ -22,6 +22,7 @@
     appLanguage: "en",
     theme: "light",
     appearance: { background: "gateway", accent: "#ffffff", surface: null },
+    chatStyle: "aetherai",
     teamEnabled: true,
     workerModels: [],
     computeMode: "auto",
@@ -1459,6 +1460,20 @@
       button.textContent = ({general: russian ? 'Общие' : 'General', customization: russian ? 'Оформление' : 'Customization', models: russian ? 'Модели' : 'Models', skills: russian ? 'Навыки' : 'Skills', plugins: russian ? 'Плагины' : 'Plugins', cloud: russian ? 'Провайдеры' : 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: russian ? 'Активность Discord' : 'Discord Activity'})[button.dataset.settingsTab];
     });
     renderAppearance();
+    const ru=settings.appLanguage==='ru';
+    document.querySelector('[data-settings-panel="cloud"] h3').textContent=ru?'Провайдеры':'Providers';
+    $('providerPrivacy').textContent=ru?'Облачные запросы отправляют сообщения и вложения выбранному провайдеру.':'Cloud requests send your messages and attached context to the selected provider.';
+    $('providerLabel').textContent=ru?'Провайдер':'Provider';
+    document.querySelector('label[for="providerKey"]').textContent=ru?'API-ключ':'API key';
+    $('providerKey').placeholder=ru?'Вставьте API-ключ':'Paste your API key';
+    $('providerGetKey').textContent=ru?'Получить API-ключ':'Get API key';
+    $('imageProviderKey').placeholder=ru?'Вставьте ключ для изображений':'Paste your image API key';
+    document.querySelector('#computeSegment [data-compute="auto"]').textContent=ru?'Авто':'Auto';
+    for(const id of ['openrouter','groq','sambanova']){
+      const label=id==='openrouter'?'OpenRouter · '+(ru?'Бесплатные и платные':'Free & Paid'):(id==='groq'?'Groq':'SambaNova')+' · '+(ru?'Бесплатный тариф':'Free tier');
+      $('providerSelect').querySelector('[value="'+id+'"]').textContent=label;$('providerOptions').querySelector('[data-provider="'+id+'"]').textContent=label;
+    }
+    $('providerPickerValue').textContent=$('providerSelect').selectedOptions[0].textContent;
     if (languagePackList) {
       languagePackList.innerHTML = '';
       $('languageValue').textContent = APP_LANGUAGES.find(lang => lang.code === (settings.appLanguage || 'en'))?.name || 'English';
@@ -1587,7 +1602,7 @@
   function initGatewayFlowBackground() {
     gatewayFlowBg?.gatewayFlow?.destroy();
     if (gatewayFlowBg) { gatewayFlowBg.gatewayFlow = null; gatewayFlowBg.hidden = settings.appearance?.background !== "gateway"; }
-    if (settings.appearance?.background !== "gateway") return;
+    if (settings.appearance?.background !== "gateway") { if(gatewayFlowBg)gatewayFlowBg.hidden=true;return; }
     if (!gatewayFlowBg || !window.AetherAIGatewayFlow) return;
     const flow = window.AetherAIGatewayFlow.createGatewayFlow(gatewayFlowBg, {
       paths: 58,
@@ -1611,6 +1626,17 @@
   }
   function renderAppearance() {
     const ru=settings.appLanguage==='ru';
+    settings.chatStyle=window.AetherAIChatStyle.apply(settings.chatStyle);
+    $('chatStyleTitle').textContent=ru?'Стиль чата':'Chat appearance';
+    $('chatStyleHint').textContent=ru?'Меняются только логотип и индикатор ожидания. Цвета и шрифт остаются вашими.':'Only the logo and thinking indicator change. Your colors and typography stay the same.';
+    const selected=window.AetherAIChatStyle.presets[settings.chatStyle];
+    $('chatStyleValue').replaceChildren(styleOptionContent(selected,ru));
+    $('chatStyleOptions').replaceChildren(...Object.entries(window.AetherAIChatStyle.presets).map(([id,preset])=>{
+      const button=document.createElement('button');button.type='button';button.dataset.chatStyle=id;
+      button.setAttribute('role','option');button.setAttribute('aria-selected',String(settings.chatStyle===id));button.setAttribute('aria-pressed',String(settings.chatStyle===id));
+      button.append(styleOptionContent(preset,ru));
+      button.onclick=()=>{settings.chatStyle=id;applyAppearance();closeChatStylePicker();$('chatStyleToggle').focus();window.api?.settingsSave(settings);};return button;
+    }));
     const tab=document.querySelector('[data-settings-tab="customization"]');
     tab.innerHTML=`<svg class="appearance-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5ZM12 20h8"/></svg><span>${ru?'Оформление':'Customization'}</span>`;
     for(const [id,text] of Object.entries({appearanceTitle:ru?'Оформление':'Customization',appearanceHint:ru?'Настройте AetherAI под себя.':'Make AetherAI feel like yours.',backgroundTitle:ru?'Анимация фона':'Background animation',backgroundMotionNote:ru?'Анимация останавливается в скрытом окне. При уменьшении движения фон статичный.':'Animations pause when the app is hidden. Reduced motion uses a still background.',paletteTitle:ru?'Палитра цветов':'Color palette',accentColorLabel:ru?'Цвет акцента':'Accent color',surfaceColorLabel:ru?'Цвет приложения':'Application color',resetAppearance:ru?'Сбросить оформление':'Reset appearance'}))$(id).textContent=text;
@@ -1620,6 +1646,21 @@
     $('accentColor').value=options.accent;
     $('surfaceColor').value=options.surface || (settings.theme==='light'?'#f6f6f6':'#121212');
   }
+  function styleOptionContent(preset,ru){
+    const content=document.createElement('span');content.className='style-option-content';
+    const image=document.createElement('img');image.src=preset.logo||'resources/aetherai-logo.svg';image.alt='';image.className='style-option-logo';
+    const copy=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span');copy.className='style-option-copy';name.textContent=preset.name;description.textContent=ru?preset.ru:preset.en;copy.append(name,description);content.append(image,copy);return content;
+  }
+  function closeChatStylePicker(){ if(!$('chatStyleOptions').hidden)$('chatStyleOptions').hidden=true;if($('chatStyleToggle').getAttribute('aria-expanded')!=='false')$('chatStyleToggle').setAttribute('aria-expanded','false'); }
+  $('chatStyleToggle').onclick=()=>{const open=$('chatStyleOptions').hidden;$('chatStyleOptions').hidden=!open;$('chatStyleToggle').setAttribute('aria-expanded',String(open));if(open)$('chatStyleOptions').querySelector('[aria-selected="true"]').focus();};
+  $('chatStylePicker').addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&!$('chatStyleOptions').hidden){event.preventDefault();event.stopPropagation();closeChatStylePicker();$('chatStyleToggle').focus();return;}
+    if(!['ArrowDown','ArrowUp','Home','End'].includes(event.key))return;event.preventDefault();
+    const options=[...$('chatStyleOptions').querySelectorAll('button')];let i=options.indexOf(document.activeElement);if(i<0&&event.key==='ArrowUp')i=0;$('chatStyleOptions').hidden=false;$('chatStyleToggle').setAttribute('aria-expanded','true');
+    i=event.key==='Home'?0:event.key==='End'?options.length-1:(i+(event.key==='ArrowDown'?1:-1)+options.length)%options.length;options[i].focus();
+  });
+  document.addEventListener('click',event=>{if(!event.target.closest('#chatStylePicker'))closeChatStylePicker();});
+  new MutationObserver(()=>{if(!settingsModal.classList.contains('show')||document.querySelector('[data-settings-panel="customization"]').hidden)closeChatStylePicker();}).observe(settingsModal,{attributes:true,subtree:true,attributeFilter:['class','hidden']});
   const swatches=document.querySelector('.appearance-swatches');
   for(const color of ['#ffffff','#91baff','#b9a0ee','#f2ac83','#83c9ac','#ef9fbb']){
     const button=document.createElement('button');button.type='button';button.style.background=color;button.setAttribute('aria-label',color);button.title=color;
@@ -1899,6 +1940,7 @@
     $("agentSettingsHint").textContent = ru ? "Авто использует основную модель. Можно назначить разные установленные модели. Параллельность зависит от памяти и движка; ускорение не гарантировано." : "Auto shares the main model. You can assign different installed models. Parallelism depends on memory and engine; speedup is not guaranteed.";
     for (let i = 0; i < 2; i++) {
       const select = $("workerModel" + i);
+      select.closest('label').firstChild.textContent=(ru?'Агент ':'Agent ')+(i+1)+' ';
       const chosen = settings.workerModels?.[i] || "";
       select.innerHTML = `<option value="">${ru ? "Основная модель" : "Main model"}</option>` + availableModels.filter(m => !modelSupportsVision(m.name)).map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join("");
       select.value = chosen;
@@ -2557,6 +2599,7 @@
       <div class="message-body">
         <div class="thinking-inline">
           <span class="thinking-main">
+            <span class="thinking-logo" aria-hidden="true">${window.AetherAILogo.thinkingMarkup()}</span>
             <span class="thinking-label thinking-shining-text">${escapeHtml(waitingText)}</span>
           </span>
         </div>
@@ -2732,16 +2775,13 @@
 
   function restoreThinkingDefault(mode = "answer") {
     if (!thinkingEl) return;
-    const logo = null;
+    const logo = thinkingEl.querySelector('.thinking-logo');
     const label = thinkingEl.querySelector(".thinking-label");
     const text = settings.appLanguage === "ru"
       ? (mode === "image" ? "Создаю изображение" : "Думаю")
       : (mode === "image" ? "Creating image" : "Thinking");
     if (logo) {
-      logo.innerHTML = `
-        <img class="thinking-logo-ghost" src="resources/aetherai-logo.svg" alt="">
-        <img class="thinking-logo-line" src="resources/aetherai-logo.svg" alt="">
-      `;
+      if(!logo.querySelector('.aether-thinking-mark'))logo.innerHTML=window.AetherAILogo.thinkingMarkup();
     }
     if (label) {
       label.textContent = mode === "image"
@@ -3449,7 +3489,7 @@
       workMeta.className = "assistant-work-meta";
       const label = document.createElement("span");
       label.className = "assistant-work-label";
-      label.textContent = settings.appLanguage === "ru" ? "Готово" : "Worked";
+      label.textContent = "Done";
       const line = document.createElement("span");
       line.className = "assistant-work-line";
       const time = document.createElement("span");

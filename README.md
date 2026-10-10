@@ -96,6 +96,8 @@ The built-in engine loads one model at a time. Specialists sharing that model ca
 
 ## Customization
 
+The logo list in Customization switches between AetherAI, Claude, ChatGPT and DeepSeek. Only the displayed name, logo and thinking indicator change. Logos retain their brand colors; your existing colors, typography, welcome text and background stay unchanged. Claude uses independently moving spark rays, ChatGPT a pulsing dot, and DeepSeek a whale with animated dots. Model logos reuse existing licensed SVG assets (resources/model-icons/SOURCES.md). Motion is reconstructed locally. Prompts and model selection remain unchanged. Hidden windows pause motion; reduced motion uses still indicators. See [visual preferences](docs/chat-visual-styles.md) for verification.
+
 Settings > Customization (the pen icon) offers None, Gateway Flow, Pattern Waves and Pixel Blast. Choose an accent from the swatches or use the native color picker; a second picker changes the application's surface color with automatically contrasting text. Reset restores the default monochrome appearance. Settings are saved across restarts, and color changes apply immediately. Backgrounds stop when the window is hidden; reduced-motion preferences use a static field for GPU effects. Desktop backgrounds do not intercept chat interactions.
 
 React Bits sources are bundled locally rather than loaded from a CDN. Pattern Waves uses OGL and Pixel Blast uses Three.js; the desktop includes their dependencies in a standalone bundle. The website product wordmark uses Shape Waves (WebGPU) and falls back to HTML text when unsupported. The shared sources and license are in `docs/source/backgrounds` and `resources/reactbits-license.txt`.

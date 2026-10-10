@@ -1,10 +1,7 @@
-AetherAI 1.24.5
+AetherAI 1.24.6
 
-- Stream answers progressively and retain received text when generation is stopped.
-- Place content-sized response controls alongside the model selector, with correctly anchored menus and a quota indicator below the row. Remove the Agents button and restore rectangular window controls.
-- Fix composer focus, duplicate tooltips, code contrast in both themes, and Russian plugin and skill labels.
-- Improve searchable model selection and show only known model details. Remove the response-check button and lengthy usage panels from model menus.
-- Fix plugin menu clipping, keyboard navigation, and layouts in narrow windows.
-- Limit website-specific clarification to website requests. Calculator interface requests offer desktop or browser options; games no longer open the website wizard.
-- Keep image prompts out of visible replies and preserve requested media, numbers, and lettering. Add optional Pollinations cloud generation with an encrypted API key; without a key, use local SD Turbo. Cloud image requests use your provider balance.
-- Use the default animated AetherAI logo for Discord Activity and remove custom image/GIF controls and the application-renaming button.
+- Choose AetherAI, Claude, ChatGPT or DeepSeek visual preferences from a keyboard-accessible logo list in Customization. Logos retain their native brand colors; application colors, fonts, backgrounds, welcome text and the selected model remain unchanged.
+- Add an animated Claude spark, ChatGPT pulse and DeepSeek dots. Make Claude motion clearly visible and retain the approved AetherAI fragment animation. Indicators respect reduced motion and pause in hidden windows.
+- Keep the mascot out of the desktop interface and omit the cancelled CMD chat.
+- Fix response controls overflowing narrow windows and complete Russian labels for providers, agents and the local profile.
+- Show “Done” consistently for completed responses.

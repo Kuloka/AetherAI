@@ -1,0 +1,38 @@
+.service-sidebar-logo{width:30px;height:30px;flex-shrink:0;object-fit:contain;}
+.service-welcome-logo{width:76px;height:76px;object-fit:contain;margin-bottom:20px;}
+.service-thinking-logo{width:28px;height:28px;object-fit:contain;}
+body[data-chat-style]:not([data-chat-style="aetherai"]) .side-logo > svg,
+body[data-chat-style]:not([data-chat-style="aetherai"]) .welcome-brand-logo{display:none;}
+body.theme-light[data-chat-style="chatgpt"] .service-logo{filter:brightness(0);}
+.chat-style-picker{margin:16px 0 24px;max-width:100%;}
+#chatStyleToggle{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;min-height:68px;padding:13px 16px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);color:var(--text-primary);text-align:left;font:inherit;cursor:pointer;}
+#chatStyleValue{min-width:0;flex:1;}
+.style-option-content{display:flex;align-items:center;gap:14px;min-width:0;}
+.style-option-logo{width:30px;height:30px;object-fit:contain;flex-shrink:0;}
+body.theme-light .style-option-logo[src$="openai.svg"],body.theme-light .style-option-logo[src$="aetherai-logo.svg"]{filter:brightness(0);}
+.style-option-copy{display:flex;flex-direction:column;gap:5px;min-width:0;}
+.style-option-copy strong{font-size:14px;font-weight:600;line-height:1.4;}
+.style-option-copy>span{font-size:12px;line-height:1.5;color:var(--text-secondary);overflow-wrap:anywhere;}
+.style-chevron{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.5;flex-shrink:0;transition:transform .18s;}
+#chatStyleToggle[aria-expanded="true"] .style-chevron{transform:rotate(180deg);}
+.chat-style-options:not([hidden]){display:flex;flex-direction:column;padding:5px;margin-top:8px;border:1px solid var(--border);border-radius:12px;background:var(--bg-surface);}
+.chat-style-options button{position:relative;width:100%;border:0;border-radius:8px;background:transparent;padding:12px 36px 12px 12px;min-height:64px;text-align:left;color:var(--text-primary);font:inherit;cursor:pointer;}
+.chat-style-options button:hover,.chat-style-options button:focus-visible{background:var(--bg-hover);outline:none;}
+.chat-style-options button[aria-selected="true"]{background:var(--bg-active);}
+.chat-style-options button[aria-selected="true"]::after{content:'✓';position:absolute;right:14px;top:24px;font-size:14px;}
+#chatStyleToggle:focus-visible{outline:2px solid var(--text-secondary);outline-offset:3px;}
+.claude-thinking-spark{width:34px;height:34px;color:#d97757;overflow:visible;}
+.claude-spark-ray{transform-origin:12px 12px;animation:claude-ray var(--ray-duration) ease-in-out var(--ray-delay) infinite;}
+@keyframes claude-ray{0%,100%{transform:rotate(-7deg) scale(.78,1.04);}50%{transform:rotate(7deg) scale(1.08,.82);}}
+.chatgpt-thinking-dot{width:12px;height:12px;border-radius:50%;background:currentColor;animation:chatgpt-pulse 1.6s ease-in-out infinite;margin:auto;}
+@keyframes chatgpt-pulse{0%,100%{transform:scale(.82);opacity:.6;}50%{transform:scale(1.12);opacity:1;}}
+.deepseek-working{display:flex;align-items:center;gap:9px;}
+.thinking-logo:has(.deepseek-working){width:60px;}
+.thinking-dots{display:flex;gap:3px;align-items:center;color:#4d6bfe;}
+.thinking-dots i{width:4px;height:4px;border-radius:50%;background:currentColor;animation:deepseek-dot 1.2s ease-in-out infinite;}
+.thinking-dots i:nth-child(2){animation-delay:.15s;}.thinking-dots i:nth-child(3){animation-delay:.3s;}
+@keyframes deepseek-dot{0%,70%,100%{transform:translateY(0);opacity:.4;}35%{transform:translateY(-3px);opacity:1;}}
+body[data-motion-paused="true"] :is(.claude-spark-ray,.chatgpt-thinking-dot,.thinking-dots i){animation-play-state:paused;}
+@media(prefers-reduced-motion:reduce){.claude-spark-ray,.chatgpt-thinking-dot,.thinking-dots i{animation:none;}.style-chevron{transition:none;}}
+@media(max-width:640px){.style-option-content{gap:10px;}.style-option-copy>span{font-size:12px;}}
+

@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="background-effects.css">
 <link rel="stylesheet" href="resources/katex/katex.min.css">
 <link rel="stylesheet" href="glass.css">
+<link rel="stylesheet" href="chat-style.css">
 </head>
 <body>
 <header class="window-titlebar" id="windowTitlebar">
@@ -300,6 +301,12 @@
       </section>
       <section class="settings-block appearance-settings" data-settings-panel="customization" hidden>
         <h3 id="appearanceTitle">Customization</h3><p id="appearanceHint">Make AetherAI feel like yours.</p>
+        <h4 id="chatStyleTitle">Chat appearance</h4>
+        <p id="chatStyleHint">Chat name and visual presets in AetherAI. They do not change the model or answers, or imply affiliation.</p>
+        <div class="chat-style-picker" id="chatStylePicker">
+          <button type="button" id="chatStyleToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="chatStyleOptions"><span id="chatStyleValue"></span><svg class="style-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5"/></svg></button>
+          <div id="chatStyleOptions" class="chat-style-options" role="listbox" aria-labelledby="chatStyleTitle" hidden></div>
+        </div>
         <h4 id="backgroundTitle">Background animation</h4><div class="background-options" role="group" aria-labelledby="backgroundTitle">
         <button type="button" data-background="none"><span class="background-preview no-background"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m6 6 12 12"/></svg></span><span>None</span></button>
         <button type="button" data-background="gateway"><span class="background-preview"><img src="resources/background-previews/gateway.png" alt="" loading="lazy"></span><span>Gateway Flow</span></button>
@@ -491,6 +498,9 @@
 <script src="model-info.js"></script>
 <script src="resources/katex/katex.min.js"></script>
 <script src="math-renderer.js"></script>
+<script src="brand-motion.js"></script>
+<script src="claude-mark.js"></script>
+<script src="chat-style.js"></script>
 <script src="logo-motion.js"></script>
 <script src="streaming-text.js"></script>
 <script src="image-prompt.js"></script>
