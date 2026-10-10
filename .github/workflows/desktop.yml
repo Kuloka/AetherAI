@@ -154,6 +154,7 @@ jobs:
             });
 
       - name: Create GitHub Release
+        id: github_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -173,12 +174,14 @@ jobs:
 
       - name: Publish only after installer and update metadata are uploaded
         uses: actions/github-script@v7
+        env:
+          RELEASE_ID: ${{ steps.github_release.outputs.id }}
         with:
           script: |
             const { owner, repo } = context.repo;
-            const { data: release } = await github.rest.repos.getReleaseByTag({
-              owner, repo, tag: context.ref.replace('refs/tags/', '')
-            });
+            const release_id = Number(process.env.RELEASE_ID);
+            if (!Number.isSafeInteger(release_id) || release_id <= 0) throw new Error('Missing draft release ID');
+            const { data: release } = await github.rest.repos.getRelease({ owner, repo, release_id });
             const fs = require('node:fs'), path = require('node:path');
             const manifests = fs.readdirSync('release-files', { recursive: true }).filter(file => file.endsWith('latest.yml'));
             if (manifests.length !== 1 || !release.assets.some(asset => asset.name === 'latest.yml')) {
@@ -190,4 +193,4 @@ jobs:
                 !release.assets.some(asset => asset.name === name + '.blockmap'))) {
               throw new Error('An installer referenced by latest.yml is missing. Release remains a draft.');
             }
-            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, draft: false, prerelease: false });
+            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, draft: false, prerelease: false, make_latest: 'true' });
