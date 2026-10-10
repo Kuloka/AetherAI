@@ -1,0 +1,28 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
+const {createProviders}=require('../electron/cloud-providers');
+const storage={isEncryptionAvailable:()=>true,encryptString:s=>Buffer.from(s.split('').reverse().join('')),decryptString:b=>b.toString().split('').reverse().join('')};
+test('provider toggles persist without deleting keys; disabled models cannot run; rejected replacement retains the original key',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-provider-state-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ let calls=0;
+ const request=async(url,init)=>{calls++;if(init.headers.Authorization!=='Bearer fixture-original')return new Response('',{status:401});return url.endsWith('/key')?Response.json({data:{}}):Response.json({data:[{id:'test/model',pricing:{prompt:'0',completion:'0'}}]});};
+ const api=createProviders(dir,storage,request);
+ assert.equal(api.status()[0].modelCount,null);assert.equal(api.status()[0].enabled,false);
+ await api.save('openrouter','fixture-original');
+ assert.equal(api.status()[0].modelCount,1);assert.equal(api.status()[0].enabled,true);
+ const original=await fs.readFile(path.join(dir,'openrouter.key'));
+ api.setEnabled('openrouter',false);
+ assert.equal(api.status()[0].configured,true);assert.equal(api.status()[0].enabled,false);
+ const before=calls;assert.deepEqual(await api.models(true),[]);assert.equal(calls,before);
+ await api.refreshUsage('openrouter');assert.equal(calls,before,'Disabled providers must not make background quota requests');
+ await assert.rejects(api.chat({model:'cloud:openrouter/test/model',messages:[]},undefined,()=>{}),/Enable openrouter/);
+ assert.deepEqual(await fs.readFile(path.join(dir,'openrouter.key')),original);
+ const reopened=createProviders(dir,storage,request);assert.equal(reopened.status()[0].enabled,false);
+ reopened.setEnabled('openrouter',true);assert.equal((await reopened.models()).length,1);
+ await assert.rejects(reopened.save('openrouter','fixture-invalid'),/HTTP 401/);
+ assert.deepEqual(await fs.readFile(path.join(dir,'openrouter.key')),original);
+ assert.equal(reopened.status()[0].enabled,true);
+ assert.throws(()=>reopened.setEnabled('unknown',true),/Unknown provider/);
+ assert.throws(()=>reopened.setEnabled('openrouter','yes'),/Invalid provider state/);
+ assert.throws(()=>reopened.setEnabled('groq',true),/Connect the provider first/);
+ reopened.disconnect('openrouter');assert.equal(reopened.status()[0].modelCount,null);assert.equal(reopened.status()[0].enabled,false);
+});

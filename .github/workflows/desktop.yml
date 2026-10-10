@@ -69,11 +69,29 @@ jobs:
         if: runner.os == 'Windows'
         run: npx electron tests/style-visual-smoke.cjs
 
+      - name: Check notifications and explicit update actions (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron --no-sandbox tests/notifications-smoke.cjs
+      - name: Check notifications and explicit update actions
+        if: runner.os != 'Linux'
+        run: npx electron tests/notifications-smoke.cjs
+
+      - name: Check code copying and thinking transition (Linux)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a npx electron --no-sandbox tests/visual-polish-smoke.cjs
+      - name: Check code copying and thinking transition
+        if: runner.os != 'Linux'
+        run: npx electron tests/visual-polish-smoke.cjs
+
       - name: Build native packages
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
 
       - name: Check packaged file boundaries
         run: node tests/package-security.cjs
+
+      - name: Check Windows update assets
+        if: runner.os == 'Windows'
+        run: node scripts/check-update-assets.cjs
 
       - name: Smoke test packaged application (Linux)
         timeout-minutes: 2
@@ -94,6 +112,8 @@ jobs:
             dist/*.AppImage
             dist/*.deb
             dist/*.dmg
+            dist/*.blockmap
+            dist/latest.yml
 
   release:
     if: startsWith(github.ref, 'refs/tags/')
@@ -141,9 +161,33 @@ jobs:
           generate_release_notes: false
           body_path: RELEASE_NOTES.md
           prerelease: false
+          draft: true
           overwrite_files: true
           files: |
             release-files/**/*.exe
             release-files/**/*.AppImage
             release-files/**/*.deb
             release-files/**/*.dmg
+            release-files/**/*.blockmap
+            release-files/**/latest.yml
+
+      - name: Publish only after installer and update metadata are uploaded
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const { data: release } = await github.rest.repos.getReleaseByTag({
+              owner, repo, tag: context.ref.replace('refs/tags/', '')
+            });
+            const fs = require('node:fs'), path = require('node:path');
+            const manifests = fs.readdirSync('release-files', { recursive: true }).filter(file => file.endsWith('latest.yml'));
+            if (manifests.length !== 1 || !release.assets.some(asset => asset.name === 'latest.yml')) {
+              throw new Error('Windows update metadata is missing or ambiguous. Release remains a draft.');
+            }
+            const manifest = fs.readFileSync(path.join('release-files', manifests[0]), 'utf8');
+            const names = [...manifest.matchAll(/^\s+- url: (.+)$/gm)].map(match => match[1].trim());
+            if (!names.length || names.some(name => !release.assets.some(asset => asset.name === name) ||
+                !release.assets.some(asset => asset.name === name + '.blockmap'))) {
+              throw new Error('An installer referenced by latest.yml is missing. Release remains a draft.');
+            }
+            await github.rest.repos.updateRelease({ owner, repo, release_id: release.id, draft: false, prerelease: false });

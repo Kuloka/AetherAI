@@ -14,6 +14,8 @@ const fs=require('fs');
    await page.locator('h1').waitFor({state:'visible'});
    await page.locator('#particle-scene canvas[data-particle-form="helix"]').waitFor();
    if(await page.locator('#motion-toggle').count())throw Error('Pause control must be removed');
+   if(await page.locator('.scroll-cue').count())throw Error('Features arrow button must be removed');
+   if(await page.locator('.hero-scroll-hint').textContent()!=='Scroll down...')throw Error('Scroll hint is missing');
    await page.waitForTimeout(250);
    const still=await page.evaluate(()=>document.querySelector('#particle-scene canvas').toDataURL());
    await page.waitForTimeout(180);

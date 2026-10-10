@@ -22,6 +22,7 @@
     appLanguage: "en",
     theme: "light",
     appearance: { background: "gateway", accent: "#ffffff", surface: null },
+    answerEmphasis: true,
     chatStyle: "aetherai",
     teamEnabled: true,
     workerModels: [],
@@ -54,10 +55,11 @@
   }
   function renderSkills(entries) {
     activeSkillContext = entries.filter(entry => entry.enabled).map(entry => `Skill: ${entry.name}\n${entry.content}`).join("\n\n");
-    $("skillsList").innerHTML = entries.map(entry => `<label class="skill-row"><input type="checkbox" data-skill="${escapeHtml(entry.name)}" ${entry.enabled ? "checked" : ""}><span>${escapeHtml(entry.name)}</span></label>`).join("");
-    $("skillsList").querySelectorAll("input").forEach(input => input.addEventListener("change", async () => {
-      try { renderSkills(await window.api.skillsToggle(input.dataset.skill, input.checked)); $("skillsError").textContent = ""; }
-      catch (error) { input.checked = !input.checked; $("skillsError").textContent = error.message; }
+    $("skillsList").innerHTML = entries.map(entry => `<div class="skill-row"><span>${escapeHtml(entry.name)}</span><button type="button" class="activity-switch" role="switch" data-skill="${escapeHtml(entry.name)}" aria-label="${escapeHtml(entry.name)}" aria-checked="${!!entry.enabled}"><span></span></button></div>`).join("");
+    $("skillsList").querySelectorAll("[data-skill]").forEach(input => input.addEventListener("click", async () => {
+      if(input.disabled)return;input.disabled=true;
+      try { renderSkills(await window.api.skillsToggle(input.dataset.skill,input.getAttribute('aria-checked')!=='true')); $("skillsError").textContent = "";$("skillsList").querySelector('[data-skill="'+CSS.escape(input.dataset.skill)+'"]').focus(); }
+      catch (error) { input.disabled=false; $("skillsError").textContent = error.message; }
     }));
   }
   function renderSkillPresets(items) {
@@ -98,6 +100,7 @@
     renderSelectedModel(settings.selectedModel);
     renderModelDropdown();
     $('localAiToggle')?.setAttribute('aria-checked', String(settings.localAi));
+    $('settingsOpenCatalog').disabled=!settings.localAi;
     if ($('localAiDescription')) $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
     $('localSetupCard').hidden = !settings.localAi || !AetherAI.shouldShowSetup(localRuntimeState, availableModels.length, settings.localSetupCompleted);
     if (!settings.localAi) {
@@ -119,40 +122,95 @@
     await persist();
     await checkOllama();
   });
+  const providerNames={openrouter:'OpenRouter',groq:'Groq',gemini:'Google AI Studio',cerebras:'Cerebras',sambanova:'SambaNova'};
+  let providerCardsState=[];
+  function renderProviderCards() {
+    const root=$('providerCards');if(!root)return;
+    const ru=settings.appLanguage==='ru', configure=ru?'Настроить':'Configure';
+    const local=allAvailableModels.filter(model=>!isCloudModel(model.name));
+    const size=local.reduce((total,model)=>total+(Number.isFinite(model.size)&&model.size>0?model.size:0),0);
+    const localSummary=(ru?'Установлено: ':'Installed: ')+local.length+(size?' · '+formatSize(size):'');
+    root.innerHTML=`<article class="provider-card provider-local"><div class="provider-card-copy"><h4>${ru?'Локальные модели':'Local models'}</h4><p>${escapeHtml(localSummary)}</p></div><button type="button" class="catalog-btn" data-provider-local>${configure}</button><p class="provider-card-description">${ru?'Модели работают на компьютере. После загрузки локальная генерация не требует интернета.':'Run models on your computer. Local inference works offline after downloading a model.'}</p></article><h4 class="provider-list-label">${ru?'Облачные провайдеры':'Cloud providers'}</h4>`;
+    for(const [id,name] of Object.entries(providerNames)){
+      const status=providerCardsState.find(item=>item.id===id),connected=!!status?.configured,enabled=connected&&status.enabled!==false;
+      const knownModels=allAvailableModels.filter(model=>model.provider===id).length;
+      const count=Number.isInteger(status?.modelCount)&&status.modelCount>=0?status.modelCount:knownModels||null;
+      const summary=connected?(enabled?(ru?'Подключено':'Connected'):(ru?'Выключено · ключ сохранён':'Off · key saved'))+(count!==null?' · '+(ru?'Моделей: ':'Models: ')+count:''):(ru?'Не настроено':'Not configured');
+      root.insertAdjacentHTML('beforeend',`<article class="provider-card${connected?' connected':''}" data-provider-card="${id}"><div class="provider-card-copy"><h4>${name}</h4><p>${escapeHtml(summary)}</p></div><div class="provider-card-actions"><button type="button" class="catalog-btn provider-edit" data-configure-provider="${id}" aria-label="${connected?(ru?'Изменить API-ключ: ':'Edit API key: '):configure+': '}${name}" title="${connected?(ru?'Изменить API-ключ':'Edit API key'):configure}" aria-expanded="${!$('providerEditor').hidden&&$('providerSelect').value===id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5Z"/></svg></button><button type="button" class="activity-switch provider-enable" role="switch" data-enable-provider="${id}" aria-checked="${enabled}" aria-label="${ru?'Включить провайдера: ':'Enable provider: '}${name}" ${connected?'':'disabled'}><span></span></button></div></article>`);
+    }
+    root.insertAdjacentHTML('beforeend',`<article class="provider-card"><div class="provider-card-copy"><h4>Ollama Cloud</h4><p>${ru?'Отдельное подключение':'Separate connection'}</p></div><button type="button" class="catalog-btn" data-provider-ollama>${configure}</button></article>`);
+    root.querySelector('[data-provider-local]').onclick=()=>document.querySelector('[data-settings-tab="models"]').click();
+    root.querySelector('[data-provider-ollama]').onclick=()=>document.querySelector('[data-settings-tab="ollama-cloud"]').click();
+    root.querySelectorAll('[data-enable-provider]').forEach(button=>button.onclick=async()=>{
+      if($('providerConnect').disabled||button.disabled)return;
+      button.disabled=true;$('providerConnect').disabled=true;
+      try{await window.api.providersSetEnabled(button.dataset.enableProvider,button.getAttribute('aria-checked')!=='true');await checkOllama();await refreshProviderStatus();await persist();$('providerCardsError').textContent='';$('providerCards').querySelector('[data-enable-provider="'+button.dataset.enableProvider+'"]').focus();}
+      catch(error){$('providerCardsError').textContent=error.message;button.disabled=false;}
+      finally{$('providerConnect').disabled=false;}
+    });
+    root.querySelectorAll('[data-configure-provider]').forEach(button=>button.onclick=async()=>{
+      if($('providerConnect').disabled)return;
+      $('providerSelect').value=button.dataset.configureProvider;
+      $('providerEditor').hidden=false;
+      $('providerSelect').dispatchEvent(new Event('change'));
+      try{await refreshProviderStatus();$('providerCardsError').textContent='';if($('providerSelect').value!==button.dataset.configureProvider)return; if(!$('providerEditor').open)$('providerEditor').showModal();$('providerKey').focus();}
+      catch(error){$('providerStatus').textContent=error.message;}
+    });
+  }
+  function closeProviderEditor(restoreFocus=true){
+    const id=$('providerSelect').value;
+    $('providerEditor').close();$('providerEditor').hidden=true;$('providerKey').value='';
+    renderProviderCards();
+    if(restoreFocus)$('providerCards').querySelector('[data-configure-provider="'+id+'"]').focus();
+  }
+  $('providerEditorClose').onclick=()=>closeProviderEditor();
+  $('providerEditor').addEventListener('keydown',event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeProviderEditor();}});
+  $('providerEditor').addEventListener('cancel',event=>{event.preventDefault();closeProviderEditor();});
+  $('providerEditor').addEventListener('click',event=>{
+    const r=$('providerEditor').getBoundingClientRect();
+    if(event.target===$('providerEditor')&&(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)){event.stopPropagation();closeProviderEditor(false);}
+  });
   async function refreshProviderStatus() {
     if (!window.api?.providersStatus) return;
     const id = $('providerSelect').value;
     const statuses = await window.api.providersStatus();
+    providerCardsState=statuses;renderProviderCards();
     const configured = statuses.some(item => item.id === id && item.configured);
     if (id !== $('providerSelect').value) return;
-    const action=$('providerConnect'); action.dataset.connected=String(configured); action.type=configured?'button':'submit';
-    action.textContent=settings.appLanguage==='ru'?(configured?'Отключить':'Подключить'):(configured?'Disconnect':'Connect');
-    $('providerKey').required=!configured; $('providerKey').disabled=configured;
+    $('providerEditorTitle').textContent=providerNames[id] || id;
+    const action=$('providerConnect'); action.dataset.connected=String(configured); action.type='submit';
+    action.textContent=settings.appLanguage==='ru'?(configured?'Сохранить ключ':'Подключить'):(configured?'Save key':'Connect');
+    $('providerKey').required=true; $('providerKey').disabled=false;
+    $('providerKey').placeholder=settings.appLanguage==='ru'?(configured?'Вставьте новый API-ключ':'Вставьте API-ключ'):(configured?'Paste a new API key':'Paste your API key');
+    $('providerRemove').hidden=!configured;$('providerRemove').textContent=settings.appLanguage==='ru'?'Удалить API-ключ':'Remove API key';
     $('providerStatus').textContent = settings.appLanguage === 'ru' ? (configured ? 'Подключено. Бесплатные модели имеют лимиты провайдера.' : 'Добавьте свой API-ключ. Ключ хранится зашифрованным на компьютере.') : (configured ? 'Connected. Free models are subject to provider limits.' : 'Add your API key. It is stored encrypted on this computer.');
     if(id==='sambanova')$('providerStatus').textContent += settings.appLanguage==='ru'?' Бесплатный тариф доступен без привязки карты. Лимиты зависят от модели и тарифа аккаунта.':' A free tier is available without a payment method. Limits depend on the model and your account tier.';
+    if(configured&&statuses.find(item=>item.id===id)?.enabled===false)$('providerStatus').textContent=settings.appLanguage==='ru'?'Провайдер выключен. API-ключ сохранён; включите тумблер, чтобы использовать модели.':'Provider is off. The API key is saved; turn on the switch to use its models.';
   }
-  $('providerSelect').addEventListener('change', () => { settings.preferredCloudProvider=$('providerSelect').value; persist(); $('providerKey').value = ''; refreshProviderStatus(); });
-  document.querySelector('[data-settings-tab="cloud"]').addEventListener('click', () => refreshProviderStatus());
+  $('providerSelect').addEventListener('change', () => { settings.preferredCloudProvider=$('providerSelect').value; persist(); $('providerKey').value = ''; refreshProviderStatus().catch(error=>{$('providerStatus').textContent=error.message;}); });
+  document.querySelector('[data-settings-tab="cloud"]').addEventListener('click', () => refreshProviderStatus().catch(error=>{$('providerCardsError').textContent=error.message;}));
   $('providerGetKey').onclick = () => window.api?.providersOpen($('providerSelect').value);
+  $('providerKey').addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.isComposing){event.preventDefault();if(!$('providerConnect').disabled)$('providerForm').requestSubmit();}});
   $('providerForm').addEventListener('submit', async event => {
-    event.preventDefault(); if($('providerConnect').disabled || $('providerConnect').dataset.connected==='true')return; $('providerConnect').disabled = true; $('providerPickerToggle').disabled=true; closeProviderPicker();
+    event.preventDefault(); if($('providerConnect').disabled)return; $('providerConnect').disabled = true; $('providerPickerToggle').disabled=true; closeProviderPicker();
     try {
       await window.api.providersSave($('providerSelect').value, $('providerKey').value);
-      $('providerKey').value = '';
+      window.AetherAINotifications?.saved(providerNames[$('providerSelect').value]||$('providerSelect').value);
+      closeProviderEditor();
       if (settings.selectedModel) settings[settings.localAi ? 'lastLocalModel' : 'lastCloudModel'] = settings.selectedModel;
       settings.localAi = false;
       await checkOllama(); await refreshProviderStatus();
       await persist();
-    } catch (error) { $('providerStatus').textContent = error.message; }
+    } catch (error) { ($('providerEditor').open?$('providerStatus'):$('providerCardsError')).textContent = error.message; }
     finally { $('providerConnect').disabled = false; $('providerPickerToggle').disabled=false; }
   });
-  $('providerConnect').addEventListener('click', async () => {
+  $('providerRemove').addEventListener('click', async () => {
     const action=$('providerConnect'); if(action.dataset.connected!=='true'||action.disabled)return;
-    action.disabled=true; $('providerPickerToggle').disabled=true; closeProviderPicker();
+    action.disabled=true;$('providerRemove').disabled=true; $('providerPickerToggle').disabled=true; closeProviderPicker();
     const id=$('providerSelect').value;
     try { await window.api.providersDisconnect(id); await checkOllama(); await refreshProviderStatus(); }
     catch(error){$('providerStatus').textContent=error.message;}
-    finally{action.disabled=false; $('providerPickerToggle').disabled=false;}
+    finally{action.disabled=false;$('providerRemove').disabled=false; $('providerPickerToggle').disabled=false;}
   });
   function closeProviderPicker() {
     $('providerPickerToggle').setAttribute('aria-expanded', 'false');
@@ -1448,6 +1506,36 @@
   });
   setInterval(() => { if (settingsModal.classList.contains('show')) { updateDiscordStatus().catch(() => {}); if(!document.querySelector('[data-settings-panel="plugins"]').hidden)refreshPlugins(); } }, 2000);
 
+  function settingsSectionCopy(){
+    const ru=settings.appLanguage==='ru';
+    return {
+      general:ru?['Язык','Выберите язык интерфейса приложения.']:['Language','Choose the language of the application.'],
+      customization:ru?['Оформление','Внешний вид чата, подчёркивание важных фраз, цвета и фон.']:['Appearance','Chat visuals, key phrase underlining, colors and background.'],
+      cloud:ru?['Провайдеры','Подключения и API-ключи. Сообщения и вложения отправляются выбранному провайдеру.']:['Providers','Connections and API keys. Messages and attachments go to the selected provider.'],
+      models:ru?['Локальные модели и агенты','Локальный режим, каталог моделей, режим вычислений и модели для специалистов.']:['Local models & agents','Local mode, model catalog, compute mode and specialist models.'],
+      images:ru?['Генерация изображений','Настройки провайдера изображений отделены от текстовых моделей.']:['Image generation','Image provider settings are separate from text models.'],
+      'ollama-cloud':ru?['Ollama Cloud','Отдельное подключение к облаку Ollama и его модели.']:['Ollama Cloud','Your separate Ollama Cloud connection and its models.'],
+      plugins:ru?['Инструменты MCP','Подключайте инструменты, которыми модель сможет пользоваться в чате.']:['MCP tools','Connect tools that the model can use in chat.'],
+      skills:ru?['Инструкции Skills','Импортируйте инструкции Markdown и явно включайте нужные.']:['Skills instructions','Import Markdown instructions and explicitly enable the ones you need.'],
+      discord:ru?['Активность Discord','Показ активности AetherAI в запущенном Discord.']:['Discord Activity','Share AetherAI activity with the running Discord desktop app.']
+    };
+  }
+  function renderSettingsNavigation(){
+    const ru=settings.appLanguage==='ru',copy=settingsSectionCopy();
+    document.querySelector('[data-settings-panel="models"] .discord-heading h3').textContent=ru?'Локальные модели':'Local models';
+    $('localAiToggle').setAttribute('aria-label',ru?'Использовать локальные модели':'Use local models');
+    settingsModal.querySelector('.settings-nav').setAttribute('aria-label',ru?'Разделы настроек':'Settings sections');
+    settingsModal.querySelectorAll('[data-settings-group]').forEach(label=>label.textContent=({app:ru?'Приложение':'Application',ai:ru?'ИИ и модели':'AI & models',tools:ru?'Инструменты':'Tools'})[label.dataset.settingsGroup]);
+    settingsModal.querySelectorAll('[data-settings-tab]').forEach(button=>{
+      button.textContent=copy[button.dataset.settingsTab][0];
+      if(button.classList.contains('active'))button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+    });
+    const selected=settingsModal.querySelector('[data-settings-tab].active')?.dataset.settingsTab||'general';
+    $('settingsPageTitle').textContent=copy[selected][0];$('settingsPageHint').textContent=copy[selected][1];
+    $('settingsOpenCatalog').textContent=ru?'Открыть каталог локальных моделей':'Open local model catalog';
+    $('settingsOpenCatalog').disabled=!settings.localAi;
+  }
+  $('settingsOpenCatalog').onclick=()=>{if(!settings.localAi)return;settingsModal.classList.remove('show');openModelsModal();};
   function renderSettings() {
     renderDiscordSettings();
     renderPluginLanguage();
@@ -1457,9 +1545,10 @@
     applyAppLanguageBasics();
     const russian = settings.appLanguage === "ru";
     settingsModal.querySelectorAll('[data-settings-tab]').forEach(button => {
-      button.textContent = ({general: russian ? 'Общие' : 'General', customization: russian ? 'Оформление' : 'Customization', models: russian ? 'Модели' : 'Models', skills: russian ? 'Навыки' : 'Skills', plugins: russian ? 'Плагины' : 'Plugins', cloud: russian ? 'Провайдеры' : 'Providers', 'ollama-cloud': 'Ollama Cloud', discord: russian ? 'Активность Discord' : 'Discord Activity'})[button.dataset.settingsTab];
+      button.textContent = settingsSectionCopy()[button.dataset.settingsTab][0];
     });
     renderAppearance();
+    renderSettingsNavigation();
     const ru=settings.appLanguage==='ru';
     document.querySelector('[data-settings-panel="cloud"] h3').textContent=ru?'Провайдеры':'Providers';
     $('providerPrivacy').textContent=ru?'Облачные запросы отправляют сообщения и вложения выбранному провайдеру.':'Cloud requests send your messages and attached context to the selected provider.';
@@ -1474,6 +1563,8 @@
       $('providerSelect').querySelector('[value="'+id+'"]').textContent=label;$('providerOptions').querySelector('[data-provider="'+id+'"]').textContent=label;
     }
     $('providerPickerValue').textContent=$('providerSelect').selectedOptions[0].textContent;
+    renderProviderCards();
+    $('providerEditorClose').setAttribute('aria-label',ru?'Закрыть настройку провайдера':'Close provider settings');
     if (languagePackList) {
       languagePackList.innerHTML = '';
       $('languageValue').textContent = APP_LANGUAGES.find(lang => lang.code === (settings.appLanguage || 'en'))?.name || 'English';
@@ -1501,6 +1592,10 @@
     document.title = "AetherAI";
     updateAetherAIControls();
     updateComposerModeToggles();
+    const answerCopy=window.AetherAIAnswerPresentation.labels(settings.appLanguage);
+    document.querySelectorAll('.answer-sources-label').forEach(label=>label.textContent=answerCopy.sources);
+    document.querySelectorAll('.answer-followups button').forEach(button=>button.textContent=answerCopy.explain);
+    document.querySelectorAll('.code-copy').forEach(button=>{const label=button.querySelector('.code-copy-label');if(label)label.textContent=window.AetherAICode.labels(settings.appLanguage)[button.dataset.copyState==='copied'?1:button.dataset.copyState==='failed'?2:0];});
     $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
     document.querySelector('[data-settings-tab="cloud"]').textContent = settings.appLanguage==='ru'?'Провайдеры':'Providers';
     const textById = {
@@ -1620,6 +1715,7 @@
   function applyAppearance() {
     settings.appearance = window.AetherAIAppearance.normalize(settings.appearance);
     window.AetherAIAppearance.apply(settings.appearance);
+    document.body.dataset.answerEmphasis=String(settings.answerEmphasis!==false);
     if (gatewayFlowBg?.hidden !== (settings.appearance.background !== 'gateway') || (settings.appearance.background === 'gateway' && !gatewayFlowBg?.gatewayFlow)) initGatewayFlowBackground();
     window.AetherAIBackgrounds?.update({background:settings.appearance.background,color:settings.appearance.accent});
     renderAppearance();
@@ -1638,11 +1734,16 @@
       button.onclick=()=>{settings.chatStyle=id;applyAppearance();closeChatStylePicker();$('chatStyleToggle').focus();window.api?.settingsSave(settings);};return button;
     }));
     const tab=document.querySelector('[data-settings-tab="customization"]');
-    tab.innerHTML=`<svg class="appearance-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5ZM12 20h8"/></svg><span>${ru?'Оформление':'Customization'}</span>`;
+    tab.textContent=ru?'Оформление':'Appearance';
+    $('settingsColorsTitle').textContent=ru?'Цвета и тема':'Colors and theme';
     for(const [id,text] of Object.entries({appearanceTitle:ru?'Оформление':'Customization',appearanceHint:ru?'Настройте AetherAI под себя.':'Make AetherAI feel like yours.',backgroundTitle:ru?'Анимация фона':'Background animation',backgroundMotionNote:ru?'Анимация останавливается в скрытом окне. При уменьшении движения фон статичный.':'Animations pause when the app is hidden. Reduced motion uses a still background.',paletteTitle:ru?'Палитра цветов':'Color palette',accentColorLabel:ru?'Цвет акцента':'Accent color',surfaceColorLabel:ru?'Цвет приложения':'Application color',resetAppearance:ru?'Сбросить оформление':'Reset appearance'}))$(id).textContent=text;
     const options=window.AetherAIAppearance.normalize(settings.appearance);
     document.querySelectorAll('[data-background]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.background===options.background)));
     document.querySelector('[data-background="none"] > span:last-child').textContent=ru?'Без анимации':'None';
+    $('answerEmphasisTitle').textContent=ru?'Ключевые фразы':'Key phrases';
+    $('answerEmphasisHint').textContent=ru?'Подчёркивать фразы, которые модель выделила жирным.':'Underline phrases the model marks in bold.';
+    $('answerEmphasisToggle').setAttribute('aria-checked',String(settings.answerEmphasis!==false));
+    document.body.dataset.answerEmphasis=String(settings.answerEmphasis!==false);
     $('accentColor').value=options.accent;
     $('surfaceColor').value=options.surface || (settings.theme==='light'?'#f6f6f6':'#121212');
   }
@@ -1674,6 +1775,7 @@
     $(id).addEventListener('input',()=>{settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),[field]:$(id).value};clearTimeout(appearanceTimer);appearanceTimer=setTimeout(applyAppearance,80);});
     $(id).addEventListener('change',()=>{clearTimeout(appearanceTimer);settings.appearance={...window.AetherAIAppearance.normalize(settings.appearance),[field]:$(id).value};applyAppearance();window.api?.settingsSave(settings);});
   }
+  $('answerEmphasisToggle').onclick=()=>{settings.answerEmphasis=settings.answerEmphasis===false;applyAppearance();persist();};
   $('resetAppearance').onclick=()=>{settings.appearance=window.AetherAIAppearance.normalize();applyAppearance();window.api?.settingsSave(settings);};
 
   function initElectricComposerBorder() {
@@ -1898,6 +2000,7 @@
       if(window.api.providersUsage)providerUsage=await window.api.providersUsage().catch(()=>providerUsage);
     }
     availableModels = modeModels();
+    renderProviderCards();
     statusDot.className = ollamaRunning ? "status-dot online" : res.installing ? "status-dot loading" : "status-dot offline";
     welcomeHint.textContent = availableModels.length
       ? (settings.appLanguage === "ru" ? "Модели готовы к работе." : "Local models are ready.")
@@ -1937,7 +2040,7 @@
     $("localSetupBtn").hidden = localRuntimeState.supported === false;
     if (!teamRows.length) $("teamHeading").textContent = ru ? "Работа сабагентов" : "Subagents working";
     $("agentSettingsTitle").textContent = ru ? "Модели сабагентов" : "Subagent models";
-    $("agentSettingsHint").textContent = ru ? "Авто использует основную модель. Можно назначить разные установленные модели. Параллельность зависит от памяти и движка; ускорение не гарантировано." : "Auto shares the main model. You can assign different installed models. Parallelism depends on memory and engine; speedup is not guaranteed.";
+    $("agentSettingsHint").textContent = ru ? "По умолчанию агенты используют основную модель. При необходимости выберите для каждого другую доступную модель. Дополнительные запросы могут увеличить расход лимитов; ускорение не гарантируется." : "Agents use the main model by default. Choose another available model for each if needed. Extra requests may consume more quota; speedup is not guaranteed.";
     for (let i = 0; i < 2; i++) {
       const select = $("workerModel" + i);
       select.closest('label').firstChild.textContent=(ru?'Агент ':'Agent ')+(i+1)+' ';
@@ -2143,7 +2246,7 @@
     const selected = availableModels.find(model => model.name === settings.selectedModel);
     if (selected) {
       const card = document.createElement('div'); card.className = 'model-active-card';
-      card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check">${settings.appLanguage==='ru'?'Выбрана':'Selected'}</span></div>`;
+      card.innerHTML = `<div class="model-active-heading"><span class="model-item-icon">${providerIconMarkup(selected)}</span><div><strong>${escapeHtml(selected.cloudName || selected.name)}</strong>${modelParameterMarkup(selected)}</div><span class="model-active-check" aria-label="${settings.appLanguage==='ru'?'Выбрана':'Selected'}"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 10 4 4 8-8"/></svg><span class="model-selected-label">${settings.appLanguage==='ru'?'Выбрана':'Selected'}</span></span></div>`;
         const info=document.createElement('button');info.type='button';info.className='model-info-button';info.textContent='Model details';info.onclick=()=>{modelDropdown.classList.remove('show');window.AetherAIModelInfo.show(selected);};card.append(info);
       modelDropdown.append(card);
     }
@@ -2493,6 +2596,7 @@
     closeLanguagePicker();
     settingsModal.querySelectorAll('[data-settings-tab]').forEach(tab => tab.classList.toggle('active', tab === button));
     settingsModal.querySelectorAll('[data-settings-panel]').forEach(panel => panel.hidden = panel.dataset.settingsPanel !== button.dataset.settingsTab);
+    settingsModal.querySelector('.settings-body').scrollTop=0;renderSettingsNavigation();
   }));
   settingsBtn?.addEventListener("click", () => {
     renderSettings();
@@ -3301,7 +3405,8 @@
 
     // Блочные элементы обрабатываем построчно
     const lines = html.split("\n");
-    const out = [];
+    const out = [], codeBlocks=[];
+    function codeBlock(){const raw=codeBuf.join('\n').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');const index=codeBlocks.push(window.AetherAICode.block(raw,codeLang,settings.appLanguage))-1;out.push(`\uE300${index}\uE301`);}
     let inUl = false, inOl = false, inCode = false, codeLang = "", codeBuf = [];
 
     function closeLists() {
@@ -3313,10 +3418,10 @@
       const line = lines[i];
 
       // код-блок
-      const fence = line.match(/^```(\w*)\s*$/);
+      const fence = line.match(/^```([\w+#.-]*)\s*$/);
       if (fence) {
-        if (!inCode) { inCode = true; codeLang = fence[1]; codeBuf = []; }
-        else { out.push(`<pre><code>${codeBuf.join("\n")}</code></pre>`); inCode = false; }
+        if (!inCode) { closeLists();inCode = true; codeLang = fence[1]; codeBuf = []; }
+        else { codeBlock(); inCode = false; }
         continue;
       }
       if (inCode) { codeBuf.push(line); continue; }
@@ -3348,7 +3453,7 @@
       if (line.trim() === "") out.push("");
       else out.push(inline(line));
     }
-    if (inCode) out.push(`<pre><code>${codeBuf.join("\n")}</code></pre>`);
+    if (inCode) codeBlock();
     closeLists();
 
     // Собираем в абзацы
@@ -3359,15 +3464,12 @@
     body = body.replace(/(<\/(?:ul|ol|pre|h1|h2|h3|blockquote|table)>)<br>/g, "$1");
     // удаляем пустые <p></p>
     body = body.replace(/<p>\s*<\/p>/g, "");
-    return math.restore(`<p>${body}</p>`);
+    return math.restore(`<p>${body}</p>`.replace(/\uE300(\d+)\uE301/g,(_token,index)=>`</p>${codeBlocks[Number(index)]}<p>`));
   }
 
   // инлайн-форматирование: code, bold, italic
   function inline(s) {
-    return s
-      .replace(/`([^`]+)`/g, "<code>$1</code>")
-      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-      .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+    return window.AetherAIAnswerPresentation.inline(s);
   }
 
   async function copyText(text) {
@@ -3510,14 +3612,31 @@
       delete msg.animateOnRender;
     }
     body.appendChild(textEl);
+    const presentation=window.AetherAIAnswerPresentation,answerCopy=presentation.labels(settings.appLanguage);
+    textEl.addEventListener('click',async event=>{
+      const button=event.target.closest('[data-copy-code]');
+      if(button){const code=button.closest('.answer-code-block')?.querySelector('pre code');if(!code)return;button.disabled=true;let ok=false;try{ok=await copyText(code.textContent);}catch{}button.dataset.copyState=ok?'copied':'failed';const label=button.querySelector('.code-copy-label');if(label)label.textContent=window.AetherAICode.labels(settings.appLanguage)[ok?1:2];button.disabled=false;setTimeout(()=>{button.dataset.copyState='';if(label?.isConnected)label.textContent=window.AetherAICode.labels(settings.appLanguage)[0];},1500);return;}
+      const link=event.target.closest('a[href]');if(link&&window.api?.openExternal){event.preventDefault();window.api.openExternal(link.href);}
+    });
     if(role==='assistant'&&Array.isArray(msg.sources)&&msg.sources.length){
-      const links=document.createElement('div');links.className='answer-sources';const label=document.createElement('strong');label.textContent=settings.appLanguage==='ru'?'Источники':'Sources';links.append(label);
-      msg.sources.slice(0,5).forEach((source,index)=>{let url;try{url=new URL(source.url);if(!['http:','https:'].includes(url.protocol)||url.username||url.password)return;}catch{return;}
-        const link=document.createElement('button');link.type='button';link.className='answer-source';const title=document.createElement('span');title.textContent=(index+1)+'. '+String(source.title||url.hostname).slice(0,120);const domain=document.createElement('small');domain.textContent=url.hostname;link.append(title,domain);link.onclick=()=>window.api?.openExternal(url.href);links.append(link);
+      const links=document.createElement('div');links.className='answer-sources';const label=document.createElement('span');label.className='answer-sources-label';label.textContent=answerCopy.sources;links.append(label);
+      msg.sources.slice(0,5).forEach(source=>{
+        const details=presentation.sourceDetails(source);if(!details)return;
+        const link=document.createElement('a');link.className='answer-source';link.href=details.href;link.target='_blank';link.rel='noopener noreferrer';link.title=details.title+' · '+details.host;
+        const icon=document.createElement('span');icon.className='answer-source-icon';icon.setAttribute('aria-hidden','true');icon.textContent=details.host[0].toUpperCase();
+        if(details.icon){const image=document.createElement('img');image.src=details.icon;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.onload=()=>{icon.firstChild?.nodeType===3&&icon.firstChild.remove();};image.onerror=()=>image.remove();icon.append(image);}
+        const title=document.createElement('span');title.className='answer-source-title';title.textContent=details.title;
+        const domain=document.createElement('small');domain.textContent=details.host;link.append(icon,title,domain);
+        link.addEventListener('click',event=>{if(window.api?.openExternal){event.preventDefault();window.api.openExternal(details.href);}});links.append(link);
       });if(links.children.length>1)body.append(links);
     }
-    if(role==='assistant'&&!msg.images?.length&&!msg.codeActivity&&!msg.interrupted&&visibleAssistantText.length>160){
-      const followups=document.createElement('div');followups.className='answer-followups';for(const title of (settings.appLanguage==='ru'?['Объясни подробнее','Приведи пример']:['Explain in more detail','Give me an example'])){const button=document.createElement('button');button.type='button';button.textContent=title;button.onclick=()=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+title;autoResize();updateSendBtn();inputEl.focus();};followups.append(button);}body.append(followups);
+    const history=getCurrentChat()?.messages||[],position=history.indexOf(msg);
+    const question=position>=0?[...history.slice(0,position)].reverse().find(entry=>entry.role==='user')?.content||'':'';
+    if(role==='assistant'&&presentation.shouldExplain({question,answer:visibleAssistantText,interrupted:msg.interrupted,images:msg.images?.length||msg.imageGeneration})){
+      const followups=document.createElement('div');followups.className='answer-followups';
+      followups.innerHTML='<svg class="answer-explain-line" viewBox="0 0 18 12" aria-hidden="true"><path d="M10 1 6 1.3Q2 1.6 2 5.6V6a4 4 0 0 0 4 4h10m-3-3 3 3-3 1"/></svg>';
+      const button=document.createElement('button');button.type='button';button.textContent=answerCopy.explain;
+      button.onclick=()=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+presentation.labels(settings.appLanguage).explain;autoResize();updateSendBtn();inputEl.focus();};followups.append(button);body.append(followups);
     }
 
     if (role === "assistant" && msg.codeActivity) {
@@ -4403,7 +4522,7 @@
   $('imageProviderOpen').onclick=()=>window.api?.imageProviderOpen();
   $('imageProviderForm').onsubmit=async event=>{event.preventDefault();const action=$('imageProviderAction');if(action.disabled||action.dataset.connected==='true')return;action.disabled=true;try{await window.api.imageProviderSave($('imageProviderKey').value);$('imageProviderKey').value='';await refreshImageProvider();}catch(error){$('imageProviderStatus').textContent=error.message;}finally{action.disabled=false;}};
   $('imageProviderAction').onclick=async()=>{const action=$('imageProviderAction');if(action.dataset.connected!=='true'||action.disabled)return;action.disabled=true;try{await window.api.imageProviderDisconnect();await refreshImageProvider();}catch(error){$('imageProviderStatus').textContent=error.message;}finally{action.disabled=false;}};
-  document.querySelector('[data-settings-tab=models]').addEventListener('click',()=>refreshImageProvider().catch(error=>{$('imageProviderStatus').textContent=error.message;}));
+  document.querySelector('[data-settings-tab=images]').addEventListener('click',()=>refreshImageProvider().catch(error=>{$('imageProviderStatus').textContent=error.message;}));
 
   async function tryGenerateInstantImage(prompt) {
     if (!window.api?.generateOnlineImage) return null;
@@ -4668,10 +4787,18 @@
 
   let liveAnswer=null;
   function stopLiveAnswer(){if(!liveAnswer)return '';const text=liveAnswer.writer.stop();liveAnswer.root.remove();liveAnswer=null;return text;}
+  function finishLiveAnswer(message){
+    if(!liveAnswer||liveAnswer.chatId!==currentChatId)return false;
+    const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
+    liveAnswer.writer.finish();const previous=liveAnswer.root,finished=createMessageElement(message);
+    finished.classList.add('answer-settled');previous.replaceWith(finished);liveAnswer=null;
+    if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;return true;
+  }
   function updateLiveAnswer(value,generationId){
     if(generationId!==activeGenerationId)return;
     const visible=window.AetherAIStreaming.visibleText(value);if(!visible.trim())return;
-    if(!liveAnswer){const message={role:'assistant',content:''},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');const caret=document.createElement('span');caret.className='answer-stream-caret';caret.setAttribute('aria-hidden','true');body.append(caret);messagesEl.append(root);
+    if(!liveAnswer){const message={role:'assistant',content:''},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');const caret=document.createElement('span');caret.className='answer-stream-caret';caret.setAttribute('aria-hidden','true');body.append(caret);
+      if(thinkingEl){const status=thinkingEl.querySelector('.thinking-inline');if(status)body.prepend(status);thinkingEl.before(root);thinkingEl.hidden=true;}else messagesEl.append(root);
       const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;text.innerHTML=renderMarkdown(content);const tail=text.querySelector(':scope > p:last-child,:scope > ul:last-child > li:last-child,:scope > ol:last-child > li:last-child')||text;tail.append(caret);if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};
     }
     liveAnswer.message.content=visible;liveAnswer.writer.update(visible);
@@ -4800,7 +4927,6 @@
     const reply = await generateResponse(text, imgs, generationId,value=>updateLiveAnswer(value,generationId));
     if (generationId !== activeGenerationId) return;
 
-    stopLiveAnswer();
     const responseSources=answerSources.get(generationId)||[];answerSources.delete(generationId);
     const totalDurationMs = thinkingStartedAt ? Date.now() - thinkingStartedAt : 0;
     const thoughtDurationMs = thinkingThoughtDurationMs || (thinkingHasReasoning ? totalDurationMs : 0);
@@ -4810,6 +4936,7 @@
     stopBtn.style.display = "none";
     sendBtn.style.display = "flex";
 
+    let answerSettled=false;
     if (reply !== "_STOPPED_") {
       const assistantMsg = {
         role: "assistant",
@@ -4823,8 +4950,9 @@
       }
       chat.messages.push(assistantMsg);
       chat.updatedAt = Date.now();
+      answerSettled=finishLiveAnswer(assistantMsg);
     }
-    renderMessages();
+    if(!answerSettled){stopLiveAnswer();renderMessages();}
     updateSendBtn();
     renderSidebar();
     persist();

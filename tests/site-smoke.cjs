@@ -15,12 +15,14 @@ app.whenReady().then(async()=>{
   assert.equal(await win.webContents.executeJavaScript("document.querySelector('#motion-toggle')"),null);
   assert.equal(await win.webContents.executeJavaScript("document.querySelector('.hero-strings')"),null);
   assert.equal(await win.webContents.executeJavaScript("!!document.querySelector('.shape-wordmark')"),false);
+  assert.equal(await win.webContents.executeJavaScript("document.querySelector('.scroll-cue')"),null);
+  assert.equal(await win.webContents.executeJavaScript("document.querySelector('.hero-scroll-hint').textContent"),'Scroll down...');
   fs.writeFileSync(path.join(out,'aetherai-site-spiral-hero.png'),(await win.webContents.capturePage()).toPNG());
   if(motion){
     await new Promise(resolve=>setTimeout(resolve,1600));
     const bounds=await win.webContents.executeJavaScript(`(()=>{const c=document.querySelector('#particle-scene canvas'),p=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let x0=c.width,y0=c.height,x1=0,y1=0;for(let y=0;y<c.height;y+=6)for(let x=0;x<c.width;x+=6){if(p[(y*c.width+x)*4+3]>8){x0=Math.min(x0,x);y0=Math.min(y0,y);x1=Math.max(x1,x);y1=Math.max(y1,y)}}return {width:(x1-x0)/c.width,height:(y1-y0)/c.height}})()`);
     assert.ok(bounds.width>.2&&bounds.width<.55&&bounds.height>.85,'Helix must stay narrow and fill the height '+JSON.stringify(bounds));
-    assert.equal(await win.webContents.executeJavaScript("document.querySelector('.hero').querySelectorAll('h1,p,.actions,.eyebrow').length"),0,'Opening contains only the sculpture and controls');
+    assert.equal(await win.webContents.executeJavaScript("document.querySelector('.hero').querySelectorAll('h1,.actions,.eyebrow').length"),0,'Opening keeps only the sculpture and short scroll hint');
     const before=await win.webContents.executeJavaScript("document.querySelector('#particle-scene canvas').toDataURL()");
     await new Promise(resolve=>setTimeout(resolve,180));
     assert.equal(before,await win.webContents.executeJavaScript("document.querySelector('#particle-scene canvas').toDataURL()"),'Helix stays still without scrolling');

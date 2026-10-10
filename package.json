@@ -1,18 +1,25 @@
 {
   "name": "aetherai",
-  "version": "1.24.6",
+  "version": "1.24.7",
   "description": "AetherAI - local AI workspace with collaborative agents",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron .",
-    "check": "node scripts/check-syntax.cjs",
     "fix:encoding": "node scripts/fix-mojibake.js --write",
     "dist:win": "electron-builder --win nsis portable",
     "test": "node --test tests/*.test.js",
     "dist:mac": "electron-builder --mac dmg",
     "dist:linux": "electron-builder --linux AppImage deb",
-    "check:security": "node scripts/security-check.cjs"
+    "check:security": "node scripts/security-check.cjs",
+    "predist:mac": "npm run build:ui",
+    "predev": "npm run build:ui",
+    "check": "npm run check:ui && npm run build:ui && node scripts/check-syntax.cjs",
+    "predist:win": "npm run build:ui",
+    "build:ui": "node scripts/build-ui.cjs",
+    "predist:linux": "npm run build:ui",
+    "prestart": "npm run build:ui",
+    "check:ui": "node scripts/check-ui.cjs"
   },
   "productName": "AetherAI",
   "private": true,
@@ -45,11 +52,15 @@
       ]
     },
     "nsis": {
+      "artifactName": "AetherAI.Setup.${version}.exe",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "shortcutName": "AetherAI",
       "guid": "b74d891e-393a-5bfb-895d-fb3070229109"
+    },
+    "portable": {
+      "artifactName": "AetherAI.${version}.exe"
     },
     "mac": {
       "category": "public.app-category.productivity",
@@ -72,16 +83,36 @@
     "asarUnpack": [
       "node_modules/@img/**/*",
       "node_modules/sharp/**/*"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release",
+        "owner": "Kuloka",
+        "repo": "AetherAI"
+      }
     ]
   },
   "devDependencies": {
+    "@tailwindcss/cli": "4.3.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "electron": "^44.7.0",
     "electron-builder": "^26.15.3",
-    "katex": "0.19.0"
+    "esbuild": "^0.28.2",
+    "katex": "0.19.0",
+    "tailwindcss": "4.3.0",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.8.9",
+    "lucide-react": "^1.55.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "sharp": "^0.35.5",
+    "tailwind-merge": "^3.7.0",
     "zod": "^4.6.5"
   },
   "author": {

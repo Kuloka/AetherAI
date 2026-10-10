@@ -1,7 +1,7 @@
 (function(root){
   const modes=['none','gateway','pattern','pixel'];
   function color(value){return /^#[0-9a-f]{6}$/i.test(value||'')?value.toLowerCase():null;}
-  function normalize(value={}){return {background:modes.includes(value.background)?value.background:'gateway',accent:color(value.accent)||'#ffffff',surface:color(value.surface)};}
+  function normalize(value={}){const accent=color(value.accent);return {background:modes.includes(value.background)?value.background:'gateway',accent:accent&&accent!=='#b5f36d'?accent:'#ffffff',surface:color(value.surface)};}
   function readable(value){const rgb=value.slice(1).match(/../g).map(hex=>parseInt(hex,16)/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return rgb[0]*.2126+rgb[1]*.7152+rgb[2]*.0722>.179?'#171717':'#eeeeee';}
   function mix(value,other,ratio){return '#'+value.slice(1).match(/../g).map((hex,i)=>Math.round(parseInt(hex,16)*(1-ratio)+parseInt(other.slice(1+i*2,3+i*2),16)*ratio).toString(16).padStart(2,'0')).join('');}
   function apply(value){const options=normalize(value),style=document.body.style;

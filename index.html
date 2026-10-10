@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="resources/katex/katex.min.css">
 <link rel="stylesheet" href="glass.css">
 <link rel="stylesheet" href="chat-style.css">
+<link rel="stylesheet" href="resources/ui/notifications.css">
 </head>
 <body>
 <header class="window-titlebar" id="windowTitlebar">
@@ -278,18 +279,32 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </div>
-    <nav class="settings-nav" aria-label="Settings sections"><button type="button" data-settings-tab="general" class="active">General</button><button type="button" data-settings-tab="customization">Customization</button><button type="button" data-settings-tab="models">Models</button><button type="button" data-settings-tab="skills">Skills</button><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button><button type="button" data-settings-tab="plugins">Plugins</button><button type="button" data-settings-tab="discord">Discord Activity</button></nav>
-    <div class="modal-body settings-body">
-      <section class="settings-block" data-settings-panel="general">
-        <div class="discord-heading"><div><h3>Local AI</h3><p id="localAiDescription">Use downloaded models on your computer.</p></div><button id="localAiToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Local AI"><span></span></button></div>
-      </section>
+    <nav class="settings-nav" aria-label="Settings sections">
+      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="app">Application</span><button type="button" data-settings-tab="general" class="active">Language</button><button type="button" data-settings-tab="customization">Appearance</button></div>
+      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="ai">AI &amp; models</span><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="models">Local models &amp; agents</button><button type="button" data-settings-tab="images">Images</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button></div>
+      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="tools">Tools</span><button type="button" data-settings-tab="plugins">MCP tools</button><button type="button" data-settings-tab="skills">Skills instructions</button><button type="button" data-settings-tab="discord">Discord Activity</button></div>
+    </nav>
+    <div class="modal-body settings-body"><div class="settings-page-heading"><h3 id="settingsPageTitle">Language</h3><p id="settingsPageHint">Choose the language of the application.</p></div>
+
       <section class="settings-block cloud-settings" data-settings-panel="cloud" hidden>
-        <h3>Providers</h3>
+        <h3 hidden>Providers</h3>
         <p id="providerPrivacy">Cloud requests send your messages and attached context to the selected provider.</p>
-<form id="providerForm"><label id="providerLabel">Provider</label><div class="provider-picker"><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button><button type="button" role="option" data-provider="sambanova" aria-selected="false">SambaNova · Free tier</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option><option value="sambanova">SambaNova · Free tier</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button></div></form>
-        <p id="providerStatus" role="status"></p>
+<div id="providerCards" class="provider-cards"></div>
+        <dialog id="providerEditor" class="provider-editor" aria-labelledby="providerEditorTitle" hidden><div class="provider-editor-heading"><h4 id="providerEditorTitle">OpenRouter</h4><button type="button" id="providerEditorClose" class="catalog-btn" aria-label="Close provider settings">×</button></div>
+<form id="providerForm"><label id="providerLabel" hidden>Provider</label><div class="provider-picker" hidden><button id="providerPickerToggle" type="button" aria-haspopup="listbox" aria-expanded="false" aria-controls="providerOptions"><span id="providerPickerValue">OpenRouter · Free & Paid</span><svg viewBox="0 0 16 16" width="16" height="16"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg></button><div id="providerOptions" role="listbox" aria-labelledby="providerLabel" inert><button type="button" role="option" data-provider="openrouter" aria-selected="true">OpenRouter · Free & Paid</button><button type="button" role="option" data-provider="groq" aria-selected="false">Groq · Free tier</button><button type="button" role="option" data-provider="gemini" aria-selected="false">Google Gemini</button><button type="button" role="option" data-provider="cerebras" aria-selected="false">Cerebras</button><button type="button" role="option" data-provider="sambanova" aria-selected="false">SambaNova · Free tier</button></div><select id="providerSelect" hidden><option value="openrouter">OpenRouter · Free & Paid</option><option value="groq">Groq · Free tier</option><option value="gemini">Google Gemini</option><option value="cerebras">Cerebras</option><option value="sambanova">SambaNova · Free tier</option></select></div><label for="providerKey">API key</label><input id="providerKey" type="password" autocomplete="off" required placeholder="Paste your API key"><div><button type="button" class="catalog-btn" id="providerGetKey">Get API key</button><button class="catalog-btn primary" type="submit" id="providerConnect">Connect</button><button type="button" class="catalog-btn" id="providerRemove" hidden>Remove API key</button></div></form>
+        <p id="providerStatus" role="status"></p></dialog><p id="providerCardsError" role="status"></p>
       </section>
-      <section class="settings-section" data-settings-panel="general">
+
+      <section class="settings-block appearance-settings" data-settings-panel="customization" hidden>
+        <h3 id="appearanceTitle" hidden>Customization</h3><p id="appearanceHint" hidden>Make AetherAI feel like yours.</p>
+<div class="settings-preference-group">        <h4 id="chatStyleTitle">Chat appearance</h4>
+        <p id="chatStyleHint">Chat name and visual presets in AetherAI. They do not change the model or answers, or imply affiliation.</p>
+        <div class="chat-style-picker" id="chatStylePicker">
+          <button type="button" id="chatStyleToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="chatStyleOptions"><span id="chatStyleValue"></span><svg class="style-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5"/></svg></button>
+          <div id="chatStyleOptions" class="chat-style-options" role="listbox" aria-labelledby="chatStyleTitle" hidden></div>
+        </div>
+        <div class="answer-emphasis-setting"><div><h4 id="answerEmphasisTitle">Key phrases</h4><p id="answerEmphasisHint">Underline phrases the model marks as important.</p></div><button id="answerEmphasisToggle" class="activity-switch" type="button" role="switch" aria-checked="true" aria-labelledby="answerEmphasisTitle"><span></span></button></div>
+</div><div class="settings-preference-group"><h4 id="settingsColorsTitle">Colors and theme</h4>      <section class="settings-section">
         <div>
           <div class="settings-title">Theme</div>
           <div class="settings-desc">Choose the visual theme.</div>
@@ -298,25 +313,19 @@
           <button type="button" data-theme="dark">Dark</button>
           <button type="button" data-theme="light">Light</button>
         </div>
-      </section>
-      <section class="settings-block appearance-settings" data-settings-panel="customization" hidden>
-        <h3 id="appearanceTitle">Customization</h3><p id="appearanceHint">Make AetherAI feel like yours.</p>
-        <h4 id="chatStyleTitle">Chat appearance</h4>
-        <p id="chatStyleHint">Chat name and visual presets in AetherAI. They do not change the model or answers, or imply affiliation.</p>
-        <div class="chat-style-picker" id="chatStylePicker">
-          <button type="button" id="chatStyleToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="chatStyleOptions"><span id="chatStyleValue"></span><svg class="style-chevron" viewBox="0 0 20 20" aria-hidden="true"><path d="m5 8 5 5 5-5"/></svg></button>
-          <div id="chatStyleOptions" class="chat-style-options" role="listbox" aria-labelledby="chatStyleTitle" hidden></div>
-        </div>
-        <h4 id="backgroundTitle">Background animation</h4><div class="background-options" role="group" aria-labelledby="backgroundTitle">
+      </section>        <h4 id="paletteTitle">Color palette</h4><div class="appearance-swatches" role="group" aria-labelledby="paletteTitle"></div>
+        <div class="appearance-colors"><label><span id="accentColorLabel">Accent color</span><input type="color" id="accentColor" value="#ffffff"></label><label><span id="surfaceColorLabel">Application color</span><input type="color" id="surfaceColor" value="#121212"></label></div>
+        <button type="button" id="resetAppearance" class="catalog-btn">Reset appearance</button>
+</div><div class="settings-preference-group">        <h4 id="backgroundTitle">Background animation</h4><div class="background-options" role="group" aria-labelledby="backgroundTitle">
         <button type="button" data-background="none"><span class="background-preview no-background"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="m6 6 12 12"/></svg></span><span>None</span></button>
         <button type="button" data-background="gateway"><span class="background-preview"><img src="resources/background-previews/gateway.png" alt="" loading="lazy"></span><span>Gateway Flow</span></button>
         <button type="button" data-background="pattern"><span class="background-preview"><img src="resources/background-previews/pattern.png" alt="" loading="lazy"></span><span>Pattern Waves</span></button>
         <button type="button" data-background="pixel"><span class="background-preview"><img src="resources/background-previews/pixel.png" alt="" loading="lazy"></span><span>Pixel Blast</span></button></div>
         <p id="backgroundMotionNote">Animations pause when the app is hidden. Reduced motion uses a still background.</p>
-        <h4 id="paletteTitle">Color palette</h4><div class="appearance-swatches" role="group" aria-labelledby="paletteTitle"></div>
-        <div class="appearance-colors"><label><span id="accentColorLabel">Accent color</span><input type="color" id="accentColor" value="#ffffff"></label><label><span id="surfaceColorLabel">Application color</span><input type="color" id="surfaceColor" value="#121212"></label></div>
-        <button type="button" id="resetAppearance" class="catalog-btn">Reset appearance</button>
-      </section>
+</div></section>
+      <section class="settings-block" data-settings-panel="models" hidden>
+        <div class="discord-heading"><div><h3>Local AI</h3><p id="localAiDescription">Use downloaded models on your computer.</p></div><button id="localAiToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Local AI"><span></span></button></div>
+      <button type="button" id="settingsOpenCatalog" class="catalog-btn">Open local model catalog</button></section>
       <section class="settings-section" data-settings-panel="models" hidden>
         <div>
           <div class="settings-title">Compute mode</div>
@@ -347,7 +356,7 @@
         <p id="cloudError" role="status"></p>
         <div class="discord-heading"><h4 id="cloudModelsTitle">Cloud models</h4><button type="button" class="catalog-btn" id="cloudRefresh">Refresh</button></div><div id="cloudModelsList"></div>
       </section>
-      <section class="settings-block image-provider-settings" data-settings-panel="models" hidden><h3 id="imageProviderTitle">Image generation</h3><p id="imageProviderHelp">Connect Pollinations for cloud images. Without a key, images use local SD Turbo. Cloud generations use your provider balance.</p><form id="imageProviderForm"><label id="imageProviderKeyLabel" for="imageProviderKey">Image API key</label><input id="imageProviderKey" type="password" autocomplete="off" placeholder="Paste your image API key" required><div><button id="imageProviderOpen" type="button" class="catalog-btn">Get image API key</button><button id="imageProviderAction" class="catalog-btn primary" type="submit">Connect</button></div></form><p id="imageProviderStatus" role="status"></p></section>
+      <section class="settings-block image-provider-settings" data-settings-panel="images" hidden><h3 id="imageProviderTitle">Image generation</h3><p id="imageProviderHelp">Connect Pollinations for cloud images. Without a key, images use local SD Turbo. Cloud generations use your provider balance.</p><form id="imageProviderForm"><label id="imageProviderKeyLabel" for="imageProviderKey">Image API key</label><input id="imageProviderKey" type="password" autocomplete="off" placeholder="Paste your image API key" required><div><button id="imageProviderOpen" type="button" class="catalog-btn">Get image API key</button><button id="imageProviderAction" class="catalog-btn primary" type="submit">Connect</button></div></form><p id="imageProviderStatus" role="status"></p></section>
       <section class="settings-block plugins-settings" data-settings-panel="plugins" hidden>
         <h3 id="pluginsTitle">Plugins</h3><p id="pluginsHint">MCP tools for your models. Enable a connection to make its tools available in chat.</p>
         <div class="preset-grid" id="pluginPresets"></div>
@@ -505,7 +514,11 @@
 <script src="streaming-text.js"></script>
 <script src="image-prompt.js"></script>
 <script src="build-clarification.js"></script>
+<script src="answer-presentation.js"></script>
+<script src="code-presentation.js"></script>
 <script src="renderer.js"></script>
+<div id="notificationsRoot" aria-label="Notifications"></div>
+<script src="resources/ui/notifications.js"></script>
 <script src="prompt-examples.js"></script>
 <script src="composer-prompts.js"></script>
 </body>

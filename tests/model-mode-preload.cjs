@@ -1,5 +1,5 @@
 const { contextBridge, ipcRenderer } = require('electron');
-let cloudListener,providerConfigured=true;
+let cloudListener,providerConfigured=true,providerEnabled=true;
 contextBridge.exposeInMainWorld('api', {
   accountStatus:()=>ipcRenderer.invoke('mode:account-status'),
   accountSendCode:email=>ipcRenderer.invoke('mode:account-send',email),
@@ -17,9 +17,10 @@ contextBridge.exposeInMainWorld('api', {
   settingsGet: () => ipcRenderer.invoke('mode:settings'), settingsSave: value => ipcRenderer.invoke('mode:save', value),
   ollamaStatus: async () => ({ running: true, models: [{ name: 'llama3.2:1b', size: 1300000000 }] }),
   localStatus: async () => ({ supported: true, installed: true, stage: 'idle', models: [{ name: 'multimind:qwen', size: 1000000000 }] }),
-  providersModels: async () => [{ name: 'cloud:openrouter/test/free', cloudName: 'Free test', provider: 'openrouter', backend: 'cloud',free:true },{name:'cloud:openrouter/apodex/apodex-1.1',cloudName:'Apodex 1.1',provider:'openrouter',contextLength:131072,free:false,pricing:{prompt:'0.000001',completion:'0.000002'}},{name:'cloud:openrouter/meta/llama-8b',cloudName:'Llama 8B',provider:'openrouter',contextLength:32768,free:true}],
-  providersStatus: async () => [{ id: 'openrouter', configured: providerConfigured }],
-  providersSave: async (id, key) => {const result=await ipcRenderer.invoke('mode:provider-save', id, key);providerConfigured=true;return result;},
+  providersModels: async () => providerConfigured&&providerEnabled?[{ name: 'cloud:openrouter/test/free', cloudName: 'Free test', provider: 'openrouter', backend: 'cloud',free:true },{name:'cloud:openrouter/apodex/apodex-1.1',cloudName:'Apodex 1.1',provider:'openrouter',contextLength:131072,free:false,pricing:{prompt:'0.000001',completion:'0.000002'}},{name:'cloud:openrouter/meta/llama-8b',cloudName:'Llama 8B',provider:'openrouter',contextLength:32768,free:true}]:[],
+  providersStatus: async () => [{ id: 'openrouter', configured: providerConfigured, enabled: providerConfigured&&providerEnabled, modelCount:providerConfigured?3:null }],
+  providersSave: async (id, key) => {const result=await ipcRenderer.invoke('mode:provider-save', id, key);providerConfigured=true;providerEnabled=true;return result;},
+  providersSetEnabled:async(id,enabled)=>{providerEnabled=enabled;return {};},
   providersDisconnect: async () => {providerConfigured=false;return {};},
   providersLimitsOpen: id => ipcRenderer.invoke('mode:limits-open', id),
   onCloudEvent: callback => { cloudListener=callback;return()=>{cloudListener=null;}; },

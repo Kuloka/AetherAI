@@ -115,7 +115,6 @@ body.auth-visible .app { pointer-events:none; }
 .gateway-flow-bg[hidden] { display:none; }
 .gateway-flow-bg { color:var(--accent); }
 body[data-custom-accent=true] .composer-send:not(:disabled) { background:var(--accent); color:var(--accent-ink); }
-body[data-custom-accent=true] .model-active-check { color:var(--accent); }
 @media (max-width:950px) { .background-options { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (prefers-reduced-motion:reduce) { .background-preview,.appearance-swatches button { transition:none; } }
 .window-titlebar { height:32px; display:flex; align-items:center; justify-content:space-between; background:var(--bg-sidebar); color:var(--text-secondary); -webkit-app-region:drag; user-select:none; }

@@ -19,6 +19,7 @@ MusicalProject/
 NevoProject/
 NebulaProject/
 resources/ollama/
+resources/ui/
 
 # Logs and diagnostics
 logs/

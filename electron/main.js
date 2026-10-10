@@ -25,6 +25,7 @@ handleIpc('providers:usage', async (_event, id) => id ? providers.refreshUsage(i
 handleIpc('providers:save', (_event, id, key) => providers.save(id, key));
 handleIpc('providers:models', (_event, force) => providers.models(force));
 handleIpc('providers:disconnect', (_event, id) => { for (const request of cloudRequests.values()) request.abort(); return providers.disconnect(id); });
+handleIpc('providers:set-enabled',(_event,id,enabled)=>{const status=providers.setEnabled(id,enabled);if(!enabled)for(const request of cloudRequests.values())if(request.provider===id)request.abort();return status;});
 handleIpc('providers:open', (_event, id) => shell.openExternal(providers.keys(id)));
 handleIpc('providers:limits-open', (_event, id) => {
   const url = { openrouter:'https://openrouter.ai/settings/credits', groq:'https://console.groq.com/settings/billing',gemini:'https://aistudio.google.com/usage',cerebras:'https://cloud.cerebras.ai',sambanova:'https://cloud.sambanova.ai/plans/billing' }[id];
@@ -44,6 +45,7 @@ handleIpc('cloud:request', async (event, id, body) => {
   const requestId = `${event.sender.id}:${id}`;
   if (cloudRequests.has(requestId)) throw new Error('Duplicate cloud request.');
   const controller = new AbortController(); cloudRequests.set(requestId, controller);
+  controller.provider=/^cloud:(openrouter|groq|gemini|cerebras|sambanova)\//.exec(body?.model || '')?.[1];
   const timeout = setTimeout(() => controller.abort(), 180000);
   const send = data => { if (!event.sender.isDestroyed()) event.sender.send('cloud:event', { id, ...data }); else controller.abort(); };
   try { await (/^cloud:(openrouter|groq|gemini|cerebras|sambanova)\//.test(body?.model || '') ? providers : cloud).chat(body, controller.signal, send); }
@@ -137,6 +139,19 @@ app.setPath('userData', ELECTRON_USER_DATA_DIR);
 app.setPath('sessionData', ELECTRON_CACHE_DIR);
 app.commandLine.appendSwitch('disk-cache-dir', ELECTRON_CACHE_DIR);
 app.commandLine.appendSwitch('gpu-cache-dir', ELECTRON_GPU_CACHE_DIR);
+
+const updateService=require('./app-updates').createUpdateService({
+  version:app.getVersion(),packaged:app.isPackaged,platform:process.platform,portable:!!process.env.PORTABLE_EXECUTABLE_DIR,
+  updater:app.isPackaged&&process.platform==='win32'&&!process.env.PORTABLE_EXECUTABLE_DIR?require('electron-updater').autoUpdater:null,
+  openExternal:url=>shell.openExternal(url),
+  emit:state=>{for(const win of BrowserWindow.getAllWindows())if(trustedContents.has(win.webContents.id)&&!win.isDestroyed())win.webContents.send('updates:state',state);},
+  prepareInstall:async()=>{await plugins.close();closingPlugins=true;}
+});
+handleIpc('updates:status',()=>updateService.status());
+handleIpc('updates:check',()=>updateService.check());
+handleIpc('updates:download',()=>updateService.download());
+handleIpc('updates:install',()=>updateService.install());
+handleIpc('updates:open-release',()=>updateService.openRelease());
 
 function ensureProjectsDir() {
   if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR, { recursive: true });

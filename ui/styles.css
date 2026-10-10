@@ -1,0 +1,31 @@
+/* Utilities only: Tailwind preflight must not reset the existing Electron UI. */
+@import "tailwindcss/theme.css" prefix(n);
+@import "tailwindcss/utilities.css" prefix(n) source(none);
+@source "../components/ui/notifications-5.tsx";
+@theme inline {
+  --color-success: var(--notification-success);
+  --color-warning: var(--notification-warning);
+  --color-destructive: var(--notification-error);
+  --color-foreground: var(--text-primary);
+  --color-muted-foreground: var(--text-secondary);
+  --color-border: var(--border);
+  --color-background: var(--notification-background);
+}
+#notificationsRoot {
+  --notification-success: var(--text-primary);
+  --notification-warning: #f4c56a;
+  --notification-error: #f38b8b;
+  --notification-background: #202020;
+  position:fixed;right:20px;bottom:20px;z-index:10000;width:360px;max-width:calc(100vw - 32px);pointer-events:none;
+}
+body.theme-light #notificationsRoot {
+  --notification-success:var(--text-primary);--notification-warning:#94600b;--notification-error:#b52c37;--notification-background:#fff;
+}
+#notificationsRoot .notification-card {pointer-events:auto;box-sizing:border-box;animation:notification-enter .18s ease-out;overflow-wrap:anywhere}
+#notificationsRoot button {font:inherit;cursor:pointer}
+#notificationsRoot .notification-dismiss {padding:0;background:none;border:0;line-height:1;display:flex}
+#notificationsRoot .notification-action {align-self:flex-start;margin-top:8px;padding:5px 10px;border:1px solid var(--border);background:transparent;color:var(--text-primary);border-radius:6px;font-size:12px}
+#notificationsRoot button:disabled {opacity:.5;cursor:default}
+#notificationsRoot button:focus-visible {outline:2px solid var(--notification-success);outline-offset:3px}
+@keyframes notification-enter {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){#notificationsRoot .notification-card{animation:none}}

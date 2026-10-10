@@ -16,9 +16,11 @@ Local desktop AI studio built with Electron. AetherAI can prepare a compact mode
 
 ### Cloud or Local AI
 
-Open **Settings → General → Local AI** to switch between cloud and local models. With Local AI off, the model picker shows connected cloud providers and hides the download catalog. With Local AI on, it shows downloaded Ollama and built-in models and restores the installation catalog. The app remembers the setting and the last model selected in each mode. Existing local-model users keep local mode on upgrade.
+Open **Settings → Local models & agents → Local models** to switch between cloud and local models. With Local AI off, the model picker shows connected cloud providers and hides the download catalog. With Local AI on, it shows downloaded Ollama and built-in models and restores the installation catalog. The app remembers the setting and the last model selected in each mode. Existing local-model users keep local mode on upgrade.
 
 Connect a personal API key in **Settings → Providers**. OpenRouter lists text models available under your account preferences and guardrails using `/models/user`, including paid models with their current input/output prices. Free models are marked Free; paid models are marked Paid. Paid models are used only when explicitly selected (or restored from your saved selection), with no automatic fallback from a free model to a paid one. Groq exposes chat models using your account limits. Keys are validated and encrypted using Electron secure storage. Messages and attached context go to the selected provider. Subagents make additional API requests. Ollama Cloud remains an optional separate connection. API errors are converted into readable messages in Russian or English, including mid-stream errors, upstream overload, request limits, insufficient balance, authentication, context length and connection failures.
+
+Providers appear as compact cards with names, connection state and model counts from the loaded catalogs. Square switches disable a provider without deleting its encrypted key; this preference survives restarts. Disabled providers are excluded from the model list and cannot receive new chat requests; switching one off aborts its active requests. Each API provider has one pencil button opening a compact key dialog. Enter submits the key and closes the dialog after successful validation; clicking outside or pressing Escape dismisses only this dialog and clears the entered text. An invalid replacement keeps the dialog open and preserves the saved key. **Remove API key** deletes the connection. Local models and Ollama Cloud remain separate resources with their existing configuration flows.
 
 For the installation steps below, turn **Local AI** on first.
 
@@ -62,6 +64,10 @@ npm run dist:win
 
 Data lives in ~/.multimind-data and projects in ~/MultiMindProject. On first launch, existing legacy chats, settings, downloaded models and projects are imported once without overwriting current files. Original folders remain as backups. Installer upgrade identity is preserved.
 
+## Application updates
+
+Application notifications and Windows installer updates are described in [Notifications and updates](docs/app-updates.md). Existing releases without an updater require one installer upgrade first. New installed Windows builds offer explicit download and restart actions; portable/macOS/Linux builds link to the official releases.
+
 ## Upstream components
 
 - [llama.cpp b10549](https://github.com/ggml-org/llama.cpp/releases/tag/b10549), MIT license; the downloaded archive retains its upstream files.
@@ -98,7 +104,7 @@ The built-in engine loads one model at a time. Specialists sharing that model ca
 
 The logo list in Customization switches between AetherAI, Claude, ChatGPT and DeepSeek. Only the displayed name, logo and thinking indicator change. Logos retain their brand colors; your existing colors, typography, welcome text and background stay unchanged. Claude uses independently moving spark rays, ChatGPT a pulsing dot, and DeepSeek a whale with animated dots. Model logos reuse existing licensed SVG assets (resources/model-icons/SOURCES.md). Motion is reconstructed locally. Prompts and model selection remain unchanged. Hidden windows pause motion; reduced motion uses still indicators. See [visual preferences](docs/chat-visual-styles.md) for verification.
 
-Settings > Customization (the pen icon) offers None, Gateway Flow, Pattern Waves and Pixel Blast. Choose an accent from the swatches or use the native color picker; a second picker changes the application's surface color with automatically contrasting text. Reset restores the default monochrome appearance. Settings are saved across restarts, and color changes apply immediately. Backgrounds stop when the window is hidden; reduced-motion preferences use a static field for GPU effects. Desktop backgrounds do not intercept chat interactions.
+Settings > Appearance (the pen icon) offers None, Gateway Flow, Pattern Waves and Pixel Blast. Choose an accent from the swatches or use the native color picker; a second picker changes the application's surface color with automatically contrasting text. The default accent is white. #B5F36D is reserved for enabled switches and answer underlines, and is absent from the accent palette. Previously saved #B5F36D accents return to white while keeping the existing surface; other saved colors are preserved. Reset restores neutral surfaces and the white accent. Key phrases marked in bold by the model receive a thin 1px green underline; this can be disabled in Appearance and does not change model prompts or code formatting. Settings are saved across restarts, and color changes apply immediately. Backgrounds stop when the window is hidden; reduced-motion preferences use a static field for GPU effects. Desktop backgrounds do not intercept chat interactions.
 
 React Bits sources are bundled locally rather than loaded from a CDN. Pattern Waves uses OGL and Pixel Blast uses Three.js; the desktop includes their dependencies in a standalone bundle. The website product wordmark uses Shape Waves (WebGPU) and falls back to HTML text when unsupported. The shared sources and license are in `docs/source/backgrounds` and `resources/reactbits-license.txt`.
 

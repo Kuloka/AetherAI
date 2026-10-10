@@ -1,12 +1,19 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  updatesStatus: () => ipcRenderer.invoke('updates:status'),
+  updatesCheck: () => ipcRenderer.invoke('updates:check'),
+  updatesDownload: () => ipcRenderer.invoke('updates:download'),
+  updatesInstall: () => ipcRenderer.invoke('updates:install'),
+  updatesOpenRelease: () => ipcRenderer.invoke('updates:open-release'),
+  onUpdateState: callback => {const listener=(_event,state)=>callback(state);ipcRenderer.on('updates:state',listener);return()=>ipcRenderer.removeListener('updates:state',listener);},
   providersStatus: () => ipcRenderer.invoke('providers:status'),
   providersLimitsOpen: id => ipcRenderer.invoke('providers:limits-open', id),
   providersUsage: id => ipcRenderer.invoke('providers:usage', id),
   providersSave: (id, key) => ipcRenderer.invoke('providers:save', id, key),
   providersModels: force => ipcRenderer.invoke('providers:models', force),
   providersDisconnect: id => ipcRenderer.invoke('providers:disconnect', id),
+  providersSetEnabled: (id, enabled) => ipcRenderer.invoke('providers:set-enabled', id, enabled),
   providersOpen: id => ipcRenderer.invoke('providers:open', id),
   cloudStatus: () => ipcRenderer.invoke('cloud:status'),
   cloudSave: key => ipcRenderer.invoke('cloud:save', key),

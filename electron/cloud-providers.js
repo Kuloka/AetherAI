@@ -13,6 +13,10 @@ const PROVIDERS = {
 
 function createProviders(directory, safeStorage, request = fetch) {
   const cache = new Map();
+  const stateFile = path.join(directory, 'providers-state.json');
+  let disabled = new Set();
+  try { const saved=JSON.parse(fs.readFileSync(stateFile,'utf8'));if(Array.isArray(saved.disabled))disabled=new Set(saved.disabled.filter(id=>Object.hasOwn(PROVIDERS,id))); } catch {}
+  function persistState(){fs.mkdirSync(directory,{recursive:true});fs.writeFileSync(stateFile,JSON.stringify({disabled:[...disabled]}),{mode:0o600});}
   const quota = new Map();
   const quotaFile = path.join(directory, 'provider-usage.json');
   try {
@@ -32,7 +36,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     persistUsage();
   }
   async function refreshUsage(id) {
-    if (id !== 'openrouter' || !key(id)) return usage();
+    if (id !== 'openrouter' || disabled.has(id) || !key(id)) return usage();
     const response = await request(config(id).base + '/key', { headers: { Authorization: 'Bearer ' + key(id) }, signal: AbortSignal.timeout(10000), redirect: 'error' });
     if (!response.ok) return usage();
     const { data } = await response.json();
@@ -42,7 +46,8 @@ function createProviders(directory, safeStorage, request = fetch) {
   function config(id) { if (!Object.hasOwn(PROVIDERS, id)) throw new Error('Unknown provider'); return PROVIDERS[id]; }
   function file(id) { config(id); return path.join(directory, id + '.key'); }
   function key(id) { return fs.existsSync(file(id)) ? safeStorage.decryptString(fs.readFileSync(file(id))) : ''; }
-  function status() { return Object.keys(PROVIDERS).map(id => ({ id, configured: fs.existsSync(file(id)) })); }
+  function status() { return Object.keys(PROVIDERS).map(id => ({ id, configured: fs.existsSync(file(id)), enabled:fs.existsSync(file(id))&&!disabled.has(id), modelCount: cache.has(id) ? cache.get(id).models.length : null })); }
+  function setEnabled(id, enabled){config(id);if(typeof enabled!=='boolean')throw Error('Invalid provider state');if(enabled&&!fs.existsSync(file(id)))throw Error('Connect the provider first');if(enabled)disabled.delete(id);else disabled.add(id);persistState();return status();}
   async function list(id, token) {
     const response = await request(config(id).base + (id==='openrouter'?'/models/user':'/models'), { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(15000), redirect: 'error' });
     if (!response.ok) throw new Error(id + ' models: HTTP ' + response.status);
@@ -70,18 +75,20 @@ function createProviders(directory, safeStorage, request = fetch) {
     if (token !== key(id)) for (const name of quota.keys()) if (name === id || name.startsWith('cloud:' + id + '/')) quota.delete(name);
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(file(id), safeStorage.encryptString(token),{mode:0o600});
+    disabled.delete(id);persistState();
     if (keyData) recordKeyUsage(keyData); else persistUsage();
     cache.set(id, { time: Date.now(), models });
     return status();
   }
   function disconnect(id) {
     if (fs.existsSync(file(id))) fs.unlinkSync(file(id)); cache.delete(id);
+    disabled.delete(id);persistState();
     for (const name of quota.keys()) if (name === id || name.startsWith('cloud:' + id + '/')) quota.delete(name);
     persistUsage();
     return status();
   }
   async function models(force = false) {
-    const results = await Promise.allSettled(status().filter(item => item.configured).map(async ({ id }) => {
+    const results = await Promise.allSettled(status().filter(item => item.enabled).map(async ({ id }) => {
       if (!force && cache.has(id) && Date.now() - cache.get(id).time < 300000) return cache.get(id).models;
       const found = await list(id, key(id)); cache.set(id, { time: Date.now(), models: found }); return found;
     }));
@@ -94,6 +101,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     if (!match || !Array.isArray(body.messages)) throw new Error('Invalid provider request');
     const [, id, model] = match, token = key(id);
     if (!token) throw new Error('Connect ' + id + ' in Settings → Providers');
+    if(disabled.has(id))throw new Error('Enable ' + id + ' in Settings → Providers');
     const selected=(await models()).find(item=>item.name===body.model);if(!selected)throw new Error('This model is no longer available');if(body.messages.some(message=>message.images?.length)&&!selected.capabilities.includes('vision'))throw new Error('This model does not support images. Choose a model marked Vision.');
     const payload = { model, stream: body.stream !== false, messages: body.messages.map(message => ({ role: message.role, content: message.images?.length ? [{ type: 'text', text: message.content || '' }, ...message.images.map(image => ({ type: 'image_url', image_url: { url: image.startsWith('data:') ? image : 'data:image/png;base64,' + image } }))] : message.content })), max_tokens: body.options?.num_predict || 1000 };
     if(id==='gemini')payload.model=model.replace(/^models\//,'');
@@ -158,6 +166,6 @@ function createProviders(directory, safeStorage, request = fetch) {
       buffer += decoder.decode(); line(buffer.trim()); emit({ type: 'done' });
     } finally { await reader.cancel().catch(() => {}); }
   }
-  return { status, save, disconnect, models, chat, usage, refreshUsage, keys: id => config(id).keys };
+  return { status, save, disconnect, setEnabled, models, chat, usage, refreshUsage, keys: id => config(id).keys };
 }
 module.exports = { createProviders };
