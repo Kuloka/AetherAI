@@ -183,6 +183,7 @@
 
         <!-- Bottom controls: model on the left, thinking on the right -->
         <div class="composer-controls">
+          <div class="composer-action-row">
           <div class="model-selector" id="modelSelector">
             <button class="model-btn" id="modelBtn" title="Choose model" aria-label="Choose model" data-tooltip="Choose model">
               <span class="model-btn-icon" id="modelBtnIcon" aria-hidden="true"></span>
@@ -203,7 +204,6 @@
                 <span>Smart search</span>
               </button>
             </div>
-            <button type="button" class="team-toggle" id="teamToggle" aria-pressed="true">Agents · Auto</button>
             <div class="access-selector" id="accessSelector">
               <button class="access-btn" id="accessBtn" title="Access mode">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
@@ -244,6 +244,7 @@
               <div class="think-item" data-think="none">No thinking</div>
             </div>
             </div>
+          </div>
           <div class="composer-quota" id="composerQuota" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><circle class="quota-track" cx="12" cy="12" r="9"/><circle id="composerQuotaFill" cx="12" cy="12" r="9"/></svg><span id="composerQuotaPercent">—</span></div>
 </div>
         </div>
@@ -356,7 +357,7 @@
       </section>
       <section class="settings-block discord-settings" data-settings-panel="discord" hidden>
         <div class="discord-heading"><div><h3>Discord Activity</h3><p id="discordDescription"></p></div><button id="discordToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Discord Activity"><span></span></button></div>
-        <p id="discordStatus" role="status"></p><p id="discordNameHelp"></p><button id="discordRenameApp" type="button" class="catalog-btn">Rename Discord application</button>
+        <p id="discordStatus" role="status"></p>
       </section>
       <section class="settings-block app-skills" data-settings-panel="skills" hidden>
         <strong>Skills</strong>
@@ -493,6 +494,7 @@
 <script src="logo-motion.js"></script>
 <script src="streaming-text.js"></script>
 <script src="image-prompt.js"></script>
+<script src="build-clarification.js"></script>
 <script src="renderer.js"></script>
 <script src="prompt-examples.js"></script>
 <script src="composer-prompts.js"></script>

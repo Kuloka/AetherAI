@@ -1435,11 +1435,8 @@
     const labels = ru ? { disabled: 'Активность выключена', connecting: 'Подключение к Discord…', waiting: 'Ожидание приложения Discord', active: 'Активность включена', error: 'Ошибка Discord', 'needs-id': 'Не задан Application ID' } : { disabled: 'Activity is off', connecting: 'Connecting to Discord…', waiting: 'Waiting for Discord desktop', active: 'Activity is on', error: 'Discord error', 'needs-id': 'Application ID required' };
     $('discordStatus').textContent = (labels[result.state] || result.state) + (result.message ? ': ' + result.message : '');
   }
-  $('discordRenameApp').onclick=()=>window.api?.discordOpenApplication();
   function renderDiscordSettings() {
     const ru = settings.appLanguage === 'ru';
-    $('discordNameHelp').textContent=ru?'Название Multimind в верхней строке меняется в Discord Developer Portal: General Information → Name → AetherAI → Save Changes.':'The top activity name is managed by Discord: General Information → Name → AetherAI → Save Changes.';
-    $('discordRenameApp').textContent=ru?'Переименовать приложение Discord':'Rename Discord application';
     $('discordToggle').setAttribute('aria-checked', String(settings.discordActivity?.enabled === true));
     $('discordDescription').textContent = ru ? 'Показывать AetherAI в вашем профиле Discord.' : 'Show AetherAI on your Discord profile.';
     updateDiscordStatus().catch(() => {});
@@ -1885,8 +1882,6 @@
     $("skillsHint").textContent = ru ? "Импортируй инструкции из Markdown и включи нужные для следующих запросов." : "Import Markdown instructions and enable them for your next requests.";
     $("importSkillBtn").textContent = ru ? "Импорт .md" : "Import .md";
     $("skillsFolderBtn").textContent = ru ? "Открыть папку" : "Open folder";
-    $("teamToggle").textContent = ru ? `Агенты · ${settings.teamEnabled ? "Авто" : "Выкл"}` : `Agents · ${settings.teamEnabled ? "Auto" : "Off"}`;
-    $("teamToggle").setAttribute("aria-pressed", String(!!settings.teamEnabled));
     $("localSetupTitle").textContent = ru ? "Готово за одну настройку" : "Ready in one setup";
     $("localSetupDescription").textContent = ru ? "Движок + Qwen 1.5B · 1,14 ГБ · Windows x64 · без Ollama. Компоненты Windows при необходимости: ещё 26 МБ." : "Engine + Qwen 1.5B · 1.14 GB · Windows x64 · no Ollama. Windows components if needed: another 26 MB.";
     $("localSetupBtn").textContent = ru ? "Быстрая настройка" : "Quick setup";
@@ -2011,7 +2006,6 @@
     } catch (error) { $("localSetupStatus").textContent = error.message; }
     finally { $("installOllamaBtn").disabled = false; }
   });
-  $("teamToggle").addEventListener("click", () => { settings.teamEnabled = !settings.teamEnabled; updateAetherAIControls(); persist(); });
   for (let i = 0; i < 2; i++) $("workerModel" + i).addEventListener("change", event => {
     if (!Array.isArray(settings.workerModels)) settings.workerModels = [];
     settings.workerModels[i] = event.target.value; persist();
@@ -4582,6 +4576,19 @@
 
   async function collectBuildDetails(text) {
     if (!looksLikeBroadBuildRequest(text)) return text;
+    const application=window.AetherAIBuildClarification.infer(text,getCurrentChat()?.messages||[]);
+    if(application?.application==='calculator'){
+      const ru=settings.appLanguage==='ru';
+      const platform=application.platform||await askSetupStep(ru?'Где должен работать калькулятор?':'Where should the calculator run?',[
+        {label:ru?'Отдельное окно — Python / Tkinter':'Desktop window — Python / Tkinter',value:'desktop'},
+        {label:ru?'В браузере — HTML / CSS / JavaScript':'In a browser — HTML / CSS / JavaScript',value:'browser'},
+        {label:t('setupCustom'),value:'custom',kind:'custom'}
+      ]);
+      const stack=application.language||(platform==='desktop'?'Python + Tkinter':platform==='browser'?'HTML + CSS + JavaScript':platform);
+      return `${text}\n\n${ru?'Задача: калькулятор с графическим интерфейсом':'Task: calculator with a graphical interface'}.\n${ru?'Формат':'Platform'}: ${platform}.\n${t('stack')}: ${stack}.`;
+    }
+    // Website archetypes are not generic choices for games or desktop programs.
+    if(!window.AetherAIBuildClarification.usesWebsitePresets(text))return text;
     const inferred = inferBuildDetailsFromText(text);
     const theme = inferred.theme || await askSetupStep(t("setupInterfaceQuestion"), [
       { label: t("setupDashboard"), value: "dashboard" },
