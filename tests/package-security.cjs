@@ -9,7 +9,7 @@ console.log('PASS: packaged application contains runtime assets and no matching 
 for(const asset of ['electron/app-updates.js','resources/ui/notifications.js','resources/ui/notifications.css'])assert.ok(files.includes('/'+asset),'Missing notifications/update asset: '+asset);
 assert.ok(files.includes('/code-presentation.js'),'Missing code rendering helper');
 assert.ok(files.includes('/chat-interactions.js'),'Missing selected-text/learning helper');
-assert.ok(asar.extractFile(file,'resources/ui/notifications.js').toString().includes('stream-sources-toggle'),'Missing compiled React Streaming Text component');
+assert.ok(asar.extractFile(file,path.join('resources','ui','notifications.js')).toString().includes('stream-sources-toggle'),'Missing compiled React Streaming Text component');
 assert.ok(files.includes('/node_modules/electron-updater/out/main.js'),'Missing packaged updater dependency');
 for(const asset of ['brand-motion.js','chat-style.js','chat-style.css','claude-mark.js','resources/model-icons/claude-color.svg','resources/model-icons/openai.svg','resources/model-icons/deepseek-color.svg'])assert.ok(files.includes('/'+asset),'Missing logo preference asset: '+asset);
 assert.ok(!files.includes('/cli.js')&&!files.includes('/electron/terminal-backend.js'),'Removed CMD chat must not be packaged');
