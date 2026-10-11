@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
+import "./streaming";
 import NotificationsBlock, { type Notification } from "@/components/ui/notifications-5";
 
 type UpdateState = {status:string;currentVersion:string;supported:boolean;version:string|null;percent:number};

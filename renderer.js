@@ -33,6 +33,7 @@
   };
 
   let currentChatId = null;
+  let chatInteractions=null;
   let composerDeepThinking = false;
   let composerSmartSearch = false;
   let activeSkillContext = "";
@@ -1280,6 +1281,8 @@
   }
 
   function updateHomeMode() {
+    chatInteractions?.refresh();
+    window.AetherAIStreamingUI?.busy(isGenerating);
     const chat = getCurrentChat();
     const isEmpty = !chat || !chat.messages || chat.messages.length === 0;
     mainArea?.classList.toggle("home-mode", isEmpty && !isGenerating);
@@ -1593,8 +1596,6 @@
     updateAetherAIControls();
     updateComposerModeToggles();
     const answerCopy=window.AetherAIAnswerPresentation.labels(settings.appLanguage);
-    document.querySelectorAll('.answer-sources-label').forEach(label=>label.textContent=answerCopy.sources);
-    document.querySelectorAll('.answer-followups button').forEach(button=>button.textContent=answerCopy.explain);
     document.querySelectorAll('.code-copy').forEach(button=>{const label=button.querySelector('.code-copy-label');if(label)label.textContent=window.AetherAICode.labels(settings.appLanguage)[button.dataset.copyState==='copied'?1:button.dataset.copyState==='failed'?2:0];});
     $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
     document.querySelector('[data-settings-tab="cloud"]').textContent = settings.appLanguage==='ru'?'Провайдеры':'Providers';
@@ -2222,7 +2223,8 @@
     const root=$('composerQuota'),model=availableModels.find(item=>item.name===settings.selectedModel);if(!root)return;root.hidden=!model||!isCloudModel(model.name);if(root.hidden)return;
     const usage=providerUsage[model.name]||(model.provider==='openrouter'?providerUsage[model.provider]:null)||{},info=window.AetherAIQuota.describe(usage,model),ru=settings.appLanguage==='ru';
     $('composerQuotaPercent').textContent=info.known?info.percentage+'%':'—';$('composerQuotaFill').style.strokeDashoffset=String(56.55*(1-(info.percentage||0)/100));
-    const description=info.known?(ru?'Осталось ':'Remaining ')+info.percentage+'% · '+info.label+' · '+info.remaining+' / '+info.total+(info.reset?' · '+info.reset:''):(ru?'Провайдер ещё не сообщил остаток лимита':'The provider has not reported the remaining quota yet');root.title=description;root.setAttribute('aria-label',description);root.setAttribute('role',info.known?'meter':'img');
+    const limitLabel=ru&&info.label==='Daily requests'?'Запросы за сутки':info.label;
+    const description=info.known?(ru?'Осталось ':'Remaining ')+info.percentage+'% · '+limitLabel+' · '+info.remaining+' / '+info.total+(info.reset?' · '+info.reset:''):(ru?'Провайдер ещё не сообщил остаток лимита':'The provider has not reported the remaining quota yet');root.title=description;root.setAttribute('aria-label',description);root.setAttribute('role',info.known?'meter':'img');
     if(info.known){root.setAttribute('aria-valuemin','0');root.setAttribute('aria-valuemax','100');root.setAttribute('aria-valuenow',String(info.percentage));}else for(const name of ['aria-valuemin','aria-valuemax','aria-valuenow'])root.removeAttribute(name);
   }
 
@@ -3474,9 +3476,9 @@
 
   async function copyText(text) {
     const value = String(text || "");
+    if(window.api?.clipboardWrite){try{if(await window.api.clipboardWrite(value))return true;}catch{}}
     if (navigator.clipboard?.writeText && window.isSecureContext) {
-      await navigator.clipboard.writeText(value);
-      return true;
+      try{await navigator.clipboard.writeText(value);return true;}catch{}
     }
 
     const ta = document.createElement("textarea");
@@ -3605,40 +3607,24 @@
     textEl.className = "message-text";
     const legacyImagePrompt=role==='assistant'&&msg.images?.length&&/^\*\*(?:Prompt|Запрос)\*\*:/i.test(msg.content||'');
     const visibleAssistantText = role==='assistant'&&(msg.imageGeneration||legacyImagePrompt)?'':msg.codeActivity ? stripCodeBlocks(msg.content || "") : (msg.content || "");
-    textEl.innerHTML = role === "user" ? escapeHtml(msg.content) : renderMarkdown(visibleAssistantText);
+    if(role==='assistant')window.AetherAIStreamingUI.render(textEl,{html:renderMarkdown(visibleAssistantText),done:true,citations:(msg.sources||[]).map(source=>window.AetherAIAnswerPresentation.sourceDetails(source)).filter(Boolean),labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});
+    else textEl.innerHTML=escapeHtml(msg.content);
     if (role === "assistant" && !visibleAssistantText.trim()) textEl.style.display = "none";
     if (role === "assistant" && msg.animateOnRender) {
       animateBlurText(textEl);
       delete msg.animateOnRender;
     }
     body.appendChild(textEl);
+    if(role==='user'&&msg.selection){const quote=document.createElement('blockquote');quote.className='message-selection';quote.textContent=msg.selection;body.insertBefore(quote,textEl);}
     const presentation=window.AetherAIAnswerPresentation,answerCopy=presentation.labels(settings.appLanguage);
     textEl.addEventListener('click',async event=>{
       const button=event.target.closest('[data-copy-code]');
       if(button){const code=button.closest('.answer-code-block')?.querySelector('pre code');if(!code)return;button.disabled=true;let ok=false;try{ok=await copyText(code.textContent);}catch{}button.dataset.copyState=ok?'copied':'failed';const label=button.querySelector('.code-copy-label');if(label)label.textContent=window.AetherAICode.labels(settings.appLanguage)[ok?1:2];button.disabled=false;setTimeout(()=>{button.dataset.copyState='';if(label?.isConnected)label.textContent=window.AetherAICode.labels(settings.appLanguage)[0];},1500);return;}
       const link=event.target.closest('a[href]');if(link&&window.api?.openExternal){event.preventDefault();window.api.openExternal(link.href);}
     });
-    if(role==='assistant'&&Array.isArray(msg.sources)&&msg.sources.length){
-      const links=document.createElement('div');links.className='answer-sources';const label=document.createElement('span');label.className='answer-sources-label';label.textContent=answerCopy.sources;links.append(label);
-      msg.sources.slice(0,5).forEach(source=>{
-        const details=presentation.sourceDetails(source);if(!details)return;
-        const link=document.createElement('a');link.className='answer-source';link.href=details.href;link.target='_blank';link.rel='noopener noreferrer';link.title=details.title+' · '+details.host;
-        const icon=document.createElement('span');icon.className='answer-source-icon';icon.setAttribute('aria-hidden','true');icon.textContent=details.host[0].toUpperCase();
-        if(details.icon){const image=document.createElement('img');image.src=details.icon;image.alt='';image.loading='lazy';image.referrerPolicy='no-referrer';image.onload=()=>{icon.firstChild?.nodeType===3&&icon.firstChild.remove();};image.onerror=()=>image.remove();icon.append(image);}
-        const title=document.createElement('span');title.className='answer-source-title';title.textContent=details.title;
-        const domain=document.createElement('small');domain.textContent=details.host;link.append(icon,title,domain);
-        link.addEventListener('click',event=>{if(window.api?.openExternal){event.preventDefault();window.api.openExternal(details.href);}});links.append(link);
-      });if(links.children.length>1)body.append(links);
-    }
     const history=getCurrentChat()?.messages||[],position=history.indexOf(msg);
     const question=position>=0?[...history.slice(0,position)].reverse().find(entry=>entry.role==='user')?.content||'':'';
-    if(role==='assistant'&&presentation.shouldExplain({question,answer:visibleAssistantText,interrupted:msg.interrupted,images:msg.images?.length||msg.imageGeneration})){
-      const followups=document.createElement('div');followups.className='answer-followups';
-      followups.innerHTML='<svg class="answer-explain-line" viewBox="0 0 18 12" aria-hidden="true"><path d="M10 1 6 1.3Q2 1.6 2 5.6V6a4 4 0 0 0 4 4h10m-3-3 3 3-3 1"/></svg>';
-      const button=document.createElement('button');button.type='button';button.textContent=answerCopy.explain;
-      button.onclick=()=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+presentation.labels(settings.appLanguage).explain;autoResize();updateSendBtn();inputEl.focus();};followups.append(button);body.append(followups);
-    }
-
+    const explain=role==='assistant'&&presentation.shouldExplain({question,answer:visibleAssistantText,interrupted:msg.interrupted,images:msg.images?.length||msg.imageGeneration});
     if (role === "assistant" && msg.codeActivity) {
       const activityWrap = document.createElement("div");
       activityWrap.className = "code-activity-wrap";
@@ -3692,30 +3678,14 @@
     }
 
     if (role === "assistant" && !(msg.images?.length&&!visibleAssistantText.trim())) {
-      const actions = document.createElement("div");
-      actions.className = "message-actions";
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "msg-action-btn";
-      setTooltip(copyBtn, t("copyResponse"));
-      copyBtn.innerHTML = `
-        <span class="copy-icon copy-default" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="11" height="11" rx="2"/><rect x="4" y="4" width="11" height="11" rx="2"/></svg>
-        </span>
-        <span class="copy-icon copy-done" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-        </span>
-        <span class="copy-label">Copy</span>
-      `;
-      copyBtn.addEventListener("click", async () => {
-        try {
-          const ok = await copyText(msg.content || "");
-          setCopyState(copyBtn, ok);
-        } catch (err) {
-          setCopyState(copyBtn, false);
-        }
-      });
-      actions.appendChild(copyBtn);
-      body.appendChild(actions);
+      const chrome=document.createElement('div');chrome.className='stream-answer-controls';body.append(chrome);
+      const sources=[...new Map((msg.sources||[]).map(source=>presentation.sourceDetails(source)).filter(Boolean).map(source=>[source.href,source])).values()];
+      const props={labels:window.AetherAIStreamingUI.labels(settings.appLanguage),sources,explainFollowUp:explain,busy:isGenerating,feedback:msg.feedback,
+        onCopy:()=>copyText(msg.content||''),onOpen:href=>window.api?.openExternal(href),
+        onRetry:question?()=>{if(isGenerating)return;inputEl.value=question;autoResize();updateSendBtn();sendMessage();}:undefined,
+        onFeedback:vote=>{msg.feedback=msg.feedback===vote?undefined:vote;persist();props.feedback=msg.feedback;window.AetherAIStreamingUI.render(chrome,props);},
+        onFollowUp:question=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+question;autoResize();updateSendBtn();inputEl.focus();}};
+      window.AetherAIStreamingUI.render(chrome,props);
     }
 
     m.appendChild(body);
@@ -3743,7 +3713,7 @@
   function buildSystemPrompt(userText) {
 
     const hints = { none: 'Answer briefly and directly.', low: 'Give a concise, practical answer.', medium: 'Give a thoughtful, useful answer of ordinary length.', high: 'Consider the request carefully and give a well-reasoned answer.', max: 'Consider the request thoroughly from relevant perspectives.' };
-    return `${AetherAIIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}\n\n${AetherAICapabilities.prompt(settings.selectedModel,modelSupportsVision(settings.selectedModel||''))}`;
+    return `${AetherAIIntent.prompt(userText, settings.appLanguage)}\n\n${hints[settings.thinkLevel] || hints.medium}\n\n${AetherAICapabilities.prompt(settings.selectedModel,modelSupportsVision(settings.selectedModel||''))}${getCurrentChat()?.learningMode?'\n\n'+window.AetherAIInteractions.learningInstruction:''}`;
   }
 
   async function maybeInstallNodePackages(activity, folderName) {
@@ -3842,7 +3812,7 @@
     // история без вложений-картинок для context window
     const contextMsgs = history.slice(-12).map(m => ({
       role: m.role,
-      content: m.content
+      content: m.content + window.AetherAIInteractions.reference(m.selection)
     }));
 
     // текущее сообщение пользователя (с картинками и текстом файлов)
@@ -3862,6 +3832,7 @@
       currentUserContent += `\n\nUse this internet context when relevant. Cite source domains or URLs in the answer.\n${internetContext}`;
     }
 
+    currentUserContent+=window.AetherAIInteractions.reference(chat?.messages.at(-1)?.selection);
     const memoryContext=await window.AetherAIAccount?.context(getCurrentChat()?.groupId,requestModel).catch(()=> '');
     if (generationId !== activeGenerationId) return "_STOPPED_";
     const apiMessages = [
@@ -4797,9 +4768,9 @@
   function updateLiveAnswer(value,generationId){
     if(generationId!==activeGenerationId)return;
     const visible=window.AetherAIStreaming.visibleText(value);if(!visible.trim())return;
-    if(!liveAnswer){const message={role:'assistant',content:''},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');const caret=document.createElement('span');caret.className='answer-stream-caret';caret.setAttribute('aria-hidden','true');body.append(caret);
+    if(!liveAnswer){const message={role:'assistant',content:''},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');root.querySelector('.stream-answer-controls')?.remove();
       if(thinkingEl){const status=thinkingEl.querySelector('.thinking-inline');if(status)body.prepend(status);thinkingEl.before(root);thinkingEl.hidden=true;}else messagesEl.append(root);
-      const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;text.innerHTML=renderMarkdown(content);const tail=text.querySelector(':scope > p:last-child,:scope > ul:last-child > li:last-child,:scope > ol:last-child > li:last-child')||text;tail.append(caret);if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};
+      const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;window.AetherAIStreamingUI.render(text,{html:renderMarkdown(content),done:false,labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};
     }
     liveAnswer.message.content=visible;liveAnswer.writer.update(visible);
   }
@@ -4827,6 +4798,7 @@
     const userMsg = {
       role: "user",
       content: displayText || "",
+      selection:chatInteractions?.takeSelection()||undefined,
       images: attachments.filter(a => a.kind === "image").map(a => a.dataUrl)
     };
     chat.messages.push(userMsg);
@@ -4994,7 +4966,7 @@
   inputEl.addEventListener("input", () => { autoResize(); updateSendBtn(); syncComposerExpanded(); });
   syncComposerExpanded();
   inputEl.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendMessage(); }
   });
   sendBtn.addEventListener("click", sendMessage);
 
@@ -5723,6 +5695,11 @@
     inputEl.focus();
   }
 
+  chatInteractions=window.AetherAIInteractions.mount({
+    lang:()=>settings.appLanguage,chat:()=>getCurrentChat(),busy:()=>isGenerating,
+    save:()=>persist(),newChat:()=>createNewChat(),
+    input:inputEl,changed:()=>{autoResize();updateSendBtn();}
+  });
   init().catch(()=>{
     if(gatewayFlowBg)gatewayFlowBg.hidden=true;
     window.AetherAIBackgrounds?.update({background:'none',color:'#c3c3c3'});

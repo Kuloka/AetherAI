@@ -2,6 +2,7 @@
 @import "tailwindcss/theme.css" prefix(n);
 @import "tailwindcss/utilities.css" prefix(n) source(none);
 @source "../components/ui/notifications-5.tsx";
+@source "../components/ui/streaming-text.tsx";
 @theme inline {
   --color-success: var(--notification-success);
   --color-warning: var(--notification-warning);
@@ -29,3 +30,35 @@ body.theme-light #notificationsRoot {
 #notificationsRoot button:focus-visible {outline:2px solid var(--notification-success);outline-offset:3px}
 @keyframes notification-enter {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){#notificationsRoot .notification-card{animation:none}}
+
+/* Streaming Text from the supplied 21st.dev prompt, scoped to chat replies. */
+.streaming-ui{--ink:var(--text-primary);--ink-2:var(--text-secondary);--ink-3:var(--text-muted);--inset:var(--bg-input);--line:var(--border);width:100%;min-width:0}
+.stream-word{display:inline;animation:stream-word-in 250ms ease-out both}
+@keyframes stream-word-in{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:blur(0)}}
+@keyframes stream-pop-in{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+@keyframes stream-fade-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.streaming-ui .stream-action-row{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-top:8px;opacity:1;transition:opacity 400ms}
+.streaming-ui .stream-action-row[hidden]{display:none}
+.answer-settled .streaming-ui .stream-action-row{animation:stream-actions-in 400ms ease-out both}
+@keyframes stream-actions-in{from{opacity:0}to{opacity:1}}
+.streaming-ui .stream-action{display:flex;align-items:center;justify-content:center;width:24px;height:24px;min-width:24px;padding:0;border:0;border-radius:6px!important;color:var(--ink-3);background:transparent;cursor:pointer}
+.streaming-ui .stream-action:hover,.streaming-ui .stream-action[aria-pressed=true]{background:var(--bg-hover);color:var(--ink)}
+.streaming-ui .stream-action:disabled{opacity:.4;cursor:default}
+.streaming-ui .stream-sources-toggle{display:flex;align-items:center;gap:6px;margin:0 0 0 6px;padding:3px 4px;border:0;border-radius:6px!important;background:transparent;color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer}
+.streaming-ui .stream-sources-toggle:hover{background:var(--bg-hover)}
+.streaming-ui .stream-sources-toggle svg{transition:transform .2s}.streaming-ui .stream-sources-toggle svg.is-open{transform:rotate(180deg)}
+.streaming-ui .stream-source-avatars{display:flex;padding-left:4px}.streaming-ui .stream-source-avatars .answer-source-icon{margin-left:-4px;width:14px;height:14px;flex-basis:14px;border-radius:50%;background:var(--bg-surface);box-shadow:0 0 0 1.5px var(--bg-main);overflow:hidden}
+.streaming-ui .stream-source-avatars img{width:14px;height:14px;border-radius:50%}
+.streaming-ui .stream-sources-panel{display:grid;grid-template-rows:0fr;opacity:0;transition:grid-template-rows 300ms cubic-bezier(.23,1,.32,1),opacity 300ms}
+.streaming-ui .stream-sources-panel[data-open=true]{grid-template-rows:1fr;opacity:1}.streaming-ui .stream-sources-panel>div{overflow:hidden;min-height:0}
+.streaming-ui .answer-sources{margin-top:6px;padding:4px;border-radius:8px;background:var(--inset);box-shadow:0 0 0 1px var(--line)}
+.streaming-ui .answer-source{margin:0;padding:4px 6px;border-radius:6px!important;gap:8px;font-size:12px;text-decoration:none!important}
+.streaming-ui .answer-source:hover{background:var(--bg-hover)}.streaming-ui .answer-source small{margin-left:auto;font-family:var(--mono);font-size:10.5px}
+.streaming-ui .answer-source-icon,.streaming-ui .answer-source-icon img{border-radius:4px;width:16px;height:16px}
+.streaming-ui .stream-followups{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;margin-top:10px}
+.streaming-ui .stream-followups p{font-size:12px;font-weight:500;color:var(--ink-2);margin:0 0 2px}
+.streaming-ui .stream-followups button{display:flex;align-items:center;gap:8px;width:100%;padding:6px;border-bottom:1px solid var(--line);text-align:left;color:var(--ink);font-size:12.5px;text-decoration:none;animation:stream-fade-up 350ms cubic-bezier(.23,1,.32,1) both}
+.streaming-ui .stream-followups button:hover{background:var(--bg-hover);text-decoration:none}.streaming-ui .stream-followups .answer-explain-line{width:11px;height:11px;color:var(--ink-3)}
+.stream-content .stream-source-chip{display:inline-flex;align-items:center;padding:1px 4px;border-radius:5px;background:var(--inset);box-shadow:0 0 0 1px var(--line);font-family:var(--mono);font-size:10.5px;text-decoration:none;animation:stream-pop-in 250ms cubic-bezier(.23,1,.32,1) both}
+.streaming-ui button:focus-visible{outline:2px solid var(--text-secondary);outline-offset:2px}
+@media(prefers-reduced-motion:reduce){.stream-word,.streaming-ui .stream-followups button,.stream-source-chip,.answer-settled .streaming-ui .stream-action-row{animation:none}.streaming-ui .stream-sources-panel,.streaming-ui .stream-sources-toggle svg{transition:none}}

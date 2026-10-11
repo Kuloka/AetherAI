@@ -83,6 +83,18 @@ jobs:
         if: runner.os != 'Linux'
         run: npx electron tests/visual-polish-smoke.cjs
 
+      - name: Check selected-text actions, learning and answer buttons
+        if: runner.os == 'Windows'
+        run: npx electron tests/chat-interactions-smoke.cjs
+
+      - name: Check actual application clipboard IPC
+        if: runner.os == 'Windows'
+        run: npx electron tests/clipboard-native-smoke.cjs
+
+      - name: Check React sources and all interface languages
+        if: runner.os == 'Windows'
+        run: npx electron tests/answer-visual-smoke.cjs
+
       - name: Build native packages
         run: npx electron-builder --${{ matrix.platform }} --${{ matrix.arch }} --publish never
 

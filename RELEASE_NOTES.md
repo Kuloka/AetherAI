@@ -1,12 +1,11 @@
-AetherAI 1.24.7
+AetherAI 1.24.8
 
-- Organize Settings into application preferences, AI models/providers and tools. Configure provider keys in a compact dialog; Enter saves, Escape and outside clicks dismiss it. Square switches disable providers without deleting encrypted keys.
-- Reserve #B5F36D for enabled switches and thin answer underlines. Restore the neutral white default accent and retain other saved appearance choices.
-- Improve model lists, selected-model checkmarks, rounded search fields, menu spacing and button feedback. Fix unreadable selected-model labels with black accents and scrollbar placement at rounded corners.
-- Add code-block language headers, syntax highlighting and localized copy controls. Preserve code indentation and newlines when copying. Complete streamed answers without replaying the whole-message animation.
-- Present sources as compact links with publisher favicon fallbacks. Offer one localized explanation prompt for complex math, programming and multi-step answers.
-- Add dismissible notifications and update reminders in all ten interface languages. Installed Windows builds support explicit download and restart/install through GitHub releases. Older builds require one installer upgrade first; portable/macOS/Linux builds offer official download links.
-- Publish Windows update manifests and block maps alongside installers, with asset-name and SHA512 checks before making a release public.
-- Preserve the landing page's scroll-driven spiral, remove its Features arrow button and add a short “Scroll down...” hint on the left.
+- Integrate the supplied React Streaming Text design into real chat replies: words fade out of blur, inline source links become compact chips, and sources expand with an animated panel and an accurate count.
+- Add compact answer actions for copying, repeating a request and marking an answer helpful or unhelpful. Feedback stays in local chat history. Keep the conditional Explain in more detail follow-up and all ten interface languages.
+- Fix code copying through the trusted Electron clipboard API, retaining browser fallbacks and exact indentation/newlines.
+- Add Explain / Check / Rewrite actions for selected answer passages. The passage and question are prepared in the composer and sent only when the user chooses Send.
+- Add per-chat learning mode in the reasoning menu, with Hint, Next step and Full solution prompts. This changes the model's instructions rather than guaranteeing its behavior.
+- Remove the command palette and its sidebar button. Keep the send button neutral white/gray independently of the saved accent color.
+- Fix the Groq quota ring to show daily request headers only, rather than mixing them with replenishing minute-token limits. Display tenths of a percent and preserve known daily limits if a response omits their headers.
 
-Windows installer upgrades retain the existing application identity and user data. No automatic installation occurs without a user action. macOS builds remain unsigned and unnotarized.
+Windows installer upgrades preserve existing user data. Update download and installation require user actions. macOS builds remain unsigned and unnotarized.

@@ -4,7 +4,8 @@ const {trustedSender,externalUrl,projectBoundary}=require('./security');
 const trustedContents=new Set();
 const appEntry=path.join(__dirname,'..','index.html');
 function handleIpc(channel,handler){ipcMain.handle(channel,(event,...args)=>{if(!trustedSender(event,trustedContents,appEntry))throw Error('Untrusted IPC sender');return handler(event,...args);});}
-const { dialog } = require('electron');
+const { dialog, clipboard } = require('electron');
+handleIpc('clipboard:write',async(_event,text)=>{if(typeof text!=='string'||text.length>8*1024*1024)throw Error('Invalid clipboard text');await clipboard.writeText(text);return await clipboard.readText()===text;});
 const fs = require('fs');
 const os = require('os');
 const { spawn, execSync } = require('child_process');

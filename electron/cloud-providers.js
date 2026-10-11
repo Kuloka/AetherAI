@@ -123,7 +123,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     // Groq response limits belong to the requested model; OpenRouter /key
     // counters belong to the API key and are shared by all its free models.
     const quotaKey = id !== 'openrouter' ? body.model : id;
-    quota.set(quotaKey, { ...quota.get(quotaKey), ...(Object.keys(limits).length ? { limits } : {}), updatedAt: Date.now(), exhausted: response.status === 429 || response.status === 402, retryAt: Number.isFinite(retryAt) ? retryAt : null });
+    quota.set(quotaKey, { ...quota.get(quotaKey), ...(Object.keys(limits).length ? { limits: { ...quota.get(quotaKey)?.limits, ...limits } } : {}), updatedAt: Date.now(), exhausted: response.status === 429 || response.status === 402, retryAt: Number.isFinite(retryAt) ? retryAt : null });
     emit({ type: 'usage', provider: id, model: id !== 'openrouter' ? body.model : undefined, usage: quota.get(quotaKey) });
     persistUsage();
     if (!response.ok) {

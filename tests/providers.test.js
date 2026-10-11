@@ -129,6 +129,23 @@ test('Groq keeps separate model quotas and clears both after disconnect', async 
   cloud.disconnect('groq'); assert.deepEqual(cloud.usage(), {});
 });
 
+test('Groq retains daily request headers when a later response reports only minute tokens',async t=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-groq-daily-'));
+  t.after(()=>fs.rm(dir,{recursive:true,force:true}));let count=0;
+  const cloud=createProviders(dir,storage,async url=>{
+    if(url.endsWith('/models'))return Response.json({data:[{id:'test-chat'}]});
+    count++;
+    const headers={'x-ratelimit-limit-tokens':'8000','x-ratelimit-remaining-tokens':count===1?'20':'8000'};
+    if(count===1)Object.assign(headers,{'x-ratelimit-limit-requests':'1000','x-ratelimit-remaining-requests':'999'});
+    return Response.json({choices:[{message:{content:'ok'}}]},{headers});
+  });
+  await cloud.save('groq','fixture-key');
+  for(let i=0;i<2;i++)await cloud.chat({model:'cloud:groq/test-chat',messages:[],stream:false},undefined,()=>{});
+  const usage=cloud.usage()['cloud:groq/test-chat'];
+  assert.equal(usage.limits.requests.remaining,999);assert.equal(usage.limits.tokens.remaining,8000);
+  assert.equal(require('../model-quota').describe(usage,{provider:'groq'}).percentage,99.9);
+});
+
 test('OpenRouter mid-stream Nvidia exhaustion emits a readable overloaded event',async t=>{
   const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-stream-error-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
   const cloud=createProviders(dir,storage,async url=>{

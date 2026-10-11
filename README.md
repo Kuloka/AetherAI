@@ -66,7 +66,7 @@ Data lives in ~/.multimind-data and projects in ~/MultiMindProject. On first lau
 
 ## Application updates
 
-Application notifications and Windows installer updates are described in [Notifications and updates](docs/app-updates.md). Existing releases without an updater require one installer upgrade first. New installed Windows builds offer explicit download and restart actions; portable/macOS/Linux builds link to the official releases.
+Application notifications and Windows installer updates are described in [Notifications and updates](docs/app-updates.md). Existing releases without an updater require one installer upgrade first. New installed Windows builds offer explicit download and restart actions; portable/macOS/Linux builds link to the official releases. The supplied React answer component is described in [Streaming Text integration](docs/streaming-text.md).
 
 ## Upstream components
 

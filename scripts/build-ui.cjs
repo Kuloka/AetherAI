@@ -8,7 +8,7 @@ async function build(){
   const cli=path.join(path.dirname(resolve('@tailwindcss/cli/package.json')),'dist/index.mjs');
   const input=path.join(root,'artifacts/notifications-input.css');fs.mkdirSync(path.dirname(input),{recursive:true});
   const styles=fs.readFileSync(path.join(root,'ui/styles.css'),'utf8').replace(/"tailwindcss\/([^\"]+)"/g,(_match,file)=>JSON.stringify(path.join(modules,'tailwindcss',file).replaceAll('\\','/'))).replace('"../components/ui/notifications-5.tsx"',JSON.stringify(path.join(root,'components/ui/notifications-5.tsx').replaceAll('\\','/')));
-  fs.writeFileSync(input,styles);
+  fs.writeFileSync(input,styles.replace('"../components/ui/streaming-text.tsx"',JSON.stringify(path.join(root,'components/ui/streaming-text.tsx').replaceAll('\\','/'))));
   const result=spawnSync(process.execPath,[cli,'-i',input,'-o',path.join(output,'notifications.css'),'--minify'],{cwd:root,stdio:'inherit',windowsHide:true,env:{...process.env,NODE_PATH:modules}});
   if(result.error)throw result.error;if(result.status)process.exit(result.status);
 }

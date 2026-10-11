@@ -6,6 +6,13 @@ test('streaming answers arrive progressively, respect reduced motion, and stop w
 test('partial reasoning tags remain hidden but literal code examples are retained',()=>{
  assert.equal(stream.visibleText('<think>private reasoning'),'');assert.equal(stream.visibleText('<think>private</think>Hello <thi'),'Hello ');assert.equal(stream.visibleText('`<think>example</think>`'),'`<think>example</think>`');
 });
+test('streaming reveals words at 80 ms cadence and finish flushes the exact answer',()=>{
+ let frame;const values=[],writer=stream.create(value=>values.push(value),{schedule:fn=>{frame=fn;return 1;},cancel:()=>{frame=null;}});
+ writer.update('Hello world 👋 final');frame(0);assert.equal(values.at(-1),'Hello ');
+ frame(16);assert.equal(values.length,1);frame(80);assert.equal(values.at(-1),'Hello world ');
+ frame(160);assert.equal(values.at(-1),'Hello world 👋 ');
+ writer.finish();assert.equal(values.at(-1),'Hello world 👋 final');assert.equal(frame,null);
+});
 test('image descriptions retain requested media, numbers and exact text instead of adding boilerplate',()=>{
  assert.equal(image.clean('Create a photo of a blue cat on a red chair'),'photo of a blue cat on a red chair');assert.equal(image.clean('Нарисуй баннер с надписью «AetherAI 1337»'),'баннер с надписью «AetherAI 1337»');
  const original='Создай баннер с надписью «AetherAI 1337»';assert.equal(image.extract('{"prompt":"A black banner with exact neon lettering AetherAI 1337"}',original),'A black banner with exact neon lettering AetherAI 1337');assert.equal(image.extract('{"prompt":"A banner with lettering AetherAI 1234"}',original),image.clean(original));assert.equal(image.extract('Sorry, I cannot help',original),image.clean(original));

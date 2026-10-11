@@ -20,10 +20,12 @@ app.whenReady().then(async()=>{
  await w.loadFile(path.join(root,'index.html'));await wait(1000);await js("document.querySelector('#accountClose').click();document.querySelector('.history-item[data-chat=complex]')?.click()");
  if(!await js("!!document.querySelector('.answer-followups')"))await js("[...document.querySelectorAll('.history-item')].find(e=>e.textContent.includes('Сложный')).click()");await wait(350);
  assert.equal(await js("document.querySelectorAll('.answer-sources a.answer-source').length"),2,JSON.stringify(await js("({messages:document.querySelector('#messages').textContent.slice(0,500),history:[...document.querySelectorAll('.history-item')].map(e=>e.textContent),errors:document.querySelector('#skillsError').textContent})"))+JSON.stringify(errors));
- assert.equal(await js("document.querySelectorAll('.answer-sources button').length"),0);
- assert.equal(await js("document.querySelector('.answer-sources-label').textContent"),'Источники');
- assert.equal(await js("document.querySelectorAll('.answer-source-icon img').length"),2);
- assert.ok(await js("[...document.querySelectorAll('.answer-source-icon img')].every(img=>img.complete&&img.naturalWidth>0)"));
+ assert.equal(await js("document.querySelectorAll('.stream-sources-toggle').length"),1);
+ assert.equal(await js("document.querySelector('.answer-sources-label').textContent"),'Источники · 2');
+ assert.equal(await js("document.querySelector('.stream-sources-toggle').getAttribute('aria-expanded')==='true'"),false);
+ await js("document.querySelector('.stream-sources-toggle').click()");assert.equal(await js("document.querySelector('.stream-sources-toggle').getAttribute('aria-expanded')==='true'"),true);await wait(250);
+ assert.equal(await js("document.querySelectorAll('.answer-sources .answer-source-icon img').length"),2);
+ assert.ok(await js("[...document.querySelectorAll('.answer-sources .answer-source-icon img')].every(img=>img.complete&&img.naturalWidth>0)"));
  assert.equal(await js("getComputedStyle(document.querySelector('.answer-source')).backgroundColor"),'rgba(0, 0, 0, 0)');
  assert.equal(await js("document.querySelector('.answer-followups button').textContent"),'Объяснить подробнее');
  assert.equal(await js("document.querySelectorAll('.answer-followups button').length"),1);
@@ -43,7 +45,7 @@ app.whenReady().then(async()=>{
  for(const lang of ['en','ru','es','pt','fr','de','it','tr','pl','uk']){
    await js(`document.querySelector('[data-settings-tab=general]').click();document.querySelector('#languageToggle').click();document.querySelector('#languagePackList [data-lang="${lang}"]').click()`);await wait(70);
    const localized=await js("({actual:document.querySelector('.answer-followups button').textContent,expected:AetherAIAnswerPresentation.labels(document.documentElement.lang).explain,source:document.querySelector('.answer-sources-label').textContent,sourceExpected:AetherAIAnswerPresentation.labels(document.documentElement.lang).sources})");
-   assert.equal(localized.actual,localized.expected);assert.equal(localized.source,localized.sourceExpected);
+   assert.equal(localized.actual,localized.expected);assert.equal(localized.source,localized.sourceExpected+' · 2');
  }
  await js("document.querySelector('#closeSettingsBtn').click();[...document.querySelectorAll('.history-item')].find(e=>e.textContent.includes('Обычный')).click()");
  assert.equal(await js("document.querySelector('.answer-followups')"),null,'Ordinary long answers have no explanation prompt');

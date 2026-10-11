@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  clipboardWrite: text => ipcRenderer.invoke('clipboard:write', text),
   updatesStatus: () => ipcRenderer.invoke('updates:status'),
   updatesCheck: () => ipcRenderer.invoke('updates:check'),
   updatesDownload: () => ipcRenderer.invoke('updates:download'),

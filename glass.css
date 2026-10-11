@@ -51,14 +51,20 @@ body { --glass-fill:color-mix(in srgb,var(--bg-surface) 72%,transparent);--glass
 .model-dropdown .model-active-card { margin:4px;padding:12px;border:1px solid var(--glass-edge);border-radius:12px;background:var(--glass-fill); }
 .model-dropdown .model-info-button { flex-shrink:0; }
 .streaming-answer .message-body { position:relative; }
-.answer-stream-caret { display:inline-block;width:7px;height:16px;margin-left:3px;background:var(--text-secondary);animation:promptCaret 1s steps(1,end) infinite; }
+.answer-stream-caret { display:inline-block;width:2px;height:1em;margin-left:3px;border-radius:1px;vertical-align:-2px;background:var(--text-primary);animation:answerCaretIn .15s ease-out both; }
+@keyframes answerCaretIn{from{opacity:0}to{opacity:1}}
 .streaming-answer .message-text { display:block!important; }
 .model-usage-details { margin-top:12px; }
 .model-usage-details > summary { cursor:pointer;color:var(--text-secondary);font-size:11px; }
 .model-dropdown .model-parameter-meta { white-space:normal;line-height:1.5; }
 @media(prefers-reduced-motion:reduce){.answer-stream-caret{animation:none}}
 #discordNameHelp { margin:16px 0 8px;color:var(--text-secondary);font-size:12px;line-height:1.6; }
-.answer-sources{margin-top:18px;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.answer-sources{margin-top:12px}
+.answer-sources>summary{width:fit-content;cursor:pointer;list-style:none;font-size:11px;color:var(--text-secondary);margin-bottom:7px}
+.answer-sources>summary::-webkit-details-marker{display:none}
+.answer-sources>summary::after{content:'⌄';display:inline-block;margin-left:7px;transition:transform .15s}
+.answer-sources[open]>summary::after{transform:rotate(180deg)}
+.answer-sources .answer-source{margin-top:7px}
 .answer-sources-label{font-size:11px;color:var(--text-secondary);margin-bottom:2px}
 .answer-source{display:flex;align-items:center;gap:8px;max-width:100%;border:0;background:none;color:var(--text-secondary);padding:0;border-radius:0;font:inherit;font-size:12px;line-height:1.6;text-decoration:none}
 .answer-source-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex:0 0 16px;font:600 11px/1 inherit;color:var(--text-primary)}
@@ -244,7 +250,8 @@ input[type=range]::-webkit-slider-thumb { border-radius:50%!important; }
 .answer-emphasis-setting{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:24px 0}.answer-emphasis-setting h4{margin:0 0 6px}.answer-emphasis-setting p{margin:0!important;font-size:12px!important;color:var(--text-secondary)}
 body[data-answer-emphasis=true] .message.assistant .message-text strong{text-decoration-line:underline;text-decoration-color:#b5f36d;text-decoration-thickness:1px;text-underline-offset:3px;text-decoration-skip-ink:auto}
 body[data-answer-emphasis=true] .message.assistant .message-text pre strong{text-decoration:none}
-body[data-custom-accent=true] #sendBtn:not(:disabled){background:var(--accent)!important;color:var(--accent-ink)!important;border-color:transparent!important}
+#sendBtn:not(:disabled),body[data-custom-accent=true] #sendBtn:not(:disabled){background:#ffffff!important;color:#171717!important;border-color:#cbd1d9!important}
+#sendBtn:disabled{background:#d2d5da!important;color:#62666e!important;opacity:1}
 #answerEmphasisToggle[aria-checked=true]{background:#b5f36d;border-color:#b5f36d}
 .provider-card-actions{display:flex;align-items:center;gap:16px}
 .provider-edit:has(svg){width:36px;min-width:36px;height:36px;padding:8px;background:transparent;border-color:transparent}
@@ -327,8 +334,18 @@ body.theme-light .syntax-keyword{color:#70509a}body.theme-light .syntax-string{c
 .thinking-message[hidden]{display:none!important}
 .message.streaming-answer,.message.answer-settled{animation:none}
 .streaming-answer .thinking-inline,.assistant-work-meta{min-height:36px;box-sizing:border-box;margin-bottom:10px}
-.streaming-answer .message-text{animation:answerReveal .16s ease-out}
+.streaming-answer .message-text{animation:none}
 .answer-settled .assistant-work-meta{animation:answerReveal .16s ease-out}
 @keyframes answerReveal{from{opacity:.35}to{opacity:1}}
 @media(prefers-reduced-motion:reduce){.model-dropdown,.model-dropdown.show,.think-dropdown.show,.access-dropdown.show,.streaming-answer .message-text,.answer-settled .assistant-work-meta{animation:none;transition:none}.catalog-btn,.msg-action-btn,.model-select-button,.model-info-button,.think-item,.access-item,.composer-toggle,.composer-mode-toggle,.settings-nav button,.code-copy{transition:none}}
 #skillsHint{display:none}
+.selection-actions{position:fixed;z-index:400;display:flex;flex-wrap:wrap;max-width:calc(100vw - 24px);gap:4px;padding:6px;border:1px solid var(--glass-edge);border-radius:12px;background:var(--bg-surface);box-shadow:0 6px 22px #0003}
+.selection-actions button,.composer-context button{background:transparent;color:var(--text-secondary);border:0;padding:6px 8px;font:inherit;font-size:12px;cursor:pointer}.selection-actions button:hover,.composer-context button:hover{background:var(--bg-hover);color:var(--text-primary)}
+.selection-actions[hidden],.composer-context[hidden],.composer-quote[hidden],.composer-learning[hidden]{display:none!important}
+.composer-context{padding:10px 12px 0;display:grid;gap:8px;border-radius:15px 15px 0 0}
+.composer-quote{display:flex;align-items:center;gap:8px;border-left:2px solid var(--text-muted);padding-left:8px;min-width:0;color:var(--text-secondary);font-size:12px}
+.composer-quote span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.composer-learning{display:flex;align-items:center;flex-wrap:wrap;gap:4px}.composer-learning>span{font-size:11px;color:var(--text-muted);margin-right:6px}
+.message-selection{max-width:100%;max-height:90px;overflow:auto;margin:0 0 8px;padding:8px 12px;border-left:2px solid var(--text-muted);color:var(--text-secondary);background:var(--bg-input);font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}
+.selection-actions button:focus-visible,.composer-context button:focus-visible{outline:2px solid var(--text-secondary);outline-offset:1px}
+
+.learning-mode-option{display:block;width:100%;padding:10px 12px;border:0;border-top:1px solid var(--glass-edge);background:transparent;color:var(--text-secondary);font:inherit;font-size:12px;text-align:left;cursor:pointer}.learning-mode-option:hover{background:var(--bg-hover);color:var(--text-primary)}.learning-mode-option:disabled{opacity:.45}
