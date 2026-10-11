@@ -4,6 +4,6 @@ test('model preferences combine related versions into one family regardless of f
  const families=groups(models);assert.deepEqual(families.map(group=>[group.id,group.name,group.models.length]),[['claude','Claude',2],['chatgpt','ChatGPT',2],['deepseek','DeepSeek',1]]);assert.deepEqual(families[0].models.map(model=>model.name),models.slice(0,2).map(model=>model.name));
  assert.equal(family({name:'cloud:openrouter/anthropic/claude-future',cloudName:'Claude future version'}).id,'claude');
 });
-test('unrecognized model families keep their actual identity instead of merging under the API gateway',()=>{
- assert.equal(groups([{name:'cloud:openrouter/custom/a',cloudName:'Custom A'},{name:'cloud:openrouter/custom/b',cloudName:'Custom B'}]).length,2);
+test('unrecognized models share one preference group',()=>{
+ assert.equal(groups([{name:'cloud:openrouter/custom/a',cloudName:'Custom A'},{name:'cloud:openrouter/custom/b',cloudName:'Custom B'}]).length,1);
 });

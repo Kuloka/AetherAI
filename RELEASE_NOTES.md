@@ -1,11 +1,10 @@
-AetherAI 1.24.9
+AetherAI 1.24.10
 
-- Refresh the desktop UI with a pixel AetherAI heading, a compact model menu, original sidebar logos and an always-visible model, attachment and send row. Working is text-only with a subtle shimmer and nearby token counts.
-- Fix catalog refreshes resetting scroll position in models and Preferences. Preserve scroll when catalogs change and prevent focus restoration from scrolling the workspace.
-- Configure model visibility by family in Preferences, including all Claude and ChatGPT versions. Select thinking levels within the model menu; remove learning mode and extra composer mode buttons.
-- Improve code copying, clipboard image previews, real project-file handling, programming-language icons and token accounting.
-- Keep personal memory on this device and show Memory updated when a preference is saved. Feedback can inform local response preferences.
-- Keep provider keys in OS-backed encrypted storage and reported quota details in provider settings. Cloud availability, prices and limits remain controlled by each provider.
-- Update the website's pixel branding and simplify the README with a real screenshot and linked badges.
+- Add a full-width animated command menu above the composer: /browse, /run, /think and /goal, each with its own vector icon. A space converts the command into a removable icon. The placeholder is now "Type / for commands"; the @ Context menu and rotating examples are removed.
+- Keep a goal in the current conversation; /goal clear removes it. Goals guide later answers without authorizing tools or starting background execution.
+- Execute requested project commands with native confirmation, actual output, exit status, cancellation and a timeout. /run uses the exact command; every process still requires confirmation.
+- Improve generated project files with validated structured output when supported, broader Markdown file parsing and launcher support. Fix lost file attachments and misleading saved-file messages after folder errors.
+- Shorten model labels, group other model families under one preference, open Thinking to the side and correct model arrow directions for centered and bottom composers. Animate the Thinking arrow disappearing forward and fading back in place facing right.
+- Show Exploring with a globe during web search and tighten spacing between response status, tokens and answer text.
 
-Windows installer upgrades preserve existing user data. Update downloads and installation require user actions. macOS builds remain unsigned and unnotarized.
+Windows installer upgrades preserve existing user data. Update downloads and installation require user actions. Commands use your ordinary OS permissions; the project folder is a working directory, not an OS sandbox. macOS builds remain unsigned and unnotarized.

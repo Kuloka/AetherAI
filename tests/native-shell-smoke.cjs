@@ -1,5 +1,6 @@
 const { app, BrowserWindow } = require('electron');
 const fs = require('fs'), os = require('os'), path = require('path'), assert = require('node:assert/strict');
+BrowserWindow.prototype.show=()=>{};BrowserWindow.prototype.focus=()=>{};
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'aetherai-native-smoke-'));
 os.homedir = () => temp;
 app.setPath('userData', path.join(temp, 'profile'));
@@ -14,6 +15,8 @@ app.on('web-contents-created', (_event, contents) => {
       assert.equal(await contents.executeJavaScript("!!document.getElementById('settingsBtn') || !!document.querySelector('.settings-btn')"), true);
       assert.ok(BrowserWindow.getAllWindows().length);
       assert.equal(await contents.executeJavaScript("(async()=>{const settings=await api.settingsGet();const account=await api.accountStatus();return !!settings && typeof account.configured==='boolean';})()"),true);
+      assert.equal(await contents.executeJavaScript("typeof api.projectRunCommand==='function'&&typeof api.projectCancelCommand==='function'"),true);
+      assert.equal(await contents.executeJavaScript("api.projectRunCommand({folder:'../outside',command:'echo must-not-run'},'invalid').then(()=>false,()=>true)"),true);
       console.log(`PASS: packaged app loads on ${process.platform}/${process.arch}`);
       clearTimeout(deadline); app.quit();
     } catch (error) { console.error(error); app.exit(1); }

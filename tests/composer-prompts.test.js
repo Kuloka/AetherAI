@@ -13,9 +13,10 @@ test('terminal suggestions start immediately, hold five seconds, and never overw
  const reduced={matches:false,addEventListener(){}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../composer-prompts.js'),'utf8'),{document,window:{AetherAIPrompts:{create:()=>({next:()=>['List 100 cat breeds','Explain black holes simply'][index++%2]})}},matchMedia:()=>reduced,performance:{now:()=>now},setInterval:fn=>{tick=fn;},MutationObserver:class{observe(){}},queueMicrotask:fn=>fn()});
  const step=ms=>{for(let i=0;i<ms;i+=35){now+=35;tick();}};
- assert.equal(text.textContent,'List 100 cat breeds');assert.equal(input.placeholder,'');assert.equal(prompt.hidden,false);
- step(4900);assert.equal(text.textContent,'List 100 cat breeds');step(210);assert.equal(text.textContent,'Explain black holes simply');step(4000);assert.equal(text.textContent,'Explain black holes simply');
+ assert.equal(text.textContent,'L');step(1000);assert.equal(text.textContent,'List 100 cat breeds');assert.equal(input.placeholder,'');assert.equal(prompt.hidden,false);
+ step(4000);assert.equal(text.textContent,'List 100 cat breeds');step(1100);assert.ok(text.textContent.length<'List 100 cat breeds'.length);assert.notEqual(text.textContent,'Explain black holes simply');step(2500);assert.equal(text.textContent,'Explain black holes simply');step(2000);assert.equal(text.textContent,'Explain black holes simply');
  input.value='Never overwrite my draft';events.input();step(9000);assert.equal(input.value,'Never overwrite my draft');assert.equal(prompt.hidden,true);assert.equal(input.placeholder,'');
  input.value='';events.input();assert.equal(prompt.hidden,false);assert.ok(text.textContent.length>0);events.compositionstart();step(4000);assert.equal(prompt.hidden,true);events.compositionend();reduced.matches=true;tick();assert.ok(text.textContent.length>1);const staticQuestion=text.textContent;step(9000);assert.equal(text.textContent,staticQuestion);
+ reduced.matches=false;events['composer:cleared']();assert.equal(prompt.hidden,false);const firstLetter=text.textContent;step(140);assert.ok(text.textContent.length>firstLetter.length);
  events.pointerdown();assert.equal(prompt.hidden,true);assert.equal(slot.dataset.prompt,'false');step(5000);assert.equal(prompt.hidden,true);assert.equal(input.value,'');events.blur();assert.equal(prompt.hidden,false);
 });

@@ -74,6 +74,9 @@ jobs:
         run: |
           npx electron tests/composer-picker-smoke.cjs
           npx electron tests/working-status-smoke.cjs
+          npx electron tests/composer-commands-smoke.cjs
+          npx electron tests/project-commands-smoke.cjs
+          npx electron tests/artifacts-smoke.cjs
 
       - name: Check notifications and explicit update actions (Linux)
         if: runner.os == 'Linux'

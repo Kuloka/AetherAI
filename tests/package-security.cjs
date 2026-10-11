@@ -14,3 +14,5 @@ assert.ok(asar.extractFile(file,path.join('resources','ui','notifications.js')).
 assert.ok(files.includes('/node_modules/electron-updater/out/main.js'),'Missing packaged updater dependency');
 for(const asset of ['brand-motion.js','chat-style.js','chat-style.css','claude-mark.js','resources/model-icons/claude-color.svg','resources/model-icons/openai.svg','resources/model-icons/deepseek-color.svg'])assert.ok(files.includes('/'+asset),'Missing logo preference asset: '+asset);
 assert.ok(!files.includes('/cli.js')&&!files.includes('/electron/terminal-backend.js'),'Removed CMD chat must not be packaged');
+
+for(const asset of ['composer-commands.js','project-commands.js','electron/project-commands.js'])assert.ok(files.includes('/'+asset),'Missing project command feature: '+asset);

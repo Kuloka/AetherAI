@@ -22,6 +22,7 @@
       onStatus(`${tool.pluginName} · ${tool.name}…`);
       try {
         const output=await execute(tool,choice.arguments);signal?.throwIfAborted();
+        if(output.denied){history.push({tool:tool.name,status:'denied',result:String(output.text||'User declined. Do not retry.')});onStatus('Command declined');break;}
         const limit=Math.max(500,Math.min(4000,12000-history.reduce((sum,item)=>sum+item.result.length,0)));
         const text=String(output.text||'');
         history.push({pluginId:tool.pluginId,tool:tool.name,arguments:choice.arguments,status:output.isError?'error':'done',result:text.slice(0,limit)+(text.length>limit?'\n[Result truncated to fit local model context]':'')});

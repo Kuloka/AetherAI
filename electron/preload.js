@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('api', {
   pluginsToggle: (id, enabled) => ipcRenderer.invoke('plugins:toggle', id, enabled),
   pluginsRemove: id => ipcRenderer.invoke('plugins:remove', id),
   pluginsCall: (id, name, args, requestId) => ipcRenderer.invoke('plugins:call', id, name, args, requestId),
+  projectRunCommand:(args,id)=>ipcRenderer.invoke('project:run-command',args,id),
+  projectCancelCommand:id=>ipcRenderer.invoke('project:cancel-command',id),
   pluginsCancel: requestId => ipcRenderer.invoke('plugins:cancel', requestId),
   discordStatus: () => ipcRenderer.invoke('discord:status'),
   discordOpenApplication: () => ipcRenderer.invoke('discord:open-application'),

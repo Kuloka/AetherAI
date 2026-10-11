@@ -632,3 +632,59 @@ body[data-chat-style]:not([data-chat-style="aetherai"]) .side-logo>.aetherai-mar
 .app.tab-collapsed .side-logo{width:38px!important;height:38px}
 
 .window-titlebar .window-controls{margin-left:auto}
+
+/* A small pixel name beside the sidebar mark; collapsed mode keeps just the mark. */
+.side-logo{width:auto!important;gap:8px}
+.side-logo>.aetherai-wordmark{display:inline-block!important;width:90px;height:15px}
+.app.tab-collapsed .side-logo>.aetherai-wordmark{display:none!important}
+.window-brand{display:inline-block!important;width:74px;height:10px}
+
+/* Keep status, timing, token count and the answer close together. */
+.streaming-answer .thinking-inline,.assistant-work-meta{min-height:24px;margin-bottom:4px;gap:4px;line-height:20px}
+.assistant-work-meta .request-token-usage,.thinking-inline .request-token-usage{margin-left:0}
+
+.project-command-results{margin:8px 0 12px}.project-command-result{border:1px solid var(--border);border-radius:8px;margin:6px 0;overflow:hidden}.project-command-result summary{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer}.project-command-result summary code{flex:1;min-width:0;overflow-wrap:anywhere;font:12px/1.5 var(--mono)}.project-command-result summary span{font-size:11px;white-space:nowrap;color:var(--text-muted)}.project-command-result pre{padding:12px;margin:0;border-top:1px solid var(--border);max-height:240px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 var(--mono)}
+
+.composer-command-menu{position:fixed;z-index:220;box-sizing:border-box;overflow:auto;border:1px solid var(--glass-edge);border-radius:14px;padding:6px;background:var(--bg-surface);box-shadow:0 12px 32px #0002;transform-origin:bottom center}
+.composer-command-menu:not([hidden]){animation:commands-menu-in .3s cubic-bezier(.22,1,.36,1)}
+.composer-command-menu>button{position:relative;z-index:1;display:flex;align-items:center;gap:10px;width:100%;min-height:38px;border:0;border-radius:8px;padding:7px 10px;text-align:left;font:inherit;background:transparent;color:var(--text-secondary);cursor:pointer}
+.command-option-icon{display:flex;flex:0 0 18px;align-items:center;justify-content:center}.command-option-icon svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.composer-command-menu strong{font-size:12px;font-weight:500;white-space:nowrap}.composer-command-menu small{font-size:12px;line-height:1.4;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.composer-command-menu .active{background:var(--bg-hover);color:var(--text-primary)}.composer-command-menu p{padding:10px;font-size:12px;color:var(--text-muted)}
+@keyframes commands-menu-in{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:520px){.composer-command-menu>button{gap:8px}.composer-command-menu small{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.composer-command-menu:not([hidden]){animation:none}}
+
+.message-context-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}.message-context-tags span{font-size:10px;max-width:100%;overflow-wrap:anywhere;color:var(--text-secondary);padding:3px 6px;border:1px solid var(--border);border-radius:5px}
+
+.model-btn>svg.model-direction-arrow{transform:none!important;transition:transform .45s cubic-bezier(.18,.75,.22,1)}
+.model-btn[aria-expanded=true]>svg.model-direction-arrow{transform:rotate(180deg)!important}
+ .composer-command-icon{position:relative;z-index:2;flex:0 0 24px;align-self:flex-start;display:flex;align-items:center;justify-content:center;width:24px;height:24px;margin:8px 8px 0 0;padding:2px;border:0;border-radius:5px;background:transparent;color:var(--text-secondary);cursor:pointer;animation:command-icon-in .2s ease-out}
+.composer-command-icon[hidden]{display:none}.composer-command-icon:hover{background:var(--bg-hover);color:var(--text-primary)}
+.composer-command-icon svg{display:block;width:18px;height:18px;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+@keyframes command-icon-in{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.composer-command-icon{animation:none}.model-btn>svg.model-direction-arrow{transition:none}}
+
+/* Thinking is a horizontal submenu; its arrow follows the available side. */
+.model-reasoning-value>.model-direction-arrow,.model-reasoning-picker[data-side] .model-direction-arrow,.model-reasoning-picker[open][data-side] .model-direction-arrow{transform:rotate(-90deg)}
+.model-reasoning-picker[data-side=left] .model-direction-arrow,.model-reasoning-picker[open][data-side=left] .model-direction-arrow{transform:rotate(90deg)}
+.model-reasoning-options[data-side=right]{animation:reasoning-slide-right .3s cubic-bezier(.22,1,.36,1) both;transform-origin:left center}
+.model-reasoning-options[data-side=left]{animation:reasoning-slide-left .3s cubic-bezier(.22,1,.36,1) both;transform-origin:right center}
+@keyframes reasoning-slide-right{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}}
+@keyframes reasoning-slide-left{from{opacity:0;transform:translateX(10px)}to{opacity:1;transform:translateX(0)}}
+.thinking-exploring-icon{display:inline-flex;align-items:center;flex:none}.thinking-exploring-icon svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+@media(prefers-reduced-motion:reduce){.model-reasoning-options[data-side=right],.model-reasoning-options[data-side=left]{animation:none}}
+
+/* The Thinking arrow exits through the clipped edge, then fades in place facing right. */
+.model-reasoning-value{overflow:hidden}
+.model-reasoning-picker[data-arrow-motion=out] .model-direction-arrow{animation:thinking-arrow-exit .42s cubic-bezier(.22,1,.36,1) both;transition:none}
+.model-reasoning-picker[data-arrow-motion=return] .model-direction-arrow{animation:thinking-arrow-return .32s cubic-bezier(.22,1,.36,1) both;transition:none}
+@keyframes thinking-arrow-exit{0%{opacity:1;transform:translateX(0) rotate(-90deg)}45%{opacity:1;transform:translateX(9px) rotate(-90deg)}100%{opacity:0;transform:translateX(26px) rotate(-90deg)}}
+@keyframes thinking-arrow-return{from{opacity:0;transform:rotate(-90deg)}to{opacity:1;transform:rotate(-90deg)}}
+@media(prefers-reduced-motion:reduce){.model-reasoning-picker[data-arrow-motion] .model-direction-arrow{animation:none;transition:none}.model-reasoning-picker[data-arrow-motion=out] .model-direction-arrow{opacity:0}.model-reasoning-picker[data-arrow-motion=return] .model-direction-arrow{opacity:1;transform:rotate(-90deg)}}
+
+/* Model direction has two composer positions, independent of popup placement. */
+.model-btn[data-composer-position=raised]>svg.model-direction-arrow{transform:rotate(0deg)!important}
+.model-btn[data-composer-position=raised][aria-expanded=true]>svg.model-direction-arrow{transform:rotate(180deg)!important}
+.model-btn[data-composer-position=lowered]>svg.model-direction-arrow{transform:rotate(180deg)!important}
+.model-btn[data-composer-position=lowered][aria-expanded=true]>svg.model-direction-arrow{transform:rotate(0deg)!important}

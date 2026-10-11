@@ -31,7 +31,7 @@ app.whenReady().then(async()=>{let w;try{
  assert.equal(await js("document.querySelectorAll('.streaming-answer,.thinking-message').length"),0);
  assert.equal(await js("document.querySelector('.message.user').dataset.preserved"),'true','Completion preserves existing chat DOM');
  assert.equal(await js("document.querySelector('.answer-settled code').textContent"),code);
- assert.equal(await js("getComputedStyle(document.querySelector('.assistant-work-meta')).minHeight"),'36px');
+ assert.equal(await js("getComputedStyle(document.querySelector('.assistant-work-meta')).minHeight"),'24px');
  assert.equal(await js("getComputedStyle(document.querySelector('.answer-settled')).animationName"),'none','Completed response does not replay whole-message animation');
  await wait(200);
  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'answer-finished.png'),(await w.webContents.capturePage()).toPNG());

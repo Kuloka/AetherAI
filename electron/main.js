@@ -64,6 +64,10 @@ handleIpc('plugins:call', (event, id, name, args, requestId) => {
   return plugins.call(id, name, args, `${event.sender.id}:${requestId}`);
 });
 handleIpc('plugins:cancel', (event, requestId) => plugins.cancel(`${event.sender.id}:${requestId}`));
+const projectCommands=require('./project-commands').createProjectCommands(PROJECTS_DIR,{confirm:async({command,cwd,signal,owner})=>{const contents=require('electron').webContents.fromId(owner),parent=contents&&BrowserWindow.fromWebContents(contents);if(!parent||parent.isDestroyed())return false;const result=await dialog.showMessageBox(parent,{type:'question',title:'Run project command',message:command,detail:'Working folder: '+cwd+'\n\nThis runs with your user account permissions. Output is shared with the selected AI model.',buttons:['Cancel','Run'],defaultId:0,cancelId:0,noLink:true,signal});return result.response===1;}});
+handleIpc('project:run-command',(event,args,id)=>{if(loadSettings().accessMode==='plan')throw Error('Commands are disabled in Plan mode');return projectCommands.run(args,event.sender.id+':'+id,event.sender.id);});
+handleIpc('project:cancel-command',(event,id)=>projectCommands.cancel(event.sender.id+':'+id));
+
 const discordActivity = require('./discord-activity').createDiscordActivity();
 const discordMedia = require('./discord-media');
 const DISCORD_MEDIA_DIR = path.join(DATA_DIR, 'discord-media');
@@ -499,7 +503,7 @@ function createWindow() {
   });
 
   trustedContents.add(win.webContents.id);
-  win.webContents.once('destroyed',()=>trustedContents.delete(win.webContents.id));
+  const contentsId=win.webContents.id;win.webContents.once('destroyed',()=>{projectCommands.cancelOwner(contentsId);trustedContents.delete(contentsId);});
   win.webContents.setWindowOpenHandler(()=>({action:'deny'}));
   win.webContents.on('will-navigate',event=>event.preventDefault());
   win.webContents.on('will-frame-navigate',event=>event.preventDefault());
@@ -738,7 +742,7 @@ app.whenReady().then(async () => {
 
 let closingPlugins = false;
 app.on('before-quit', event => {
-  localRuntime.stop(); discordActivity.stop();
+  localRuntime.stop(); discordActivity.stop();projectCommands.close();
   for (const request of cloudRequests.values()) request.abort();
   if (!closingPlugins) { event.preventDefault(); closingPlugins = true; plugins.close().finally(() => app.quit()); }
 });

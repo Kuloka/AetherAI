@@ -16,12 +16,10 @@ app.whenReady().then(async()=>{
  await wait(700);await evaluate("document.querySelector('#accountClose').click()");
  assert.equal(await evaluate("document.body.classList.contains('theme-light')"),true);
  assert.equal(await evaluate("document.querySelector('#welcomeTitle').textContent"),'AetherAI');assert.ok(await evaluate("!!document.querySelector('.welcome-pixel-wordmark')"));
- let prompt='';for(let i=0;i<50;i++){const before=await evaluate("document.querySelector('#composerPromptText').textContent");await wait(150);const after=await evaluate("document.querySelector('#composerPromptText').textContent");if(before&&before===after){prompt=after;break;}}
- assert.ok(prompt.length>5);assert.equal(await evaluate("document.querySelector('#userInput').placeholder"),'');
- await wait(1500);assert.equal(await evaluate("document.querySelector('#composerPromptText').textContent"),prompt);
+ assert.equal(await evaluate("document.querySelector('#userInput').placeholder"),'Type / for commands');assert.equal(await evaluate("document.querySelector('#composerPromptText')"),null);await wait(1500);assert.equal(await evaluate("document.querySelector('#userInput').placeholder"),'Type / for commands');
  const promptPreview=path.resolve(__dirname,'../artifacts');fs.mkdirSync(promptPreview,{recursive:true});fs.writeFileSync(path.join(promptPreview,'aetherai-terminal-prompt.png'),(await win.webContents.capturePage()).toPNG());
  await evaluate("document.querySelector('#userInput').focus();document.querySelector('#userInput').value='My draft';document.querySelector('#userInput').dispatchEvent(new Event('input'))");await wait(300);
- assert.equal(await evaluate("document.querySelector('#composerPrompt').hidden"),true);assert.equal(await evaluate("document.querySelector('#userInput').value"),'My draft');
+ assert.equal(await evaluate("document.querySelector('#composerPrompt')"),null);assert.equal(await evaluate("document.querySelector('#userInput').value"),'My draft');
  const preview=path.resolve(__dirname,'../artifacts');fs.mkdirSync(preview,{recursive:true});fs.writeFileSync(path.join(preview,'aetherai-white-glass.png'),(await win.webContents.capturePage()).toPNG());
  await evaluate("document.querySelector('#userInput').value='Explain this mathematical result';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");await wait(1000);console.log('Received mathematical reply');
  assert.equal(await evaluate("document.querySelectorAll('#messages .katex').length"),4);

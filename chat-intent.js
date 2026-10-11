@@ -4,14 +4,15 @@
     const action=/(?:напиши|создай|сделай|сохрани|запиши|измени|исправь|добавь|удали|разработай|реализуй|write|create|build|save|edit|fix|implement|delete|update|add)\b/iu.test(value);
     // Cyrillic words need their own boundary; JS \b only recognizes Latin letters.
     const ruAction=/(?:^|\s)(?:напиши|создай|сделай|сохрани|запиши|измени|исправь|добавь|удали|разработай|реализуй)(?:\s|$)/u.test(value);
-    const technical=/(?:код|скрипт|сайт|приложени|программ|интерфейс|репозитор|проект|файл|калькулятор|игр[ауые]|бот(?:а|ов)?(?:\s|$)|\.txt\b|\.md\b|\.py\b|\.js\b|\.html\b|code|script|website|app\b|program|interface|repository|project|file|calculator|game|bot\b)/iu.test(value);
+    const technical=/(?:\u0433\u0435\u043d\u0435\u0440\u0430\u0442\u043e\u0440|код|скрипт|сайт|приложени|программ|интерфейс|репозитор|проект|файл|калькулятор|игр[ауые]|бот(?:а|ов)?(?:\s|$)|\.txt\b|\.md\b|\.py\b|\.js\b|\.html\b|code|script|website|app\b|program|interface|repository|project|file|calculator|game|generator|bot\b)/iu.test(value);
     const explanation=/^(?:(?:пожалуйста|please)[, ]+)?(?:объясни|расскажи|что такое|как работает|покажи пример|explain|what is|how does|show.*example)(?:\s|$)/iu.test(value);
     const noFiles=/(?:не\s+(?:создавай|сохраняй|записывай|меняй|пиши)\s+(?:файл|код)|без\s+(?:файлов|кода)|don't.*(?:write|save|create|edit)|do not.*(?:write|save|create|edit)|no files)/iu.test(value);
     const conceptual=/(?:создай|сделай|напиши|create|write|build)\s+(?:(?:мне|an?|the)\s+)?(?:иде[яию]|концепци|сюжет|idea|concept|story)/iu.test(value);
-    const projectEdit=project&&/^(?:исправь|измени|добавь|удали|fix|edit|change|add|remove|update)(?:\s|$)/iu.test(value)&&/(?:баг|ошибк|кнопк|фон|цвет|стил|дизайн|функци|bug|error|button|background|colou?r|style|design|feature)/iu.test(value);
-    const files=(action||ruAction)&&(technical||projectEdit)&&!explanation&&!noFiles&&!conceptual;
+    const projectEdit=project&&/^(?:\u0438\u0441\u043f\u0440\u0430\u0432\u044c|\u0438\u0437\u043c\u0435\u043d\u0438|\u0434\u043e\u0431\u0430\u0432\u044c|\u0443\u0434\u0430\u043b\u0438|\u043f\u0435\u0440\u0435\u0434\u0435\u043b\u0430\u0439|\u0441\u0434\u0435\u043b\u0430\u0439|fix|edit|change|add|remove|update|redo)(?:\s|$)/iu.test(value)&&!/(?:\u043e\u0442\u0432\u0435\u0442|\u0441\u043e\u043e\u0431\u0449\u0435\u043d|\u0441\u0442\u0438\u0445|\u043f\u043e\u044d\u043c|\u0440\u0430\u0441\u0441\u043a\u0430\u0437|\u043f\u0435\u0440\u0435\u0432\u043e\u0434|answer|reply|poem|story|translation)/iu.test(value);
+    const commands=!explanation&&!/don't.*run|do not.*run|\u043d\u0435\s+(?:\u0437\u0430\u043f\u0443\u0441\u0442\u0438|\u0432\u044b\u043f\u043e\u043b\u043d\u0438|\u043f\u0440\u043e\u0433\u043e\u043d\u0438|\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438)/iu.test(value)&&/(?:^|\s)(?:\u0437\u0430\u043f\u0443\u0441\u0442\u0438|\u0432\u044b\u043f\u043e\u043b\u043d\u0438|\u043f\u0440\u043e\u0433\u043e\u043d\u0438|\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438|run|execute|install)(?:\s|$)/iu.test(value);
+    const files=(action||ruAction||projectEdit)&&(technical||projectEdit)&&!explanation&&!noFiles&&!conceptual;
     const code=technical&&!noFiles;
-    return {files,code,toolsMutation:files||/(?:запомни|remember|сохрани.*памят)/iu.test(value),simple:!files&&value.length<80&&value.split(/\s+/).length<12};
+    return {files,code,commands,toolsMutation:files||/(?:запомни|remember|сохрани.*памят)/iu.test(value),simple:!files&&!commands&&value.length<80&&value.split(/\s+/).length<12};
   }
   function languageRule(text, fallback='en'){
     const value=String(text||'').trim();

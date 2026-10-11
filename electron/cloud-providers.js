@@ -110,6 +110,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     if (body.options?.temperature !== undefined) payload.temperature = body.options.temperature;
     if (body.format) {
       payload.response_format = id === 'openrouter' && typeof body.format === 'object' ? { type: 'json_schema', json_schema: { name: 'response', strict: true, schema: body.format } } : { type: 'json_object' };
+      if(id==='openrouter'&&typeof body.format==='object')payload.provider={require_parameters:true};
       payload.messages = [{ role: 'system', content: 'Return a JSON object matching this schema: ' + JSON.stringify(body.format) }, ...payload.messages];
     }
     const response = await request(config(id).base + '/chat/completions', { method: 'POST', headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify(payload), signal, redirect: 'error' });

@@ -10,12 +10,20 @@
     if(lang!==language){language=lang;paused=true;question='';}
     const blocked=document.hidden||document.documentElement.classList.contains('ui-loading')||document.body.classList.contains('auth-visible')||input.value.length>0||composing||editing;
     if(blocked){show('',false);paused=true;return;}
-    if(paused){paused=false;question=choices.next(language);length=question.length;deleting=false;due=now+5000;show(question,true);wasReduced=reduced.matches;return;}
+    if(paused){paused=false;question=choices.next(language);length=reduced.matches?question.length:1;deleting=reduced.matches;due=now+32;show(question.slice(0,length),true);wasReduced=reduced.matches;return;}
     if(reduced.matches){length=question.length;show(question,true);wasReduced=true;return;}
-    if(wasReduced){wasReduced=false;deleting=true;due=now+5000;}
+    if(wasReduced){wasReduced=false;length=question.length;deleting=true;due=now+5000;show(question,true);return;}
     if(now<due)return;
-    question=choices.next(language);length=question.length;show(question,true);due=now+7000;if(!reduced.matches)prompt.animate([{opacity:.35},{opacity:1}],{duration:220,easing:'ease-out'});
+    if(deleting){
+      if(length>0){length--;due=now+22;}
+      else{question=choices.next(language);length=0;deleting=false;due=now+90;}
+    }else{
+      length=Math.min(question.length,length+1);
+      if(length===question.length){deleting=true;due=now+5000;}else due=now+32;
+    }
+    show(question.slice(0,length),true);
   }
+  input.addEventListener('composer:cleared',()=>{editing=false;paused=true;tick();});
   input.addEventListener('compositionstart',()=>{composing=true;tick();});input.addEventListener('compositionend',()=>{composing=false;tick();});
   const beginEditing=()=>{input.focus?.();editing=true;tick();};
   input.addEventListener('pointerdown',beginEditing);input.addEventListener('click',beginEditing);

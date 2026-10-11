@@ -51,6 +51,8 @@ The home screen uses a code-native pixel AetherAI wordmark above the composer. I
 
 The home and sign-in headings use SVG pixel wordmarks. Provider model icons retain their colors. Working has no logo or reserved icon space in any visual preset. The website navigation and download section share the AetherAI pixel asset.
 
-Sidebar chrome uses only the selected native logo, including when collapsed. The window title bar and sidebar brand text are hidden; the central pixel heading remains. Working stays text-only.
+The expanded sidebar shows the native logo and a compact 90px pixel wordmark. The title bar uses a smaller 74px wordmark. A collapsed sidebar shows only its logo; the central pixel heading remains. Working stays text-only.
 
 Catalog polling avoids rebuilding unchanged provider/model/preference lists. Changed model catalogs preserve list scroll positions; focus restoration uses preventScroll. Regression coverage includes scrolling an 80-model catalog before refreshing it.
+
+The empty composer shows a static `Commands / ? @ Context` placeholder in its input line. Examples and the separate bottom caption are removed. A recognized slash command becomes a removable command-specific icon after a space; the request retains that mode until sent. Done/Working metadata uses a 24px row, 4px gaps and 4px spacing before the answer. Preferences combine minor and unrecognized model families under Other models. Model names omit vendor prefixes, and the model arrow rotates upward while the menu is open. Composer shortcuts are described in [Project commands](project-commands.md).
