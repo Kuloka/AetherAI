@@ -10,14 +10,11 @@
     if(lang!==language){language=lang;paused=true;question='';}
     const blocked=document.hidden||document.documentElement.classList.contains('ui-loading')||document.body.classList.contains('auth-visible')||input.value.length>0||composing||editing;
     if(blocked){show('',false);paused=true;return;}
-    if(paused){paused=false;question=choices.next(language);length=reduced.matches?question.length:1;deleting=false;due=now+(reduced.matches?5000:65);show(question.slice(0,length),true);wasReduced=reduced.matches;return;}
+    if(paused){paused=false;question=choices.next(language);length=question.length;deleting=false;due=now+5000;show(question,true);wasReduced=reduced.matches;return;}
     if(reduced.matches){length=question.length;show(question,true);wasReduced=true;return;}
     if(wasReduced){wasReduced=false;deleting=true;due=now+5000;}
     if(now<due)return;
-    length+=deleting?-1:1;show(question.slice(0,length),true);
-    if(!deleting&&length===question.length){deleting=true;due=now+5000;}
-    else if(deleting&&length===0){question=choices.next(language);deleting=false;due=now+150;}
-    else due=now+(deleting?28:65);
+    question=choices.next(language);length=question.length;show(question,true);due=now+7000;if(!reduced.matches)prompt.animate([{opacity:.35},{opacity:1}],{duration:220,easing:'ease-out'});
   }
   input.addEventListener('compositionstart',()=>{composing=true;tick();});input.addEventListener('compositionend',()=>{composing=false;tick();});
   const beginEditing=()=>{input.focus?.();editing=true;tick();};

@@ -55,10 +55,10 @@ body.theme-light #notificationsRoot {
 .streaming-ui .answer-source{margin:0;padding:4px 6px;border-radius:6px!important;gap:8px;font-size:12px;text-decoration:none!important}
 .streaming-ui .answer-source:hover{background:var(--bg-hover)}.streaming-ui .answer-source small{margin-left:auto;font-family:var(--mono);font-size:10.5px}
 .streaming-ui .answer-source-icon,.streaming-ui .answer-source-icon img{border-radius:4px;width:16px;height:16px}
-.streaming-ui .stream-followups{display:flex;flex-direction:column;align-items:stretch;gap:0;width:100%;margin-top:10px}
-.streaming-ui .stream-followups p{font-size:12px;font-weight:500;color:var(--ink-2);margin:0 0 2px}
-.streaming-ui .stream-followups button{display:flex;align-items:center;gap:8px;width:100%;padding:6px;border-bottom:1px solid var(--line);text-align:left;color:var(--ink);font-size:12.5px;text-decoration:none;animation:stream-fade-up 350ms cubic-bezier(.23,1,.32,1) both}
-.streaming-ui .stream-followups button:hover{background:var(--bg-hover);text-decoration:none}.streaming-ui .stream-followups .answer-explain-line{width:11px;height:11px;color:var(--ink-3)}
-.stream-content .stream-source-chip{display:inline-flex;align-items:center;padding:1px 4px;border-radius:5px;background:var(--inset);box-shadow:0 0 0 1px var(--line);font-family:var(--mono);font-size:10.5px;text-decoration:none;animation:stream-pop-in 250ms cubic-bezier(.23,1,.32,1) both}
+.streaming-ui .stream-followups{display:flex;flex-direction:column;align-items:flex-start;gap:0;width:fit-content;max-width:100%;margin-top:10px}
+.streaming-ui .stream-followups p{display:none}
+.streaming-ui .stream-followups button{display:flex;align-items:center;gap:6px;width:auto;padding:0;border:0;text-align:left;color:var(--ink-2);font-size:12.5px;text-decoration:none;animation:stream-fade-up 160ms ease-out both}
+.streaming-ui .stream-followups button:hover{background:transparent;color:var(--ink);text-decoration:underline;text-underline-offset:3px}.streaming-ui .stream-followups .answer-explain-line{width:18px;height:12px;color:var(--ink-3);flex-shrink:0}
+.stream-content .stream-source-chip{display:inline;padding:0;border-radius:0;background:none;box-shadow:none;font:inherit;color:inherit;text-decoration:underline;text-decoration-color:var(--text-muted);text-underline-offset:3px}
 .streaming-ui button:focus-visible{outline:2px solid var(--text-secondary);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.stream-word,.streaming-ui .stream-followups button,.stream-source-chip,.answer-settled .streaming-ui .stream-action-row{animation:none}.streaming-ui .stream-sources-panel,.streaming-ui .stream-sources-toggle svg{transition:none}}

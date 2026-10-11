@@ -2,7 +2,7 @@ const {app,BrowserWindow,ipcMain}=require('electron'),fs=require('node:fs'),path
 const root=path.resolve(__dirname,'..'),out=path.join(root,'artifacts/answer-visual');fs.mkdirSync(out,{recursive:true});app.setPath('userData',path.join(out,'profile'));app.disableHardwareAcceleration();app.commandLine.appendSwitch('force-prefers-reduced-motion','reduce');
 let settings={appLanguage:'ru',theme:'dark',aetherGlassApplied:true,localAi:true,selectedModel:'llama3.2:1b',teamEnabled:false};
 const prose='Это обычный разговорный ответ о повседневных делах. Он не требует формул, кода или пошагового разбора. '.repeat(3);
-const content='**Главный вывод:** локальный запрос обрабатывается на компьютере. Для плотности используем формулу:\n\n\\[\\rho=\\frac{m}{V}\\]\n\n1. Определите массу.\n2. Измерьте объём.\n3. Разделите массу на объём.\n\nПодробнее: [документация Ollama](https://docs.ollama.com/) и [OpenRouter](https://openrouter.ai/docs/overview).';
+const content='**Главный вывод:** локальный запрос обрабатывается на компьютере. Для плотности используем формулу:\n\n\\[\\rho=\\frac{m}{V}\\]\n\n1. Определите массу.\n2. Измерьте объём.\n3. Разделите массу на объём.\n\nПодробнее: ([Ollama](https://docs.ollama.com/)) · [документация Ollama](https://docs.ollama.com/) и [OpenRouter](https://openrouter.ai/docs/overview).';
 const sources=[{title:'Документация Ollama',url:'https://docs.ollama.com/'},{title:'Документация OpenRouter',url:'https://openrouter.ai/docs/overview'},{title:'Bad source',url:'javascript:alert(1)'}];
 const data={groups:[],chats:[{id:'complex',title:'Сложный вопрос',messages:[{role:'user',content:'Объясни формулу плотности и шаги вычисления.'},{role:'assistant',content,sources}]},{id:'ordinary',title:'Обычный вопрос',messages:[{role:'user',content:'Как настроение?'},{role:'assistant',content:prose}]}]};
 const skills=require('../electron/app-skills').createSkillsStore(path.join(out,'skills'));skills.installPreset('code-review');for(const entry of skills.list())skills.toggle(entry.name,false);
@@ -31,6 +31,8 @@ app.whenReady().then(async()=>{
  assert.equal(await js("document.querySelectorAll('.answer-followups button').length"),1);
  assert.ok(await js("!!document.querySelector('.answer-explain-line path')&&!!document.querySelector('.message-text .katex')"));
  assert.equal(await js("document.querySelectorAll('.message-text a').length"),2);
+ assert.equal(await js("getComputedStyle(document.querySelector('.stream-source-chip')).boxShadow"),'none');
+ assert.equal(await js("getComputedStyle(document.querySelector('.stream-source-chip')).backgroundColor"),'rgba(0, 0, 0, 0)');
  await js("document.querySelector('.answer-source').click()");await wait(30);assert.equal(opened[0],'https://docs.ollama.com/');
  await js("document.querySelector('.answer-followups button').click()");assert.equal(await js("document.querySelector('#userInput').value"),'Объяснить подробнее');
  fs.writeFileSync(path.join(out,'answer-ru.png'),(await w.webContents.capturePage()).toPNG());

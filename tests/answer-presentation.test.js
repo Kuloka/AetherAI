@@ -17,6 +17,8 @@ test('source links retain exact destination, reject executable/credential URLs a
 });
 test('Markdown references become safe anchors, inline code stays literal and math/code formatting stays intact',()=>{
  assert.match(ui.inline('[Wikipedia](https://en.wikipedia.org/wiki/Angle_bisector)'),/<a href="https:\/\/en.wikipedia.org\/wiki\/Angle_bisector"/);
+ assert.match(ui.inline('([Wikipedia](https://en.wikipedia.org/wiki/Angle_bisector))'),/href="https:\/\/en.wikipedia.org\/wiki\/Angle_bisector"/);
+ assert.match(ui.inline('[Wikipedia](https://en.wikipedia.org/wiki/Function_(mathematics))'),/href="https:\/\/en.wikipedia.org\/wiki\/Function_\(mathematics\)"/);
  assert.equal(ui.inline('`[example](https://example.com)`'),'<code>[example](https://example.com)</code>');
  assert.equal(ui.inline('**Key point**'),'<strong>Key point</strong>');
  assert.ok(!ui.inline('[bad](javascript:alert(1))').includes('<a'));

@@ -25,3 +25,11 @@
 @media(max-width:900px){.nav nav a:not(.nav-download){display:none}.download-grid{grid-template-columns:1fr;max-width:500px;margin-inline:auto}.nav{gap:16px}.hero h1{letter-spacing:-3px}}
 @media(max-width:600px){.nav nav{display:none}.nav{justify-content:space-between}.nav .brand{font-size:16px;gap:6px}.nav .brand img{width:30px}.nav{gap:8px}#language-toggle{padding:10px;font-size:12px;gap:6px}.hero h1{font-size:clamp(32px,9.5vw,56px);letter-spacing:-1.5px}.product-caption{font-size:8px}.download h2{font-size:36px;letter-spacing:-1.5px}.download-grid article{padding:28px 22px}}
 .hero-scroll-hint{align-self:flex-start;margin:0;color:#bdbdbd;font-size:clamp(24px,2.5vw,36px);font-weight:500;letter-spacing:-.025em;text-align:left;pointer-events:none}
+
+/* Shared pixel identity; keep readable labels for screen readers. */
+.pixel-brand-label{display:inline-block;position:relative;width:114px;height:19px;font-size:0;color:transparent;flex-shrink:0}
+.pixel-brand-label::after{content:'';position:absolute;inset:0;background:#ededed;mask:url('/assets/pixel-wordmark.svg') center/contain no-repeat}
+.download-wordmark{width:min(280px,80vw);height:47px;margin-bottom:24px}
+@media(max-width:360px){.nav .brand>.pixel-brand-label{display:inline-block;width:90px;height:15px}.nav{gap:10px}}
+
+@media(max-width:360px){.nav .brand>.pixel-brand-label{width:60px;height:10px}.nav{gap:8px}#language-toggle{font-size:11px;padding:8px;gap:5px}.nav nav .nav-download{padding:8px;font-size:11px}}

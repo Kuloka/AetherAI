@@ -18,9 +18,9 @@ app.whenReady().then(async()=>{let w;try{
  await js("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.copiedCode=value;}}});document.querySelector('.code-copy').click()");await wait(100);
  assert.equal(await js('window.copiedCode'),code);assert.equal(await js("document.querySelector('.code-copy-label').textContent"),'Скопировано');
  await js("document.querySelector('#modelBtn').click()");await wait(100);
- assert.ok(await js("!!document.querySelector('.model-active-check svg')"));
- assert.equal(await js("getComputedStyle(document.querySelector('#modelSearchInput')).borderRadius"),'12px');
- assert.equal(await js("document.querySelector('.model-select-button').getBoundingClientRect().height>=56"),true);
+ assert.ok(await js("!!document.querySelector('.model-select-button[aria-pressed=true] .model-row-check')"));
+ assert.equal(await js("document.querySelector('#modelSearchInput')"),null);
+ assert.equal(await js("document.querySelector('.model-select-button').getBoundingClientRect().height>=32"),true);
  fs.writeFileSync(path.join(out,'models-and-code.png'),(await w.webContents.capturePage()).toPNG());
  await js("document.querySelector('#modelBtn').click();document.querySelector('#userInput').value='Объясни функцию сложения подробнее';document.querySelector('#userInput').dispatchEvent(new Event('input'));document.querySelector('#sendBtn').click()");
  await until("!!document.querySelector('.streaming-answer')");
@@ -35,5 +35,5 @@ app.whenReady().then(async()=>{let w;try{
  assert.equal(await js("getComputedStyle(document.querySelector('.answer-settled')).animationName"),'none','Completed response does not replay whole-message animation');
  await wait(200);
  assert.deepEqual(errors,[]);fs.writeFileSync(path.join(out,'answer-finished.png'),(await w.webContents.capturePage()).toPNG());
- console.log('PASS: exact code/newlines/copy, syntax colors, model hierarchy/checkmark, rounded search and stable thinking-to-answer DOM');w.destroy();app.quit();
+ console.log('PASS: exact code/newlines/copy, syntax colors, model hierarchy/checkmark, compact menu and stable thinking-to-answer DOM');w.destroy();app.quit();
 }catch(error){console.error(error);w?.destroy();app.exit(1);}});

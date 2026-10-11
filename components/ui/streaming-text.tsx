@@ -41,7 +41,12 @@ export default function StreamingText({ html, done = true, sources = [], citatio
         node.replaceWith(fragment);
       }
     }
-    for (const link of Array.from(root.querySelectorAll<HTMLAnchorElement>("a[href]"))) if (citations.some(source => source.href === link.href)) link.classList.add("stream-source-chip");
+    let previousLink:HTMLAnchorElement|null=null;
+    for (const link of Array.from(root.querySelectorAll<HTMLAnchorElement>("a[href]"))) {
+      if (citations.some(source => source.href === link.href)) link.classList.add("stream-source-chip");
+      if(previousLink&&previousLink.href===link.href&&previousLink.closest('p,li')===link.closest('p,li')){const gap=document.createRange();gap.setStartAfter(previousLink);gap.setEndBefore(link);if(/^[\s()[\]·.,;:-]*$/.test(gap.toString())){const before=previousLink.previousSibling;if(before?.nodeType===Node.TEXT_NODE&&/\($/.test(before.textContent||'')&&/^\s*\)/.test(gap.toString()))before.textContent=(before.textContent||'').replace(/\($/,'');gap.deleteContents();previousLink.remove();}}
+      previousLink=link;
+    }
     root.querySelectorAll('.answer-stream-caret').forEach(caret => caret.remove());
     if (!done) {const tail=root.querySelector(':scope > p:last-child,:scope > ul:last-child > li:last-child,:scope > ol:last-child > li:last-child')||root;const caret=document.createElement('span');caret.className='answer-stream-caret';caret.setAttribute('aria-hidden','true');tail.append(caret);}
   }, [html, done, citations]);
@@ -56,7 +61,7 @@ export default function StreamingText({ html, done = true, sources = [], citatio
         return <button key={action} type="button" className="msg-action-btn stream-action" title={label} aria-label={label} data-answer-action={action} aria-pressed={action === "up" || action === "down" ? feedback === action : undefined} disabled={action === "copy" ? copying : busy} onClick={async () => {
           if (action === "copy") { setCopying(true);try { setCopyState(await onCopy?.() ? "copied" : "failed"); } catch { setCopyState("failed"); } finally { setCopying(false); } }
           else if (action === "retry") onRetry?.();else onFeedback?.(action);
-        }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{action === "copy" && copyState === "copied" ? <path d="M20 6 9 17l-5-5" /> : paths[action]}</svg></button>;
+        }}><svg width="15" height="15" viewBox="0 0 24 24" fill={(action==='up'||action==='down')&&feedback===action?'currentColor':'none'} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{action === "copy" && copyState === "copied" ? <path d="M20 6 9 17l-5-5" /> : paths[action]}</svg></button>;
       })}
       {!!sources.length && <button type="button" className="stream-sources-toggle answer-sources-label" aria-expanded={sourcesOpen} onClick={() => setSourcesOpen(value => !value)}>
         <span className="stream-source-avatars">{sources.slice(0, 3).map(source => <SourceAvatar key={source.href} source={source} />)}</span>

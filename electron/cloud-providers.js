@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const {describe}=require('../response-errors');
 const {cloudVision}=require('../model-capabilities');
+const {generationOptions}=require('./cloud-generation');
 const PROVIDERS = {
   openrouter: { base: 'https://openrouter.ai/api/v1', keys: 'https://openrouter.ai/settings/keys' },
   groq: { base: 'https://api.groq.com/openai/v1', keys: 'https://console.groq.com/keys' },
@@ -56,7 +57,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     return data.data.filter(model => typeof model.id === 'string' && /^[a-zA-Z0-9_.:/-]{1,200}$/.test(model.id))
       .filter(model => id !== 'sambanova' || !/embed|rerank|whisper|tts|speech|audio/i.test(model.id))
       .filter(model => id === 'openrouter' ? model.architecture?.output_modalities?.includes('text') !== false : id==='gemini' ? /gemini/i.test(model.id)&&!/embedding|tts|image|live|audio|robotic/i.test(model.id) : !/whisper|tts|guard/i.test(model.id))
-      .map(model => ({ name: 'cloud:' + id + '/' + model.id, cloudName: model.name || model.id, contextLength: model.context_length || model.context_window || null, provider: id, backend: 'cloud', size: 0, details: {}, pricing:model.pricing||null, free: id==='openrouter' && Number(model.pricing?.prompt)===0 && Number(model.pricing?.completion)===0 && Object.values(model.pricing||{}).every(price=>Number(price)===0), capabilities: cloudVision(id,model) ? ['completion', 'vision'] : ['completion'] }));
+      .map(model => ({ name: 'cloud:' + id + '/' + model.id, cloudName: model.name || model.id, description:typeof model.description==='string'?model.description.slice(0,1500):'',contextLength: model.context_length || model.context_window || null, provider: id, backend: 'cloud', size: 0, details: {}, reasoning:model.reasoning||null,supportedParameters:Array.isArray(model.supported_parameters)?model.supported_parameters:[],maxCompletionTokens:model.top_provider?.max_completion_tokens||null,pricing:model.pricing||null, free: id==='openrouter' && Number(model.pricing?.prompt)===0 && Number(model.pricing?.completion)===0 && Object.values(model.pricing||{}).every(price=>Number(price)===0), capabilities: cloudVision(id,model) ? ['completion', 'vision'] : ['completion'] }));
   }
   async function save(id, value) {
     config(id);
@@ -105,6 +106,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     const selected=(await models()).find(item=>item.name===body.model);if(!selected)throw new Error('This model is no longer available');if(body.messages.some(message=>message.images?.length)&&!selected.capabilities.includes('vision'))throw new Error('This model does not support images. Choose a model marked Vision.');
     const payload = { model, stream: body.stream !== false, messages: body.messages.map(message => ({ role: message.role, content: message.images?.length ? [{ type: 'text', text: message.content || '' }, ...message.images.map(image => ({ type: 'image_url', image_url: { url: image.startsWith('data:') ? image : 'data:image/png;base64,' + image } }))] : message.content })), max_tokens: body.options?.num_predict || 1000 };
     if(id==='gemini')payload.model=model.replace(/^models\//,'');
+    Object.assign(payload,generationOptions(selected,body));
     if (body.options?.temperature !== undefined) payload.temperature = body.options.temperature;
     if (body.format) {
       payload.response_format = id === 'openrouter' && typeof body.format === 'object' ? { type: 'json_schema', json_schema: { name: 'response', strict: true, schema: body.format } } : { type: 'json_object' };
@@ -140,7 +142,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     emit({ type: 'headers', status: 200 });
     if (!payload.stream) {
       const data = await response.json();
-      emit({ type: 'chunk', text: JSON.stringify({ message: data.choices?.[0]?.message || { content: '' } }) });
+      emit({ type: 'chunk', text: JSON.stringify({ message: data.choices?.[0]?.message || { content: '' },finish_reason:data.choices?.[0]?.finish_reason, usage:data.usage||data.x_groq?.usage }) });
       emit({ type: 'done' }); return;
     }
     const reader = response.body.getReader(), decoder = new TextDecoder(); let buffer = '', bytes = 0;
@@ -154,7 +156,7 @@ function createProviders(directory, safeStorage, request = fetch) {
         throw new Error(JSON.stringify(error));
       }
       const delta = data.choices?.[0]?.delta || {};
-      emit({ type: 'chunk', text: JSON.stringify({ message: { content: delta.content || '', thinking: delta.reasoning || delta.reasoning_content || '' } }) + '\n' });
+      emit({ type: 'chunk', text: JSON.stringify({ message: { content: delta.content || '', thinking: delta.reasoning || delta.reasoning_content || '' },finish_reason:data.choices?.[0]?.finish_reason, usage:data.usage||data.x_groq?.usage }) + '\n' });
     }
     try {
       while (true) {

@@ -8,10 +8,10 @@
     style.setProperty('--accent',options.accent);style.setProperty('--accent-ink',readable(options.accent));
     const variables=['--bg-darkest','--bg-activity','--bg-main','--bg-sidebar','--bg-surface','--bg-input','--bg-hover','--bg-active','--bg-user-msg','--text-primary','--text-bright','--text-secondary','--text-muted','--border','--border-light','--scrollbar-thumb'];
     variables.forEach(key=>style.removeProperty(key));
-    if(options.surface){const ink=readable(options.surface),towards=ink==='#171717'?'#000000':'#ffffff';
+    if(options.surface){const ink=readable(options.surface),towards=ink==='#171717'?'#000000':'#ffffff';document.body.classList.toggle('theme-light',ink==='#171717');document.body.dataset.surfaceTone=ink==='#171717'?'light':'dark';
       for(const [key,ratio] of [['--bg-darkest',0],['--bg-activity',.01],['--bg-main',0],['--bg-sidebar',.025],['--bg-surface',.07],['--bg-input',.07],['--bg-hover',.12],['--bg-active',.17],['--bg-user-msg',.09],['--border',.14],['--border-light',.21],['--scrollbar-thumb',.25]])style.setProperty(key,mix(options.surface,towards,ratio));
       style.setProperty('--text-primary',ink);style.setProperty('--text-bright',ink);style.setProperty('--text-secondary',mix(ink,options.surface,.32));style.setProperty('--text-muted',mix(ink,options.surface,.4));
-    }
+    }else delete document.body.dataset.surfaceTone;
     document.body.dataset.customAccent=options.accent==='#ffffff'?'false':'true';
     return options;
   }

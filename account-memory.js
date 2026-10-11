@@ -10,20 +10,20 @@
   useMemory.type='checkbox';useMemory.id='useSavedMemory';consent.className='preset-consent';consent.append(useMemory,consentText);$('memoryScopeNote').after(consent);
   consentText.textContent='Choose a model before enabling presets in chats.';useMemory.disabled=true;
   function close(modal){modal.classList.remove('show');if(modal===accountModal){document.querySelector('.app').inert=false;document.body.classList.remove('auth-visible');$('userInput').focus();}else $('profileBtn').focus();}
-  function openAccount(startup=false){$('openMemory').hidden=!account.user;accountModal.classList.add('show');document.querySelector('.app').inert=true;document.body.classList.add('auth-visible');(account.user?$('openMemory'):$('loginEmail')).focus();}
+  function openAccount(startup=false){$('openMemory').hidden=false;accountModal.classList.add('show');document.querySelector('.app').inert=true;document.body.classList.add('auth-visible');(account.user?$('openMemory'):$('loginEmail')).focus();}
   for(const [modal,button] of [[accountModal,$('accountClose')],[memoryModal,$('memoryClose')]]){button.onclick=()=>close(modal);modal.addEventListener('click',e=>{if(e.target===modal&&modal!==accountModal)close(modal);});modal.addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();close(modal);}if(e.key==='Tab'){const controls=[...modal.querySelectorAll('button,input,textarea,select')].filter(el=>!el.disabled&&el.getClientRects().length);const first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}});}
   function render(){
     const owner=account.user?.id||'local';if(renderedOwner!==owner){useMemory.checked=false;renderedOwner=owner;editing=null;$('memoryText').value='';$('memoryList').replaceChildren();if(memoryModal.classList.contains('show'))renderMemory().catch(e=>{$('memoryError').textContent=e.message;});}
     syncProfileCopy();
     $('accountSignedOut').hidden=!!account.user;$('accountSignedIn').hidden=!account.user;
     $('accountEmail').textContent=account.user?.email||'';
-    $('openMemory').textContent='Presets';
+    $('openMemory').textContent='Memory & presets';$('memoryTitle').textContent='Memory & presets';$('profilePresets').textContent='Memory & presets';
     $('accountSetupNote').hidden=account.configured;
     updateAuthControls();
     $('accountClose').innerHTML=account.user?'Back to workspace <span aria-hidden="true">→</span>':'Continue without an account <span aria-hidden="true">→</span>';
     $('accountFootnote').hidden=!!account.user;
     $('memorySync').disabled=!account.user;
-    $('memoryScopeNote').textContent='Set the tone, language, length, and style of answers across your chats.';renderAvatar();$('profileSignOut').hidden=!account.user;
+    $('memoryScopeNote').textContent='Names, remembered facts and liked response examples stay on this computer and are used by local models. Presets are separate: enable them explicitly for a chosen model.';renderAvatar();$('profileSignOut').hidden=!account.user;
   }
   function syncProfileCopy(){const ru=document.documentElement.lang==='ru';$('profileName').textContent=account.user?.email||(ru?'Локальный профиль':'Local profile');$('profileStatus').textContent=account.user?(ru?'Вход выполнен':'Signed in'):(ru?'Пресеты и аккаунт':'Presets & account');}
   new MutationObserver(syncProfileCopy).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
@@ -59,7 +59,7 @@
   $('accountVerifyForm').onsubmit=e=>{e.preventDefault();action($('accountVerifyCode'),async()=>{account=await window.api.accountVerify($('loginEmail').value,$('loginCode').value);$('loginCode').value='';$('accountVerifyForm').hidden=true;$('accountEntry').hidden=false;render();if(account.user)close(accountModal);});};
   $('accountLogout').onclick=()=>action($('accountLogout'),async()=>{account=await window.api.accountLogout();googleWaiting=false;render();});
   window.api?.onAccountChanged?.(async value=>{googleWaiting=false;if(value.error)$('accountError').textContent=value.error;else {account=value;render();$('accountError').textContent='';if(account.user)close(accountModal);}$('accountCancel').hidden=true;updateAuthControls();});
-  async function renderMemory(){const entries=await window.api.memoryList();const list=$('memoryList');list.replaceChildren();for(const entry of entries){const row=document.createElement('article');row.className='memory-entry';const text=document.createElement('p');text.textContent=entry.content;const scope=document.createElement('small');scope.textContent='Response preferences';const controls=document.createElement('div');
+  async function renderMemory(){const entries=await window.api.memoryList();const list=$('memoryList');list.replaceChildren();for(const entry of entries){const row=document.createElement('article');row.className='memory-entry';const text=document.createElement('p');text.textContent=entry.content;const scope=document.createElement('small');scope.textContent=entry.personal?'Personal memory · local only':'Response preset';const controls=document.createElement('div');
       const enabled=document.createElement('button');enabled.type='button';enabled.textContent=entry.enabled?'Enabled':'Disabled';enabled.setAttribute('aria-pressed',String(entry.enabled));enabled.onclick=async()=>{await window.api.memorySave({...entry,enabled:!entry.enabled});await renderMemory();};
       const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.onclick=()=>{editing=entry.id;$('memoryText').value=entry.content;$('memoryText').focus();};
       const remove=document.createElement('button');remove.type='button';remove.textContent='Delete';remove.onclick=async()=>{await window.api.memoryRemove(entry.id);if(editing===entry.id){editing=null;$('memoryText').value='';}await renderMemory();};

@@ -15,9 +15,7 @@ app.whenReady().then(async()=>{
  win.webContents.debugger.attach('1.3');await win.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});
  await wait(700);await evaluate("document.querySelector('#accountClose').click()");
  assert.equal(await evaluate("document.body.classList.contains('theme-light')"),true);
- assert.equal(await evaluate("getComputedStyle(document.querySelector('.welcome-brand-logo')).color"),'rgb(22, 24, 28)');
- const welcomeOriginal=await evaluate("document.querySelector('.welcome-brand-logo .aether-crown').getAttribute('d')");await wait(1700);
- assert.notEqual(await evaluate("document.querySelector('.welcome-brand-logo .aether-crown').getAttribute('d')"),welcomeOriginal);
+ assert.equal(await evaluate("document.querySelector('#welcomeTitle').textContent"),'AetherAI');assert.ok(await evaluate("!!document.querySelector('.welcome-pixel-wordmark')"));
  let prompt='';for(let i=0;i<50;i++){const before=await evaluate("document.querySelector('#composerPromptText').textContent");await wait(150);const after=await evaluate("document.querySelector('#composerPromptText').textContent");if(before&&before===after){prompt=after;break;}}
  assert.ok(prompt.length>5);assert.equal(await evaluate("document.querySelector('#userInput').placeholder"),'');
  await wait(1500);assert.equal(await evaluate("document.querySelector('#composerPromptText').textContent"),prompt);

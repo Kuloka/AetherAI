@@ -99,6 +99,9 @@ const accountConfigFile=path.join(__dirname,'..','auth-config.json');
 if(!app.isPackaged&&fs.existsSync(accountConfigFile))accountConfig=JSON.parse(fs.readFileSync(accountConfigFile,'utf8'));
 const accountAuth=require('./account-auth').createAccountAuth(DATA_DIR,require('electron').safeStorage,accountConfig);
 const userMemory=require('./user-memory').createMemoryStore(DATA_DIR);
+// Personal facts and liked examples are local-only and excluded from account sync/presets.
+const personalMemory=require('./user-memory').createMemoryStore(path.join(DATA_DIR,'personal-memory'));
+const conversationMemory=require('./conversation-memory').createConversationMemory(personalMemory);
 async function memoryOwner(){return (await accountAuth.status()).user?.id||'local';}
 handleIpc('account:status',()=>accountAuth.status());
 handleIpc('account:send-code',(_e,email)=>accountAuth.sendCode(email));
@@ -109,10 +112,13 @@ handleIpc('account:resend-confirmation',(_e,email)=>accountAuth.resendConfirmati
 handleIpc('account:google',event=>accountAuth.google(url=>shell.openExternal(url),status=>{if(!event.sender.isDestroyed())event.sender.send('account:changed',status);}));
 handleIpc('account:cancel',()=>{accountAuth.cancelGoogle();return {ok:true};});
 handleIpc('account:logout',()=>accountAuth.logout());
-handleIpc('memory:list',async()=>userMemory.list(await memoryOwner()));
-handleIpc('memory:save',async(_e,value)=>userMemory.save(await memoryOwner(),value));
-handleIpc('memory:remove',async(_e,id)=>userMemory.remove(await memoryOwner(),id));
+handleIpc('memory:list',async()=>{const owner=await memoryOwner();return [...userMemory.list(owner),...personalMemory.list(owner).map(entry=>({...entry,personal:true}))];});
+handleIpc('memory:save',async(_e,value)=>{const owner=await memoryOwner(),store=value?.id&&personalMemory.list(owner).some(entry=>entry.id===value.id)?personalMemory:userMemory;return store.save(owner,value);});
+handleIpc('memory:remove',async(_e,id)=>{const owner=await memoryOwner(),store=personalMemory.list(owner).some(entry=>entry.id===id)?personalMemory:userMemory;return store.remove(owner,id);});
 handleIpc('memory:context',async(_e,projectId)=>userMemory.context(await memoryOwner(),projectId));
+handleIpc('memory:remember',async(_e,text)=>conversationMemory.remember(await memoryOwner(),text));
+handleIpc('memory:feedback',async(_e,value)=>conversationMemory.feedback(await memoryOwner(),value));
+handleIpc('memory:local-context',async(_e,model)=>conversationMemory.localContext(await memoryOwner(),model));
 handleIpc('memory:sync',async()=>userMemory.sync(await memoryOwner(),accountAuth));
 app.on('before-quit',()=>accountAuth.cancelGoogle());
 handleIpc('skills:list', () => skillsStore.list());
@@ -970,10 +976,12 @@ handleIpc('shell:open', async (_e, url) => {
   return { ok: true };
 });
 
-handleIpc('projects:open-folder', async () => {
+handleIpc('projects:open-folder', async (_event,relative='') => {
   try {
     ensureProjectsDir();
-    const error = await shell.openPath(PROJECTS_DIR);
+    if(typeof relative!=='string'||path.isAbsolute(relative)||relative.split(/[\\/]/).includes('..'))throw Error('Invalid project path');
+    const target=projectBoundary(PROJECTS_DIR,path.resolve(PROJECTS_DIR,relative));
+    const error = await shell.openPath(target);
     return { ok: !error, path: PROJECTS_DIR, error };
   } catch (err) {
     return { ok: false, path: PROJECTS_DIR, error: err.message };
@@ -984,6 +992,9 @@ handleIpc('projects:get-root', async () => {
   ensureProjectsDir();
   return { ok: true, path: PROJECTS_DIR };
 });
+const projectBrowser=require('./project-browser');
+handleIpc('projects:list',(_event,relative)=>{try{ensureProjectsDir();return {ok:true,entries:projectBrowser.list(PROJECTS_DIR,relative)};}catch(error){return {ok:false,error:error.message};}});
+handleIpc('projects:read',(_event,relative)=>{try{return {ok:true,content:projectBrowser.read(PROJECTS_DIR,relative)};}catch(error){return {ok:false,error:error.message};}});
 
 handleIpc('projects:ensure-folder', async (_e, name, preferredFolderName = null) => {
   try {

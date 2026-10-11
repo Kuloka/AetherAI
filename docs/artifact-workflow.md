@@ -1,0 +1,13 @@
+# Technical artifacts and projects
+
+Explicit build requests, including calculators and games, produce complete named file blocks. Explanations, ideas and ordinary conversation remain chat responses. UI/bug edits in a chat with previously created artifacts retain the artifact workflow without turning all subsequent conversation into coding.
+
+`code-artifacts.js` reads all **closed** code fences, preserves relative names from the fence or preceding filename heading, ignores unnamed terminal-command blocks, rejects absolute/traversal paths and deduplicates repeated versions of the same file. The renderer saves every completed artifact through the existing project-file IPC, confirms each write and retains cards for all successful files. Default folders are unique per chat. JavaScript and HTML are no longer automatically relocated into `electron/` and `web/`. Existing-file approval and Plan mode are retained; failed/declined writes do not claim success or hide the unsaved code.
+
+Projects opens a browser of real directories in the existing projects root, with folder navigation, text preview, a project chat and a system-folder shortcut. Reads use the same project boundary protection as writes, reject links/traversal and limit previews to 256 KB. Browsing does not automatically upload file contents to a model. `node_modules`, `.git` and `.env` are omitted from the listing.
+
+Programming-language icons are local [Devicon](https://github.com/devicons/devicon) SVG assets with their license under `resources/language-icons`. Unknown languages use a neutral code symbol. They appear in code headers, saved file cards and project listings.
+
+Cloud requests retain provider reasoning metadata and supported parameters. Reasoning models receive at least an 8,192-token combined reasoning/output budget (16,384 at High and 32,768 at Maximum), constrained by the advertised provider maximum. Artifact requests allow 8,192 tokens rather than the ordinary 1,000-token cap. OpenRouter effort settings use advertised supported values and respect mandatory reasoning. Actual `finish_reason` is preserved; `length` is reported as a token-limit interruption and prevents file writes. This fixes client-side constraints, not model weights or provider latency. [OpenRouter reasoning and output budgets](https://openrouter.ai/docs/guides/best-practices/reasoning-tokens).
+
+Validation: unit tests for artifacts, intent, generation policy and filesystem browsing; native `tests/artifacts-smoke.cjs` covers three-file creation, relative paths, icons/previews, Plan mode and token-limit interruptions. Native clipboard IPC checks exercise real project writes/reads and traversal refusal.

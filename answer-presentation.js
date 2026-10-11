@@ -33,7 +33,7 @@
     const tokens=[];const stash=html=>`\uE100${tokens.push(html)-1}\uE101`;
     const format=s=>s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');
     let text=escaped.replace(/`([^`]+)`/g,(_,code)=>stash('<code>'+code+'</code>'));
-    text=text.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s<>]+)\)/g,(original,label,href)=>{
+    text=text.replace(/\[([^\]\n]+)\]\((https?:\/\/(?:[^\s<>()]|\([^()\s<>]*\))+)\)/g,(original,label,href)=>{
       const decoded=href.replace(/&amp;/g,'&').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>');
       const url=safeUrl(decoded);if(!url)return original;
       return stash('<a href="'+escape(url.href)+'" target="_blank" rel="noopener noreferrer">'+format(label)+'</a>');

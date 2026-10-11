@@ -5,6 +5,17 @@ app.on('web-contents-created',(_event,contents)=>{contents.once('did-finish-load
  const text='def add(a, b):\n    return a + b\n\n# точное копирование';
  const copied=await contents.executeJavaScript('api.clipboardWrite('+JSON.stringify(text)+')');const actual=await clipboard.readText();assert.equal(actual,text);assert.equal(copied,true);
  assert.equal(await contents.executeJavaScript("api.clipboardWrite({text:'invalid'}).then(()=>false,()=>true)"),true);
+ assert.equal(await contents.executeJavaScript("api.memoryRemember('call me King').then(result=>result.updated)"),true);
+ assert.equal(await contents.executeJavaScript("api.memoryRemember('call me King').then(result=>result.updated)"),false);
+ assert.ok((await contents.executeJavaScript("api.memoryLocalContext('local-test')")).includes('Preferred name: King'));
+ assert.equal(await contents.executeJavaScript("api.memoryLocalContext('cloud:groq/test').then(()=>false,()=>true)"),true);
+ assert.equal(await contents.executeJavaScript("api.memoryContext(null)"),'','Personal memory is excluded from cloud presets');
+ const entry=await contents.executeJavaScript("api.memoryList().then(entries=>entries.find(entry=>entry.personal))");assert.ok(entry);
+ await contents.executeJavaScript('api.memoryRemove('+JSON.stringify(entry.id)+')');assert.equal(await contents.executeJavaScript("api.memoryLocalContext('local-test')"),'');
+ assert.equal((await contents.executeJavaScript("api.writeProjectFile('BrowserTest','src/app.js','console.log(1);')")).ok,true);
+ assert.ok((await contents.executeJavaScript("api.projectsList('BrowserTest/src')")).entries.some(file=>file.name==='app.js'));
+ assert.equal((await contents.executeJavaScript("api.projectRead('BrowserTest/src/app.js')")).content,'console.log(1);');
+ assert.equal((await contents.executeJavaScript("api.projectRead('../outside')")).ok,false);
  clearTimeout(timeout);console.log('PASS: actual main-process trusted clipboard IPC and invalid-payload rejection');app.quit();
  }catch(error){console.error(error);app.exit(1);}});});
 require('../electron/main.js');

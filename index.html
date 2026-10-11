@@ -30,7 +30,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="side-header">
       <div class="side-logo" aria-label="AetherAI">
-        <svg class="aetherai-mark-img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g fill="#ededed"><path class="aether-crown" d="M28 168 99 43C112 20 134 20 148 43L222 168C191 154 175 130 151 101 137 83 120 78 106 94 81 123 59 150 28 168Z"/><path class="aether-ribbon" d="M30 178C65 158 79 134 105 120 124 110 139 113 154 127 177 147 192 174 216 195 235 213 217 239 193 225 164 208 148 171 133 162 120 154 111 169 102 184L75 222C60 243 28 237 23 217 19 202 23 188 30 178Z"/></g></svg>
+        <svg class="aetherai-mark-img" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g fill="currentColor"><path class="aether-crown" d="M28 168 99 43C112 20 134 20 148 43L222 168C191 154 175 130 151 101 137 83 120 78 106 94 81 123 59 150 28 168Z"/><path class="aether-ribbon" d="M30 178C65 158 79 134 105 120 124 110 139 113 154 127 177 147 192 174 216 195 235 213 217 239 193 225 164 208 148 171 133 162 120 154 111 169 102 184L75 222C60 243 28 237 23 217 19 202 23 188 30 178Z"/></g></svg>
         <span class="aetherai-wordmark">AetherAI</span>
       </div>
       <div class="side-actions">
@@ -128,7 +128,6 @@
       <div class="chat-stage">
     <section class="chat-container" id="chatContainer">
       <div class="welcome-screen" id="welcomeScreen">
-        <svg class="welcome-brand-logo" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g fill="currentColor"><path class="aether-crown" d="M28 168 99 43C112 20 134 20 148 43L222 168C191 154 175 130 151 101 137 83 120 78 106 94 81 123 59 150 28 168Z"/><path class="aether-ribbon" d="M30 178C65 158 79 134 105 120 124 110 139 113 154 127 177 147 192 174 216 195 235 213 217 239 193 225 164 208 148 171 133 162 120 154 111 169 102 184L75 222C60 243 28 237 23 217 19 202 23 188 30 178Z"/></g></svg>
 
         <h1 class="welcome-title" id="welcomeTitle"></h1>
         <p class="welcome-sub">Local AI assistant. Runs on Ollama, no API keys. Ask about code, text, ideas, translations, or anything else.</p>
@@ -173,7 +172,7 @@
               <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </button>
             <input type="file" id="fileInput" accept="image/*,.txt,.md,.json,.js,.ts,.py,.html,.css,.java,.c,.cpp,.rs,.go" multiple style="display:none">
-            <div class="composer-input-slot" id="composerInputSlot"><textarea id="userInput" rows="1" placeholder="" aria-label="Ask AetherAI anything" autofocus></textarea><div class="composer-prompt" id="composerPrompt" aria-hidden="true" hidden><span id="composerPromptText"></span><span class="composer-prompt-caret"></span></div></div>
+            <div class="composer-input-slot" id="composerInputSlot"><textarea id="userInput" rows="1" placeholder="" aria-label="Ask AetherAI anything" autofocus></textarea><div class="composer-prompt" id="composerPrompt" aria-hidden="true" hidden><span id="composerPromptText"></span></div></div>
             <button class="composer-send" id="sendBtn" disabled title="Send (Enter)">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
             </button>
@@ -190,7 +189,7 @@
             <button class="model-btn" id="modelBtn" title="Choose model" aria-label="Choose model" data-tooltip="Choose model">
               <span class="model-btn-icon" id="modelBtnIcon" aria-hidden="true"></span>
               <span class="model-btn-label" id="modelLabel">Choose model</span>
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <svg class="model-direction-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" aria-hidden="true"><path d="M12 5v14m-5-5 5 5 5-5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
             <div class="model-dropdown" id="modelDropdown"></div>
           </div>
@@ -280,12 +279,13 @@
       </button>
     </div>
     <nav class="settings-nav" aria-label="Settings sections">
-      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="app">Application</span><button type="button" data-settings-tab="general" class="active">Language</button><button type="button" data-settings-tab="customization">Appearance</button></div>
+      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="app">Application</span><button type="button" data-settings-tab="general" class="active">Language</button><button type="button" data-settings-tab="customization">Appearance</button><button type="button" data-settings-tab="preferences">Preferences</button></div>
       <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="ai">AI &amp; models</span><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="models">Local models &amp; agents</button><button type="button" data-settings-tab="images">Images</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button></div>
       <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="tools">Tools</span><button type="button" data-settings-tab="plugins">MCP tools</button><button type="button" data-settings-tab="skills">Skills instructions</button><button type="button" data-settings-tab="discord">Discord Activity</button></div>
     </nav>
     <div class="modal-body settings-body"><div class="settings-page-heading"><h3 id="settingsPageTitle">Language</h3><p id="settingsPageHint">Choose the language of the application.</p></div>
 
+      <section class="settings-block" data-settings-panel="preferences" hidden><div id="modelPreferences"></div></section>
       <section class="settings-block cloud-settings" data-settings-panel="cloud" hidden>
         <h3 hidden>Providers</h3>
         <p id="providerPrivacy">Cloud requests send your messages and attached context to the selected provider.</p>
@@ -467,7 +467,7 @@
 
 <div class="modal-overlay auth-screen show" id="accountModal" data-loading="true">
   <section class="auth-layout" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
-    <div class="auth-brand"><svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><g fill="#ededed"><path class="aether-crown" d="M28 168 99 43C112 20 134 20 148 43L222 168C191 154 175 130 151 101 137 83 120 78 106 94 81 123 59 150 28 168Z"/><path class="aether-ribbon" d="M30 178C65 158 79 134 105 120 124 110 139 113 154 127 177 147 192 174 216 195 235 213 217 239 193 225 164 208 148 171 133 162 120 154 111 169 102 184L75 222C60 243 28 237 23 217 19 202 23 188 30 178Z"/></g></svg><span>AetherAI</span></div>
+    <div class="auth-brand"><span>AetherAI</span></div>
     <div class="auth-loading-note" role="status">Opening your workspace…</div>
     <div class="auth-content">
       <div id="accountSignedOut">
@@ -496,6 +496,7 @@
 <script src="gateway-flow.js"></script>
 <script src="appearance.js"></script>
 <script src="background-effects.js"></script>
+<script src="token-usage.js"></script>
 <script src="aetherai.js"></script>
 <script src="response-errors.js"></script>
 <script src="chat-intent.js"></script>
@@ -505,6 +506,8 @@
 <script src="account-memory.js"></script>
 <script src="model-quota.js"></script>
 <script src="model-info.js"></script>
+<script src="model-picker.js"></script>
+<script src="model-preferences.js"></script>
 <script src="resources/katex/katex.min.js"></script>
 <script src="math-renderer.js"></script>
 <script src="brand-motion.js"></script>
@@ -516,10 +519,13 @@
 <script src="build-clarification.js"></script>
 <script src="answer-presentation.js"></script>
 <script src="code-presentation.js"></script>
+<script src="code-artifacts.js"></script>
+<script src="project-browser.js"></script>
 <script src="chat-interactions.js"></script>
 <div id="notificationsRoot" aria-label="Notifications"></div>
 <script src="resources/ui/notifications.js"></script>
 <script src="renderer.js"></script>
+<script src="composer-motion.js"></script>
 <script src="prompt-examples.js"></script>
 <script src="composer-prompts.js"></script>
 </body>

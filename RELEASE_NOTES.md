@@ -1,11 +1,11 @@
-AetherAI 1.24.8
+AetherAI 1.24.9
 
-- Integrate the supplied React Streaming Text design into real chat replies: words fade out of blur, inline source links become compact chips, and sources expand with an animated panel and an accurate count.
-- Add compact answer actions for copying, repeating a request and marking an answer helpful or unhelpful. Feedback stays in local chat history. Keep the conditional Explain in more detail follow-up and all ten interface languages.
-- Fix code copying through the trusted Electron clipboard API, retaining browser fallbacks and exact indentation/newlines.
-- Add Explain / Check / Rewrite actions for selected answer passages. The passage and question are prepared in the composer and sent only when the user chooses Send.
-- Add per-chat learning mode in the reasoning menu, with Hint, Next step and Full solution prompts. This changes the model's instructions rather than guaranteeing its behavior.
-- Remove the command palette and its sidebar button. Keep the send button neutral white/gray independently of the saved accent color.
-- Fix the Groq quota ring to show daily request headers only, rather than mixing them with replenishing minute-token limits. Display tenths of a percent and preserve known daily limits if a response omits their headers.
+- Refresh the desktop UI with a pixel AetherAI heading, a compact model menu, original sidebar logos and an always-visible model, attachment and send row. Working is text-only with a subtle shimmer and nearby token counts.
+- Fix catalog refreshes resetting scroll position in models and Preferences. Preserve scroll when catalogs change and prevent focus restoration from scrolling the workspace.
+- Configure model visibility by family in Preferences, including all Claude and ChatGPT versions. Select thinking levels within the model menu; remove learning mode and extra composer mode buttons.
+- Improve code copying, clipboard image previews, real project-file handling, programming-language icons and token accounting.
+- Keep personal memory on this device and show Memory updated when a preference is saved. Feedback can inform local response preferences.
+- Keep provider keys in OS-backed encrypted storage and reported quota details in provider settings. Cloud availability, prices and limits remain controlled by each provider.
+- Update the website's pixel branding and simplify the README with a real screenshot and linked badges.
 
-Windows installer upgrades preserve existing user data. Update download and installation require user actions. macOS builds remain unsigned and unnotarized.
+Windows installer upgrades preserve existing user data. Update downloads and installation require user actions. macOS builds remain unsigned and unnotarized.

@@ -6,6 +6,18 @@ const path = require('node:path');
 const { createProviders } = require('../electron/cloud-providers');
 const storage = { isEncryptionAvailable: () => true, encryptString: value => Buffer.from(value.split('').reverse().join('')), decryptString: value => value.toString().split('').reverse().join('') };
 
+test('GLM requests forward advertised reasoning settings, preserve output budgets and report truncation',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-glm-budget-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const provider=createProviders(dir,storage,async(url,init)=>{
+  if(url.endsWith('/key'))return Response.json({data:{}});
+  if(url.endsWith('/models/user'))return Response.json({data:[{id:'z-ai/glm-5.3-flash',supported_parameters:['reasoning'],reasoning:{supported_efforts:['high','medium','low'],mandatory:true},top_provider:{max_completion_tokens:16000}}]});
+  const body=JSON.parse(init.body);assert.equal(body.max_tokens,8192);assert.equal(body.reasoning.effort,'medium');
+  return new Response('data: {"choices":[{"delta":{"content":"partial"},"finish_reason":"length"}]}\n\ndata: [DONE]\n');
+ });
+ await provider.save('openrouter','fixture-key');const events=[];await provider.chat({model:'cloud:openrouter/z-ai/glm-5.3-flash',messages:[],options:{num_predict:1000,reasoning_effort:'medium'}},undefined,event=>events.push(event));
+ const chunk=JSON.parse(events.find(event=>event.type==='chunk').text);assert.equal(chunk.message.content,'partial');assert.equal(chunk.finish_reason,'length');
+});
+
 test('provider keys are encrypted, paid models retain prices, split UTF-8 SSE survives, and disconnect clears catalog', async t => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'aetherai-providers-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
@@ -127,6 +139,17 @@ test('Groq keeps separate model quotas and clears both after disconnect', async 
   assert.equal(restarted.usage()['cloud:groq/model-b'].limits.requests.remaining, 190);
   assert.equal(cloud.usage().groq, undefined);
   cloud.disconnect('groq'); assert.deepEqual(cloud.usage(), {});
+});
+
+test('Providers preserve request token usage in non-streaming and final SSE metadata',async t=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-token-usage-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+ const cloud=createProviders(dir,storage,async(url,init)=>{
+   if(url.endsWith('/models'))return Response.json({data:[{id:'test-chat'}]});
+   const body=JSON.parse(init.body),usage={prompt_tokens:11,completion_tokens:7,total_tokens:18};
+   if(!body.stream)return Response.json({choices:[{message:{content:'ok'}}],usage});
+   return new Response('data: '+JSON.stringify({choices:[{delta:{content:'ok'}}]})+'\n\ndata: '+JSON.stringify({choices:[],x_groq:{usage}})+'\n\ndata: [DONE]\n\n');
+ });await cloud.save('groq','fixture-key');
+ for(const stream of [false,true]){const events=[];await cloud.chat({model:'cloud:groq/test-chat',messages:[],stream},undefined,event=>events.push(event));const chunks=events.filter(e=>e.type==='chunk').map(e=>JSON.parse(e.text));assert.deepEqual(chunks.at(-1).usage,{prompt_tokens:11,completion_tokens:7,total_tokens:18});}
 });
 
 test('Groq retains daily request headers when a later response reports only minute tokens',async t=>{

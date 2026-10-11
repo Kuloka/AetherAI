@@ -69,6 +69,12 @@ jobs:
         if: runner.os == 'Windows'
         run: npx electron tests/style-visual-smoke.cjs
 
+      - name: Check composer scrolling and text-only Working
+        if: runner.os == 'Windows'
+        run: |
+          npx electron tests/composer-picker-smoke.cjs
+          npx electron tests/working-status-smoke.cjs
+
       - name: Check notifications and explicit update actions (Linux)
         if: runner.os == 'Linux'
         run: xvfb-run -a npx electron --no-sandbox tests/notifications-smoke.cjs

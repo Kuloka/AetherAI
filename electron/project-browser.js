@@ -1,0 +1,5 @@
+const fs=require('node:fs'),path=require('node:path'),{projectBoundary}=require('./security');
+function target(root,relative=''){if(typeof relative!=='string'||relative.length>500||path.isAbsolute(relative)||relative.split(/[\\/]/).includes('..'))throw Error('Invalid project path');return projectBoundary(root,path.resolve(root,relative));}
+function list(root,relative=''){const directory=target(root,relative);return fs.readdirSync(directory,{withFileTypes:true}).filter(entry=>!entry.isSymbolicLink()&&!['.git','node_modules','.env'].includes(entry.name)&&(!relative?entry.isDirectory():true)).slice(0,200).map(entry=>({name:entry.name,directory:entry.isDirectory(),path:path.posix.join(relative.replace(/\\/g,'/'),entry.name)})).sort((a,b)=>Number(b.directory)-Number(a.directory)||a.name.localeCompare(b.name));}
+function read(root,relative){const file=target(root,relative),stat=fs.statSync(file);if(!stat.isFile()||stat.size>256000)throw Error('Preview supports text files up to 256 KB');const bytes=fs.readFileSync(file);if(bytes.includes(0))throw Error('Binary files cannot be previewed');return bytes.toString('utf8');}
+module.exports={list,read};

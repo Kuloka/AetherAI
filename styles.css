@@ -1300,18 +1300,6 @@ body.theme-light .thinking-reasoning-text { color: #777777; }
   display: inline-block;
   padding: 2px 0;
 }
-.thinking-shining-text {
-  color: transparent;
-  background: linear-gradient(110deg, #686868 0%, #686868 35%, #fff 50%, #686868 75%, #686868 100%);
-  background-size: 200% 100%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  animation: thinkingShine 2s linear infinite;
-}
-@keyframes thinkingShine {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
-}
 .thinking-time {
   color: var(--text-muted);
   font-size: 15px;

@@ -48,6 +48,9 @@ contextBridge.exposeInMainWorld('api', {
   accountLogout:()=>ipcRenderer.invoke('account:logout'),
   onAccountChanged:callback=>{const listener=(_e,data)=>callback(data);ipcRenderer.on('account:changed',listener);return()=>ipcRenderer.removeListener('account:changed',listener);},
   memoryList:()=>ipcRenderer.invoke('memory:list'),
+  memoryRemember:text=>ipcRenderer.invoke('memory:remember',text),
+  memoryFeedback:value=>ipcRenderer.invoke('memory:feedback',value),
+  memoryLocalContext:model=>ipcRenderer.invoke('memory:local-context',model),
   memorySave:value=>ipcRenderer.invoke('memory:save',value),
   memoryRemove:id=>ipcRenderer.invoke('memory:remove',id),
   memoryContext:projectId=>ipcRenderer.invoke('memory:context',projectId),
@@ -118,7 +121,9 @@ contextBridge.exposeInMainWorld('api', {
     ipcRenderer.on('internet-search-progress', handler);
     return () => ipcRenderer.removeListener('internet-search-progress', handler);
   },
-  openProjectsFolder: ()          => ipcRenderer.invoke('projects:open-folder'),
+  openProjectsFolder: relative    => ipcRenderer.invoke('projects:open-folder',relative),
+  projectsList: relative=>ipcRenderer.invoke('projects:list',relative),
+  projectRead: relative=>ipcRenderer.invoke('projects:read',relative),
   getProjectsRoot: ()             => ipcRenderer.invoke('projects:get-root'),
   ensureProjectFolder: (name, preferredFolderName) => ipcRenderer.invoke('projects:ensure-folder', name, preferredFolderName),
   renameProjectFolder: (oldFolderName, newName) => ipcRenderer.invoke('projects:rename-folder', oldFolderName, newName),

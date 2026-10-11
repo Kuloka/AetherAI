@@ -26,7 +26,7 @@
   }
 
   // Translate the embedded server's OpenAI stream into the existing chat format.
-  async function chatFetch(url, init) {
+  async function rawChatFetch(url, init) {
     const body = JSON.parse(init.body);
     if (body.model.startsWith('cloud:')) return cloudFetch(body, init.signal);
     if (!body.model.startsWith('multimind:')) return fetch(url, init);
@@ -40,13 +40,14 @@
       stream: body.stream, max_tokens: body.options?.num_predict || 1000,
       temperature: body.options?.temperature ?? 0.7
     };
+    if(body.stream)request.stream_options={include_usage:true};
     if (body.format === 'json') request.response_format = { type: 'json_object' };
     else if (body.format && typeof body.format === 'object') request.response_format = { type: 'json_object', schema: body.format };
     const response = await fetch('http://127.0.0.1:11435/v1/chat/completions', { ...init, body: JSON.stringify(request) });
     if (!response.ok) return response;
     if (!body.stream) {
       const data = await response.json();
-      return Response.json({ message: data.choices?.[0]?.message || { content: '' } });
+      return Response.json({ message: data.choices?.[0]?.message || { content: '' },finish_reason:data.choices?.[0]?.finish_reason,usage:data.usage });
     }
     const decoder = new TextDecoder(), encoder = new TextEncoder();
     let buffer = '';
@@ -57,7 +58,7 @@
       const data = JSON.parse(payload);
       if (data.error) throw new Error(data.error.message || 'Local generation failed');
       const delta = data.choices?.[0]?.delta || {};
-      controller.enqueue(encoder.encode(JSON.stringify({ message: { content: delta.content || '', thinking: delta.reasoning_content || '' } }) + '\n'));
+      controller.enqueue(encoder.encode(JSON.stringify({ message: { content: delta.content || '', thinking: delta.reasoning_content || '' },finish_reason:data.choices?.[0]?.finish_reason,usage:data.usage }) + '\n'));
     };
     return new Response(response.body.pipeThrough(new TransformStream({
       transform(chunk, controller) {
@@ -67,6 +68,22 @@
       },
       flush(controller) { buffer += decoder.decode(); convert(buffer.trim(), controller); }
     })));
+  }
+
+  let usageListener=null,usageSequence=0;
+  function setUsageListener(listener){usageListener=listener;}
+  async function chatFetch(url,init){
+    const listener=usageListener,id=++usageSequence;listener?.(id,null);
+    const response=await rawChatFetch(url,init);if(!listener||!response.ok)return response;
+    const body=JSON.parse(init.body);
+    if(!body.stream){const data=await response.clone().json();listener(id,data);return response;}
+    const decoder=new TextDecoder();let buffer='',outputLength=0;
+    const inputLength=(body.messages||[]).reduce((n,message)=>n+(typeof message.content==='string'?message.content.length:0),0);
+    const read=line=>{try{const data=JSON.parse(line),message=data.message||{},delta=data.choices?.[0]?.delta||{};
+      outputLength+=(message.content||delta.content||'').length+(message.thinking||delta.reasoning_content||'').length;
+      if(outputLength||data.usage||data.x_groq?.usage||data.prompt_eval_count!==undefined||data.eval_count!==undefined)listener(id,{...data,_tokenEstimate:Math.ceil((inputLength+outputLength)/4)});
+    }catch{}};
+    return new Response(response.body.pipeThrough(new TransformStream({transform(chunk,controller){buffer+=decoder.decode(chunk,{stream:true});let at;while((at=buffer.indexOf('\n'))!==-1){read(buffer.slice(0,at));buffer=buffer.slice(at+1);}controller.enqueue(chunk);},flush(){buffer+=decoder.decode();read(buffer);}})),{status:response.status,headers:response.headers});
   }
 
   async function runTeam({ messages, model, workerModels = [], concurrency = 1, signal, onUpdate, request = chatFetch }) {
@@ -161,7 +178,7 @@
     if (['manifest', 'windows', 'windows-install', 'engine', 'extracting', 'model', 'starting'].includes(local.stage)) return true;
     return !(local.installed || local.running || modelCount > 0 || completed === true);
   }
-  const api = { chatFetch, runTeam, shouldShowSetup };
+  const api = { chatFetch, runTeam, shouldShowSetup,setUsageListener };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.AetherAI = api;
 })(typeof window !== 'undefined' ? window : globalThis);
