@@ -1,10 +1,7 @@
-AetherAI 1.24.10
+AetherAI 1.24.11
 
-- Add a full-width animated command menu above the composer: /browse, /run, /think and /goal, each with its own vector icon. A space converts the command into a removable icon. The placeholder is now "Type / for commands"; the @ Context menu and rotating examples are removed.
-- Keep a goal in the current conversation; /goal clear removes it. Goals guide later answers without authorizing tools or starting background execution.
-- Execute requested project commands with native confirmation, actual output, exit status, cancellation and a timeout. /run uses the exact command; every process still requires confirmation.
-- Improve generated project files with validated structured output when supported, broader Markdown file parsing and launcher support. Fix lost file attachments and misleading saved-file messages after folder errors.
-- Shorten model labels, group other model families under one preference, open Thinking to the side and correct model arrow directions for centered and bottom composers. Animate the Thinking arrow disappearing forward and fading back in place facing right.
-- Show Exploring with a globe during web search and tighten spacing between response status, tokens and answer text.
+- Complete interface translations across English, Russian, Spanish, Portuguese, French, German, Italian, Turkish, Polish and Ukrainian. Settings, Preferences, command menus, model details, account screens and command confirmation now use the selected language. Model names, code and assistant answer content remain intact.
+- Expand model families in Preferences to select individual models with checkmarks on the right. Multiple selections appear together in the model menu; clicking again restores a hidden model. Family checkboxes still enable or disable every related model, with an intermediate state for partial selections.
+- Preserve model selections after restarting and while switching interface languages. Changing one model keeps the other selected models and does not rebuild or blink their checkboxes.
 
-Windows installer upgrades preserve existing user data. Update downloads and installation require user actions. Commands use your ordinary OS permissions; the project folder is a working directory, not an OS sandbox. macOS builds remain unsigned and unnotarized.
+Windows installer upgrades preserve existing user data. Update downloads and installation require user actions. macOS builds remain unsigned and unnotarized.

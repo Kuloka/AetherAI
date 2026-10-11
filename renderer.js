@@ -125,7 +125,7 @@
     renderModelDropdown();
     $('localAiToggle')?.setAttribute('aria-checked', String(settings.localAi));
     $('settingsOpenCatalog').disabled=!settings.localAi;
-    if ($('localAiDescription')) $('localAiDescription').textContent = settings.appLanguage === 'ru' ? 'Включите для скачанных моделей и каталога установки. Выключите для облачных моделей.' : 'Enable downloaded models and the installation catalog. Turn off for cloud models.';
+    if ($('localAiDescription')) $('localAiDescription').textContent = t('localModelsDescription');
     $('localSetupCard').hidden = !settings.localAi || !AetherAI.shouldShowSetup(localRuntimeState, availableModels.length, settings.localSetupCompleted);
     if (!settings.localAi) {
       $('modelsModal').classList.remove('show');
@@ -884,6 +884,7 @@
   });
 
   function t(key) {
+    const translated=window.AetherAIInterface?.t(key,settings.appLanguage);if(translated!==undefined&&translated!==key)return translated;
     const lang = UI_TEXT[settings.appLanguage] ? settings.appLanguage : "en";
     return key.split(".").reduce((obj, part) => obj && obj[part], UI_TEXT[lang]) || key;
   }
@@ -1541,34 +1542,20 @@
   });
   setInterval(() => { if (settingsModal.classList.contains('show')) { updateDiscordStatus().catch(() => {}); if(!document.querySelector('[data-settings-panel="plugins"]').hidden)refreshPlugins(); } }, 2000);
 
-  function settingsSectionCopy(){
-    const ru=settings.appLanguage==='ru';
-    return {
-      preferences:ru?['Preferences','Одна галочка включает всё семейство: все модели Claude, ChatGPT и других семейств.']:['Preferences','One checkbox controls the whole family: all Claude, ChatGPT and other related models.'],
-      general:ru?['Язык','Выберите язык интерфейса приложения.']:['Language','Choose the language of the application.'],
-      customization:ru?['Оформление','Внешний вид чата, подчёркивание важных фраз, цвета и фон.']:['Appearance','Chat visuals, key phrase underlining, colors and background.'],
-      cloud:ru?['Провайдеры','Подключения и API-ключи. Сообщения и вложения отправляются выбранному провайдеру.']:['Providers','Connections and API keys. Messages and attachments go to the selected provider.'],
-      models:ru?['Локальные модели и агенты','Локальный режим, каталог моделей, режим вычислений и модели для специалистов.']:['Local models & agents','Local mode, model catalog, compute mode and specialist models.'],
-      images:ru?['Генерация изображений','Настройки провайдера изображений отделены от текстовых моделей.']:['Image generation','Image provider settings are separate from text models.'],
-      'ollama-cloud':ru?['Ollama Cloud','Отдельное подключение к облаку Ollama и его модели.']:['Ollama Cloud','Your separate Ollama Cloud connection and its models.'],
-      plugins:ru?['Инструменты MCP','Подключайте инструменты, которыми модель сможет пользоваться в чате.']:['MCP tools','Connect tools that the model can use in chat.'],
-      skills:ru?['Инструкции Skills','Импортируйте инструкции Markdown и явно включайте нужные.']:['Skills instructions','Import Markdown instructions and explicitly enable the ones you need.'],
-      discord:ru?['Активность Discord','Показ активности AetherAI в запущенном Discord.']:['Discord Activity','Share AetherAI activity with the running Discord desktop app.']
-    };
-  }
+  function settingsSectionCopy(){return Object.fromEntries(Object.entries({preferences:['preferences','preferencesHint'],general:['language','languageHint'],customization:['appearance','appearanceHint'],cloud:['providers','providersHint'],models:['localModelsAgents','localModelsHint'],images:['images','imagesHint'],'ollama-cloud':['ollamaCloud','ollamaCloudHint'],plugins:['mcpTools','mcpHint'],skills:['skills','skillsHint'],discord:['discordActivity','discordHint']}).map(([tab,[title,hint]])=>[tab,[title==='ollamaCloud'?'Ollama Cloud':t(title),t(hint)]]));}
   function renderSettingsNavigation(){
     const ru=settings.appLanguage==='ru',copy=settingsSectionCopy();
-    document.querySelector('[data-settings-panel="models"] .discord-heading h3').textContent=ru?'Локальные модели':'Local models';
-    $('localAiToggle').setAttribute('aria-label',ru?'Использовать локальные модели':'Use local models');
-    settingsModal.querySelector('.settings-nav').setAttribute('aria-label',ru?'Разделы настроек':'Settings sections');
-    settingsModal.querySelectorAll('[data-settings-group]').forEach(label=>label.textContent=({app:ru?'Приложение':'Application',ai:ru?'ИИ и модели':'AI & models',tools:ru?'Инструменты':'Tools'})[label.dataset.settingsGroup]);
+    document.querySelector('[data-settings-panel="models"] .discord-heading h3').textContent=t('localModels');
+    $('localAiToggle').setAttribute('aria-label',t('useLocalModels'));
+    settingsModal.querySelector('.settings-nav').setAttribute('aria-label',t('settingsSections'));
+    settingsModal.querySelectorAll('[data-settings-group]').forEach(label=>label.textContent=({app:t('application'),ai:t('aiModels'),tools:t('tools')})[label.dataset.settingsGroup]);
     settingsModal.querySelectorAll('[data-settings-tab]').forEach(button=>{
       button.textContent=copy[button.dataset.settingsTab][0];
       if(button.classList.contains('active'))button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
     });
     const selected=settingsModal.querySelector('[data-settings-tab].active')?.dataset.settingsTab||'general';
     $('settingsPageTitle').textContent=copy[selected][0];$('settingsPageHint').textContent=copy[selected][1];
-    $('settingsOpenCatalog').textContent=ru?'Открыть каталог локальных моделей':'Open local model catalog';
+    $('settingsOpenCatalog').textContent=t('openLocalCatalog');
     $('settingsOpenCatalog').disabled=!settings.localAi;
   }
   $('settingsOpenCatalog').onclick=()=>{if(!settings.localAi)return;settingsModal.classList.remove('show');openModelsModal();};
@@ -1652,7 +1639,7 @@
       [modelsSearch, t("modelSearch")],
       [$("groupInput"), t("folderPlaceholder")],
     ];
-    placeholders.forEach(([el, text]) => { if (el === inputEl) { el.placeholder='Type / for commands'; el.setAttribute('aria-label',text); } else if (el) el.placeholder = text; });
+    placeholders.forEach(([el, text]) => { if (el === inputEl) { el.placeholder=t('commandPlaceholder'); el.setAttribute('aria-label',text); } else if (el) el.placeholder = text; });
     const navLabels = [
       ["newChatBtn", t("newChat")],
       ["openProjectsBtn", t("projects")],
@@ -1786,7 +1773,7 @@
   function styleOptionContent(preset,ru){
     const content=document.createElement('span');content.className='style-option-content';
     const image=document.createElement('img');image.src=preset.logo||'resources/aetherai-logo.svg';image.alt='';image.className='style-option-logo';
-    const copy=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span');copy.className='style-option-copy';name.textContent=preset.name;description.textContent=ru?preset.ru:preset.en;copy.append(name,description);content.append(image,copy);return content;
+    const copy=document.createElement('span'),name=document.createElement('strong'),description=document.createElement('span');copy.className='style-option-copy';name.textContent=preset.name;description.textContent=t("styleDescription").replace("{name}",preset.name);copy.append(name,description);content.append(image,copy);return content;
   }
   function closeChatStylePicker(){ if(!$('chatStyleOptions').hidden)$('chatStyleOptions').hidden=true;if($('chatStyleToggle').getAttribute('aria-expanded')!=='false')$('chatStyleToggle').setAttribute('aria-expanded','false'); }
   $('chatStyleToggle').onclick=()=>{const open=$('chatStyleOptions').hidden;$('chatStyleOptions').hidden=!open;$('chatStyleToggle').setAttribute('aria-expanded',String(open));if(open)$('chatStyleOptions').querySelector('[aria-selected="true"]').focus();};
@@ -2274,14 +2261,14 @@
     modelDropdown.setAttribute('role','dialog');modelDropdown.setAttribute('aria-label',settings.appLanguage==='ru'?'Models':'Choose a model');
     if(refreshPreferences)renderModelPreferences();
     const hiddenModels=[...(settings.hiddenModels||[]),...availableModels.filter(model=>(settings.hiddenModelFamilies||[]).includes(window.AetherAIModelPreferences.family(model).id)).map(model=>model.name)];
-    window.AetherAIModelPicker.render(modelDropdown,{models:availableModels,hiddenModels,selected:settings.selectedModel,ru:settings.appLanguage==='ru',icon:providerIconMarkup,local:settings.localAi,level:settings.thinkLevel||'medium',
+    window.AetherAIModelPicker.render(modelDropdown,{models:availableModels,hiddenModels,selected:settings.selectedModel,ru:settings.appLanguage==='ru',lang:settings.appLanguage,icon:providerIconMarkup,local:settings.localAi,level:settings.thinkLevel||'medium',
       onSelect:name=>{selectModel(name);modelDropdown.classList.remove('show');modelBtn.focus({preventScroll:true});syncComposerExpanded();},
       onLevel:value=>{settings.modelThinkLevels={...(settings.modelThinkLevels||{}),[settings.selectedModel]:value};setThinkLevel(value);renderModelDropdown();modelDropdown.querySelector('.model-reasoning-picker').open=false;modelDropdown.querySelector('.model-reasoning-picker>summary').focus();},
       onConfigure:()=>{modelDropdown.classList.remove('show');settings.localAi?openModelsModal():openProviderSettings();}
     });
   }
 
-  function renderModelPreferences(){window.AetherAIModelPreferences.render($('modelPreferences'),{models:availableModels,hiddenModels:settings.hiddenModels||[],hiddenFamilies:settings.hiddenModelFamilies||[],ru:settings.appLanguage==='ru',icon:providerIconMarkup,onChange:(family,names,checked)=>{const hidden=new Set(settings.hiddenModels||[]),families=new Set(settings.hiddenModelFamilies||[]);checked?families.delete(family):families.add(family);for(const name of names)checked?hidden.delete(name):hidden.add(name);settings.hiddenModels=[...hidden];settings.hiddenModelFamilies=[...families];persist();renderModelDropdown(false);}});}
+  function renderModelPreferences(){window.AetherAIModelPreferences.render($('modelPreferences'),{models:availableModels,hiddenModels:settings.hiddenModels||[],hiddenFamilies:settings.hiddenModelFamilies||[],lang:settings.appLanguage,ru:settings.appLanguage==='ru',icon:providerIconMarkup,onChange:(family,names,checked,scope,state)=>{settings.hiddenModels=state.hiddenModels;settings.hiddenModelFamilies=state.hiddenFamilies;persist();renderModelDropdown(false);}});}
 
   function renderSelectedModel(name) {
     renderComposerQuota();
@@ -2642,7 +2629,7 @@
     startNeuralProgress(mode, web);
     const waitingText = mode === "image"
       ? (settings.appLanguage === "ru" ? "\u0421\u043e\u0437\u0434\u0430\u044e \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435..." : "Creating image...")
-      : "Working…";
+      : t("working");
     thinkingEl = document.createElement("div");
     thinkingEl.className = "message assistant thinking-message";
     thinkingEl.innerHTML = `
@@ -2728,7 +2715,7 @@
     const label = thinkingEl.querySelector(".thinking-label");
     if (label) {
       label.className = "thinking-label working-shimmer";
-      if(label.textContent!=='Working…')label.textContent = 'Working…';
+      if(label.textContent!==t('working'))label.textContent = t('working');
       label.onclick = null;
       label.onkeydown = null;
       label.removeAttribute("role");
@@ -2751,7 +2738,7 @@
     const label = thinkingEl.querySelector(".thinking-label");
     if (!label) return;
     const cleanDomain = String(domain || "").replace(/^www\./, "");
-    const labelText = cleanDomain ? `Exploring ${cleanDomain}` : "Exploring";
+    const labelText = cleanDomain ? `${t("exploring")} ${cleanDomain}` : t("exploring");
     label.className = "thinking-label thinking-searching-web";
     label.innerHTML = '<span class="thinking-exploring-icon" aria-hidden="true">'+window.AetherAIComposerCommands.icon('browse')+'</span><span>'+escapeHtml(labelText)+'</span><span class="thinking-search-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
     label.onclick=null;label.onkeydown=null;label.removeAttribute('role');label.removeAttribute('tabindex');label.removeAttribute('title');
@@ -2784,7 +2771,7 @@
     const time = thinkingEl.querySelector(".thinking-stage-time");
     const aetheraiStatus = thinkingEl.querySelector(".thinking-inline");
     if (reasoning) reasoning.classList.add("is-collapsed");
-    if (label) label.textContent = "Thought";
+    if (label) label.textContent = t("thought");
     if (time) time.textContent = formatDuration(thinkingThoughtDurationMs);
     if (reasoning && aetheraiStatus) {
       reasoning.parentElement.insertBefore(aetheraiStatus, reasoning.nextSibling);
@@ -2837,7 +2824,7 @@
       label.onclick=null;label.onkeydown=null;label.removeAttribute('tabindex');label.removeAttribute('role');label.removeAttribute('title');
       label.textContent = mode === "image"
         ? (settings.appLanguage === "ru" ? "\u0421\u043e\u0437\u0434\u0430\u044e \u0438\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435..." : "Creating image...")
-        : 'Working…';
+        : t('working');
     }
   }
 
@@ -3561,7 +3548,7 @@
       workMeta.className = "assistant-work-meta";
       const label = document.createElement("span");
       label.className = "assistant-work-label";
-      label.textContent = msg.interrupted?window.AetherAITokenUsage.stopped(settings.appLanguage):"Done";
+      label.textContent = msg.interrupted?window.AetherAITokenUsage.stopped(settings.appLanguage):t("done");
       const line = document.createElement("span");
       line.className = "assistant-work-line";
       const time = document.createElement("span");
@@ -3574,7 +3561,7 @@
 
     const textEl = document.createElement("div");
     textEl.className = "message-text";
-    if(role==='assistant'&&msg.memoryUpdated){const note=document.createElement('div');note.className='message-memory-updated';note.textContent='Memory updated';body.append(note);}
+    if(role==='assistant'&&msg.memoryUpdated){const note=document.createElement('div');note.className='message-memory-updated';note.textContent=t('memoryUpdated');body.append(note);}
     const legacyImagePrompt=role==='assistant'&&msg.images?.length&&/^\*\*(?:Prompt|Запрос)\*\*:/i.test(msg.content||'');
     const visibleAssistantText = role==='assistant'&&(msg.imageGeneration||legacyImagePrompt)?'':msg.codeActivity&&msg.filesComplete!==false ? stripCodeBlocks(msg.content || "") : (msg.content || "");
     if(role==='assistant')window.AetherAIStreamingUI.render(textEl,{html:renderMarkdown(visibleAssistantText),done:true,citations:(msg.sources||[]).map(source=>window.AetherAIAnswerPresentation.sourceDetails(source)).filter(Boolean),labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});
@@ -3656,7 +3643,7 @@
       const props={labels:window.AetherAIStreamingUI.labels(settings.appLanguage),sources,explainFollowUp:explain,busy:isGenerating,feedback:msg.feedback,
         onCopy:()=>copyText(msg.content||''),onOpen:href=>window.api?.openExternal(href),
         onRetry:question?()=>{if(isGenerating)return;inputEl.value=question;autoResize();updateSendBtn();sendMessage();}:undefined,
-        onFeedback:async vote=>{msg.feedback=msg.feedback===vote?undefined:vote;persist();props.feedback=msg.feedback;window.AetherAIStreamingUI.render(chrome,props);try{const result=await window.api?.memoryFeedback?.({key:currentChatId+':'+position,vote:msg.feedback||null,question,answer:msg.content||''});if(result?.updated){msg.memoryUpdated=true;persist();if(!body.querySelector('.message-memory-updated')){const note=document.createElement('div');note.className='message-memory-updated';note.textContent='Memory updated';body.insertBefore(note,textEl);}}}catch(error){console.warn('Could not save response preference',error.message);}},
+        onFeedback:async vote=>{msg.feedback=msg.feedback===vote?undefined:vote;persist();props.feedback=msg.feedback;window.AetherAIStreamingUI.render(chrome,props);try{const result=await window.api?.memoryFeedback?.({key:currentChatId+':'+position,vote:msg.feedback||null,question,answer:msg.content||''});if(result?.updated){msg.memoryUpdated=true;persist();if(!body.querySelector('.message-memory-updated')){const note=document.createElement('div');note.className='message-memory-updated';note.textContent=t('memoryUpdated');body.insertBefore(note,textEl);}}}catch(error){console.warn('Could not save response preference',error.message);}},
         onFollowUp:question=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+question;autoResize();updateSendBtn();inputEl.focus({preventScroll:true});}};
       window.AetherAIStreamingUI.render(chrome,props);
     }
@@ -4759,7 +4746,7 @@
 
   async function sendMessage() {
     const rawDisplayText=inputEl.value.trim(),slash=composerCommandsUI.command(rawDisplayText);
-    if(!slash&&/^\/[a-z]+(?:\s|$)/i.test(rawDisplayText)){composerCommandsUI.needsArgument('Unknown command');return;}
+    if(!slash&&/^\/[a-z]+(?:\s|$)/i.test(rawDisplayText)){composerCommandsUI.needsArgument(t('unknownCommand'));return;}
     if(slash&&!slash.argument){composerCommandsUI.needsArgument();return;}
     const displayText=slash?.text||rawDisplayText;
     composerDeepThinking=slash?.name==='think'||/(?:думай\s+(?:дольше|глубже)|подумай\s+(?:дольше|хорошенько)|think\s+(?:longer|harder|deeply)|reason\s+(?:carefully|deeply))/iu.test(displayText);
