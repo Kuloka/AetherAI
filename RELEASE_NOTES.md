@@ -1,5 +1,6 @@
-AetherAI 1.24.12
+AetherAI 1.24.13
 
+- Clicking the already selected tab keeps the existing chat view, draft and scroll position; no redundant redraw or focus jump.
 - Browser-style chat tabs are fixed rectangular blocks with a close button. Removed tab entrance, closing and sliding animations. Startup opens a New chat tab; the plus button works during generation by creating a background chat.
 - Replaced the persistent sidebar with Home for chats and projects, a compact application menu and a keyboard command palette. Session drafts and attachments stay with their tabs.
 - Refined composer glass in both themes, model arrow states and compact family preferences. Added goal progress above the composer and an explicit memory rewriting status. Likes do not display memory updates.

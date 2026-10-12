@@ -5219,7 +5219,8 @@
 
   function loadChat(id) {
     if(!data.chats.some(chat=>chat.id===id)||(isGenerating&&id!==currentChatId))return;
-    if(id!==currentChatId)saveComposerDraft();
+    if(id===currentChatId){window.AetherAIHome?.close(false);if(!window.AetherAIChatTabs?.has(id))window.AetherAIChatTabs?.open(id);return;}
+    saveComposerDraft();
     window.AetherAIHome?.close();
     const changed=currentChatId!==id;currentChatId = id;
     if(changed)restoreComposerDraft();window.AetherAIChatTabs?.open(id);

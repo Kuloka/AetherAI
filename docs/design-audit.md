@@ -53,3 +53,8 @@ The first preview passed the listed checks, but the user subsequently found navi
 ## Static tabs for release 1.24.12
 
 User requested fixed blocks with a close button. Removed tab entrance transforms, animated closing clones, and smooth selection scrolling. Tabs retain fixed width, selection and close actions. Native checks assert no entrance animation, no animated close clone, a working plus and the selected tab being visible when the strip overflows.
+
+
+## Repeated selected-tab click correction for 1.24.13
+
+Selecting the current chat no longer rebuilds its messages or transfers focus to the composer. Closing a tab and reopening that same chat from Home still restores the tab. Native checks repeat physical clicks on the only startup tab, compare its rectangle and verify no message mutations; a populated answer retains its DOM on reselection. Publication of 1.24.12 was cancelled to include this correction in 1.24.13.
