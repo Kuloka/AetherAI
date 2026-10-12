@@ -44,16 +44,7 @@
     if(!live){span.textContent=copy.text;return;}
     if(!span.digits){span.replaceChildren();span.lead=document.createTextNode('');span.digits=document.createElement('span');span.digits.className='token-digits';span.unit=document.createTextNode('');span.append(span.lead,span.digits,span.unit);}
     span.lead.textContent=prefix;span.unit.textContent=' '+copy.unit;
-    const previous=span.lastNumber||'',changed=number!==previous;span.lastNumber=number;
-    if(!changed)return;
-    const old=[...span.digits.children];
-    span.digits.replaceChildren(...Array.from(number,(digit,index)=>{
-      const node=old[index]||document.createElement('span');node.className='token-digit';
-      if(node.dataset.digit===digit)return node;
-      const column=document.createElement('span');column.className='token-digit-column';column.textContent=digit;
-      if(previous&&node.dataset.digit!==undefined){const before=document.createElement('span');before.className='token-digit-previous';before.setAttribute('aria-hidden','true');before.textContent=node.dataset.digit;column.append(before);column.classList.add('rolling');}
-      node.dataset.digit=digit;node.replaceChildren(column);return node;
-    }));
+    window.AetherAITokenCounter.update(span.digits,number);
   }
   function updateRequestTokens(){const value=requestTokenLedger?.snapshot();for(const row of document.querySelectorAll('.thinking-message .thinking-inline,.streaming-answer .thinking-inline')){const old=row.querySelector('.request-token-usage');if(old)updateTokenUsageSpan(old,value,true);else row.append(tokenUsageSpan(value,true));}}
   let composerDeepThinking = false;
@@ -273,6 +264,10 @@
   let lastCodeActivity = null;
   let savedCodeActivities=[];
   let commandResults=[];
+  let commandLiveHost=null;
+  let liveCommandResults=new Map();
+  const stoppedCommandMessages=new Map();
+  function showLiveCommand(result,generationId){if(generationId!==activeGenerationId)return;liveCommandResults.set(result.id,{...result,expanded:true});if(!commandLiveHost){commandLiveHost=document.createElement('div');commandLiveHost.className='project-command-results live-command-results';if(thinkingEl?.parentNode)thinkingEl.before(commandLiveHost);else messagesEl.append(commandLiveHost);}const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;window.AetherAICommands.update(commandLiveHost,result);if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;}
   let composerCommandsUI;
   let currentCodeProjectFolderName = null;
   let currentThinkingLines = [];
@@ -3125,7 +3120,7 @@
 
   function renderCodeActivity(activity) {
     if (!activity) return "";
-    const stateText = activity.state === "edited" ? "Edited" : "Editing";
+    const stateText = activity.state === "writing" ? window.AetherAIInterface.t("writingCode") : activity.state === "edited" ? "Edited" : "Editing";
     const langClass = `lang-${String(activity.label || "code").toLowerCase().replace(/[^a-z0-9]+/g, "")}`;
     return `
       <div class="code-activity ${activity.state === "edited" ? "edited" : "editing"}">
@@ -3362,7 +3357,6 @@
   function renderMarkdown(text) {
     // Убираем <think>...</think> блоки из видимого вывода
     let cleaned = window.AetherAIStreaming.visibleText(text);
-    cleaned = cleaned.replace(/<think>/gi, "").replace(/<\/think>/gi, "");
     const math = window.AetherAIMath.extract(cleaned);
     let html = escapeHtml(math.text);
 
@@ -3370,7 +3364,7 @@
     const lines = html.split("\n");
     const out = [], codeBlocks=[];
     function codeBlock(){const raw=codeBuf.join('\n').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&');const index=codeBlocks.push(window.AetherAICode.block(raw,codeLang,settings.appLanguage))-1;out.push(`\uE300${index}\uE301`);}
-    let inUl = false, inOl = false, inCode = false, codeLang = "", codeBuf = [];
+    let inUl = false, inOl = false, inCode = false, codeLang = "", codeFence = "", codeBuf = [];
 
     function closeLists() {
       if (inUl) { out.push("</ul>"); inUl = false; }
@@ -3381,12 +3375,9 @@
       const line = lines[i];
 
       // код-блок
-      const fence = line.match(/^```([\w+#.-]*)\s*$/);
-      if (fence) {
-        if (!inCode) { closeLists();inCode = true; codeLang = fence[1]; codeBuf = []; }
-        else { codeBlock(); inCode = false; }
-        continue;
-      }
+      const fence = line.match(/^(\x60{3,}|~{3,})(.*)$/);
+      if(fence&&!inCode){closeLists();inCode=true;codeFence=fence[1];codeLang=fence[2].trim().split(/\s+/)[0];codeBuf=[];continue;}
+      if(fence&&inCode&&fence[1][0]===codeFence[0]&&fence[1].length>=codeFence.length&&!fence[2].trim()){codeBlock();inCode=false;continue;}
       if (inCode) { codeBuf.push(line); continue; }
 
       // заголовки
@@ -3849,7 +3840,7 @@
           if(context)apiMessages.push({role:'user',content:context});
         }
       }
-      const executeProjectCommands=async()=>{const active=getCurrentChat(),group=data.groups.find(item=>item.id===active?.groupId);return window.AetherAICommands.run({folder:group?.folderName||group?.name,messages:apiMessages,model:requestModel,command:getCurrentChat()?.messages.at(-1)?.composerCommand?.name==='run'?getCurrentChat().messages.at(-1).composerCommand.argument:undefined,signal:requestController.signal,onStatus:text=>{updateThinkingReasoning(text+'\n',false);addProgressItem(text);},onResult:result=>{commandResults.push(result);}});};
+      const executeProjectCommands=async()=>{const active=getCurrentChat(),group=data.groups.find(item=>item.id===active?.groupId);return window.AetherAICommands.run({folder:group?.folderName||group?.name,messages:apiMessages,model:requestModel,command:getCurrentChat()?.messages.at(-1)?.composerCommand?.name==='run'?getCurrentChat().messages.at(-1).composerCommand.argument:undefined,signal:requestController.signal,onStatus:text=>{updateThinkingReasoning(text+'\n',false);addProgressItem(text);},onProgress:result=>showLiveCommand(result,generationId),onResult:result=>{result.expanded=true;if(generationId!==activeGenerationId){const stopped=stoppedCommandMessages.get(generationId);if(stopped){stopped.commandResults=stopped.commandResults.map(item=>item.id===result.id?result:item);stoppedCommandMessages.delete(generationId);persist();}return;}commandResults.push(result);}});};
       if(intent.commands&&!intent.files){const result=await executeProjectCommands();apiMessages.push({role:'user',content:result});}
       if (settings.teamEnabled && !userImages?.length && !intent.simple && !intent.commands) {
         const workers = [0, 1].map(i => availableModels.some(m => m.name === settings.workerModels?.[i]) ? settings.workerModels[i] : requestModel);
@@ -3911,7 +3902,7 @@
               else restoreThinkingDefault("answer");
             }
             fullText += content;
-            if(!intent.files)onAnswer?.(fullText);
+            if(intent.files){const preview=window.AetherAIArtifacts.preview(fullText.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i,''));if(preview.files.length)onAnswer?.(window.AetherAIArtifacts.previewMarkdown(preview),preview);}else onAnswer?.(fullText);
           }
         } catch {
           // A malformed line is ignored; incomplete JSON stays in streamBuffer until its newline arrives.
@@ -3932,6 +3923,7 @@
       streamBuffer += decoder.decode();
       processStreamLine(streamBuffer);
 
+      fullText=fullText.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i,'');
       const visibleText = fullText
         .replace(/<think>[\s\S]*?<\/think>/gi, "")
         .replace(/<think>|<\/think>/gi, "")
@@ -3958,7 +3950,7 @@
       }
 
       const activities=intent.files&&finishReason!=='length'?window.AetherAIArtifacts.parse(fullText):[];
-      const structuredArtifact=window.AetherAIArtifacts.structured(fullText);if(intent.files&&structuredArtifact)fullText=structuredArtifact.summary+'\n\n'+activities.map(file=>'```'+file.label.toLowerCase()+' '+file.path+file.file+'\n'+file.code+'\n```').join('\n\n');
+      const structuredArtifact=window.AetherAIArtifacts.structured(fullText);if(intent.files&&structuredArtifact)fullText=window.AetherAIArtifacts.previewMarkdown({summary:structuredArtifact.summary,files:activities});else if(intent.files&&fullText.trimStart().startsWith('{'))fullText=window.AetherAIArtifacts.previewMarkdown(window.AetherAIArtifacts.preview(fullText));
       if(finishReason==='length')fullText+='\n\n'+(settings.appLanguage==='ru'?'Ответ остановлен лимитом токенов. Незавершённые файлы не сохранялись. Увеличь уровень рассуждений или разбей задачу на части.':'The response reached its token limit. Incomplete files were not saved. Increase the reasoning level or split the task.');
       setNeuralProgressStep(2);
 
@@ -4739,13 +4731,14 @@
     finished.classList.add('answer-settled');previous.replaceWith(finished);liveAnswer=null;
     if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;return true;
   }
-  function updateLiveAnswer(value,generationId){
+  function updateLiveAnswer(value,generationId,artifact){
     if(generationId!==activeGenerationId)return;
     const visible=window.AetherAIStreaming.visibleText(value);if(!visible.trim())return;
     if(!liveAnswer){const message={role:'assistant',content:'',memoryUpdated:getCurrentChat()?.messages.at(-1)?.memoryUpdated},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');root.querySelector('.stream-answer-controls')?.remove();
       if(thinkingEl){const status=thinkingEl.querySelector('.thinking-inline');if(status)body.prepend(status);thinkingEl.before(root);thinkingEl.hidden=true;}else messagesEl.append(root);
       const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;window.AetherAIStreamingUI.render(text,{html:renderMarkdown(content),done:false,labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};
     }
+    if(artifact?.files?.length){if(!liveAnswer.fileStatus){liveAnswer.fileStatus=document.createElement('div');liveAnswer.fileStatus.className='streaming-file-status';liveAnswer.root.querySelector('.message-text').before(liveAnswer.fileStatus);}const file=artifact.files.at(-1);const name=file.path+file.file;if(liveAnswer.fileStatus.dataset.file!==name){liveAnswer.fileStatus.dataset.file=name;liveAnswer.fileStatus.innerHTML=renderCodeActivity({...file,state:'writing'});}else{const count=liveAnswer.fileStatus.querySelector('.code-lines.added'),value='+'+file.added;if(count.textContent!==value)count.textContent=value;}}
     liveAnswer.message.content=visible;liveAnswer.writer.update(visible);
   }
 
@@ -4775,6 +4768,8 @@
     activeCodeActivityEl = null;
     lastCodeActivity = null;
     savedCodeActivities=[];
+    commandLiveHost?.remove();commandLiveHost=null;
+    liveCommandResults=new Map();
     commandResults=[];
     currentCodeProjectFolderName = null;
 
@@ -4888,7 +4883,7 @@
     try{const result=await window.api?.memoryRemember?.(displayText);if(result?.updated&&generationId===activeGenerationId){userMsg.explicitMemorySaved=true;persist();const label=thinkingEl?.querySelector('.thinking-label');if(label){label.className='thinking-label rewriting-memory';label.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z M13 6l5 5"/></svg><span>'+escapeHtml(t('rewritingMemory'))+'</span>';await new Promise(resolve=>setTimeout(resolve,400));if(generationId===activeGenerationId){label.className='thinking-label working-shimmer';label.textContent=t('working');}}}}catch(error){console.warn('Could not update memory',error.message);}
     if(generationId!==activeGenerationId)return;
 
-    const reply = await generateResponse(text, imgs, generationId,value=>updateLiveAnswer(value,generationId));
+    const reply = await generateResponse(text, imgs, generationId,(value,artifact)=>updateLiveAnswer(value,generationId,artifact));
     if (generationId !== activeGenerationId) return;
     AetherAI.setUsageListener(null);
 
@@ -4922,6 +4917,7 @@
       chat.updatedAt = Date.now();
       answerSettled=finishLiveAnswer(assistantMsg);
     }
+    commandLiveHost?.remove();commandLiveHost=null;
     if(!answerSettled){stopLiveAnswer();renderMessages();}
     updateSendBtn();
     renderSidebar();
@@ -4929,7 +4925,9 @@
   }
 
   stopBtn.addEventListener("click", () => {
-    const streamChatId=liveAnswer?.chatId;const partial=stopLiveAnswer();if(partial){const chat=data.chats.find(item=>item.id===streamChatId);if(chat)chat.messages.push({role:"assistant",content:partial,interrupted:true,workMeta:{totalDurationMs:Date.now()-thinkingStartedAt,usage:requestTokenLedger?.snapshot()}});renderMessages();}
+    commandLiveHost?.remove();commandLiveHost=null;
+    const stoppedGeneration=activeGenerationId,streamChatId=liveAnswer?.chatId||currentChatId,partial=stopLiveAnswer(),receivedCommands=[...liveCommandResults.values()].map(result=>result.running?{...result,running:false,cancelled:true,ok:false}:result);
+    if(partial||receivedCommands.length){const chat=data.chats.find(item=>item.id===streamChatId);if(chat){const message={role:'assistant',content:partial||'Stopped.',interrupted:true,commandResults:receivedCommands.length?receivedCommands:undefined,workMeta:{totalDurationMs:Date.now()-thinkingStartedAt,usage:requestTokenLedger?.snapshot()}};chat.messages.push(message);if(receivedCommands.some(result=>result.cancelled))stoppedCommandMessages.set(stoppedGeneration,message);}renderMessages();}
     activeGenerationId = ++generationSerial;
     AetherAI.setUsageListener(null);
     if (abortController) abortController.abort();

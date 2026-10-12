@@ -1,10 +1,9 @@
-AetherAI 1.24.14
+AetherAI 1.25.0
 
-- Clicking the already selected tab keeps the existing chat view, draft and scroll position; no redundant redraw or focus jump.
-- Browser-style chat tabs form one horizontal row of rectangular blocks sized to their full titles, without shrinking or ellipses with a close button. Horizontal wheel scrolling keeps overflow accessible. Removed tab entrance, closing and sliding animations. Startup opens a New chat tab; the plus button works during generation by creating a background chat.
-- Replaced the persistent sidebar with Home for chats and projects, a compact application menu and a keyboard command palette. Session drafts and attachments stay with their tabs.
-- Refined composer glass in both themes, model arrow states and compact family preferences. Added goal progress above the composer and an explicit memory rewriting status. Likes do not display memory updates.
-- Improved language arrows, color controls, MCP tool explanations and connection layout, Discord settings and project file browsing. Interface translations cover all ten supported languages.
-- Fixed reading position jumps while viewing long answers and preserved exact code formatting and copying.
+- Project code appears while the model is writing it, with the current filename and a localized Writing code status. Supports partial JSON manifests and unfinished Markdown code blocks; unfinished files are previewed without being saved.
+- Answers display received text on the next animation frame without an artificial word queue. Named files, long fences and literal think tags inside code retain their exact content.
+- Project commands show stdout and stderr while the process is running. Stop preserves received output; late results update the original message without entering a new chat request. Command approval and project boundaries remain unchanged.
+- Token counters animate only changed digits. Unchanged digits keep their position and DOM nodes, including when the number gains another digit or grouping separator.
+- New Writing code status is translated into all ten supported interface languages.
 
 Windows installer upgrades preserve existing user data. Update downloads and installation require user actions. macOS builds remain unsigned and unnotarized.

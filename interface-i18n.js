@@ -306,7 +306,8 @@
     "emptyFolder": "Folder is empty",
     "emptyCodePreview": "Open a project file to preview it here.",
     "toolsExplanation": "Tools let the AI work with project files, keep context, and break down tasks. Connect a tool, then enable its switch to use it in chat.",
-    "customMcp": "Connect your own MCP server"
+    "customMcp": "Connect your own MCP server",
+    "writingCode": "Writing code"
   },
   "ru": {
     "settings": "Настройки",
@@ -613,7 +614,8 @@
     "emptyFolder": "Папка пуста",
     "emptyCodePreview": "Откройте файл проекта для просмотра.",
     "toolsExplanation": "Инструменты позволяют ИИ работать с файлами проекта, хранить контекст и разбирать задачи по шагам. Подключите нужный инструмент и включите его переключатель, чтобы использовать его в чате.",
-    "customMcp": "Подключить свой MCP-сервер"
+    "customMcp": "Подключить свой MCP-сервер",
+    "writingCode": "Пишу код"
   },
   "es": {
     "settings": "Configuracion",
@@ -918,7 +920,8 @@
     "emptyFolder": "La carpeta está vacía",
     "emptyCodePreview": "Abre un archivo del proyecto para verlo aquí.",
     "toolsExplanation": "Las herramientas permiten trabajar con archivos, conservar contexto y dividir tareas. Conecta una y activa su interruptor para usarla en el chat.",
-    "customMcp": "Conectar tu servidor MCP"
+    "customMcp": "Conectar tu servidor MCP",
+    "writingCode": "Escribiendo código"
   },
   "pt": {
     "settings": "Configuracoes",
@@ -1223,7 +1226,8 @@
     "emptyFolder": "A pasta está vazia",
     "emptyCodePreview": "Abra um arquivo do projeto para visualizá-lo aqui.",
     "toolsExplanation": "As ferramentas permitem trabalhar com arquivos, guardar contexto e dividir tarefas. Conecte uma e ative seu interruptor para usá-la no chat.",
-    "customMcp": "Conectar seu servidor MCP"
+    "customMcp": "Conectar seu servidor MCP",
+    "writingCode": "Escrevendo código"
   },
   "fr": {
     "settings": "Paramètres",
@@ -1528,7 +1532,8 @@
     "emptyFolder": "Le dossier est vide",
     "emptyCodePreview": "Ouvrez un fichier du projet pour le consulter ici.",
     "toolsExplanation": "Les outils permettent de travailler sur les fichiers, garder le contexte et décomposer les tâches. Connectez un outil, puis activez son interrupteur pour le chat.",
-    "customMcp": "Connecter votre serveur MCP"
+    "customMcp": "Connecter votre serveur MCP",
+    "writingCode": "Écriture du code"
   },
   "de": {
     "settings": "Einstellungen",
@@ -1833,7 +1838,8 @@
     "emptyFolder": "Ordner ist leer",
     "emptyCodePreview": "Öffne eine Projektdatei, um sie hier anzusehen.",
     "toolsExplanation": "Werkzeuge ermöglichen Dateiarbeit, Kontextspeicherung und Aufgabenschritte. Verbinde ein Werkzeug und aktiviere seinen Schalter für den Chat.",
-    "customMcp": "Eigenen MCP-Server verbinden"
+    "customMcp": "Eigenen MCP-Server verbinden",
+    "writingCode": "Code schreiben"
   },
   "it": {
     "settings": "Impostazioni",
@@ -2138,7 +2144,8 @@
     "emptyFolder": "La cartella è vuota",
     "emptyCodePreview": "Apri un file del progetto per visualizzarlo qui.",
     "toolsExplanation": "Gli strumenti permettono di lavorare sui file, conservare contesto e suddividere i compiti. Collega uno strumento e attiva il suo interruttore per la chat.",
-    "customMcp": "Collega il tuo server MCP"
+    "customMcp": "Collega il tuo server MCP",
+    "writingCode": "Scrittura del codice"
   },
   "tr": {
     "settings": "Ayarlar",
@@ -2443,7 +2450,8 @@
     "emptyFolder": "Klasör boş",
     "emptyCodePreview": "Burada görüntülemek için bir proje dosyası açın.",
     "toolsExplanation": "Araçlar dosyalarla çalışmayı, bağlam tutmayı ve görevleri bölmeyi sağlar. Bir araç bağlayıp sohbet için anahtarını açın.",
-    "customMcp": "Kendi MCP sunucunu bağla"
+    "customMcp": "Kendi MCP sunucunu bağla",
+    "writingCode": "Kod yazılıyor"
   },
   "pl": {
     "settings": "Ustawienia",
@@ -2748,7 +2756,8 @@
     "emptyFolder": "Folder jest pusty",
     "emptyCodePreview": "Otwórz plik projektu, aby wyświetlić go tutaj.",
     "toolsExplanation": "Narzędzia umożliwiają pracę z plikami, zachowanie kontekstu i dzielenie zadań. Podłącz narzędzie i włącz jego przełącznik, aby używać go w czacie.",
-    "customMcp": "Podłącz własny serwer MCP"
+    "customMcp": "Podłącz własny serwer MCP",
+    "writingCode": "Pisanie kodu"
   },
   "uk": {
     "settings": "Налаштування",
@@ -3053,7 +3062,8 @@
     "emptyFolder": "Папка порожня",
     "emptyCodePreview": "Відкрийте файл проєкту для перегляду.",
     "toolsExplanation": "Інструменти дозволяють працювати з файлами, зберігати контекст і ділити завдання. Підключіть інструмент і ввімкніть його перемикач для чату.",
-    "customMcp": "Підключити свій MCP-сервер"
+    "customMcp": "Підключити свій MCP-сервер",
+    "writingCode": "Пишу код"
   }
 };
  function labels(lang){return copy[lang]||copy.en;}

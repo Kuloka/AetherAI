@@ -1,20 +1,10 @@
 const test=require('node:test'),assert=require('node:assert/strict'),stream=require('../streaming-text'),image=require('../image-prompt');
-test('streaming answers arrive progressively, respect reduced motion, and stop without losing received text',()=>{
- let frame,rendered=[];const writer=stream.create(text=>rendered.push(text),{schedule:fn=>{frame=fn;return 1;},cancel:()=>{frame=null;},reduced:()=>false});writer.update('A useful streaming answer');frame();assert.ok(rendered[0].length>0&&rendered[0].length<25);while(frame&&rendered.at(-1)!=='A useful streaming answer')frame();assert.equal(rendered.at(-1),'A useful streaming answer');writer.update('A useful streaming answer with more');assert.equal(writer.stop(),'A useful streaming answer with more');assert.equal(frame,null);
- const quiet=stream.create(text=>rendered.push(text),{schedule:()=>{throw Error('Reduced motion must not schedule frames');},cancel(){},reduced:()=>true});quiet.update('Instant');assert.equal(rendered.at(-1),'Instant');
-});
-test('partial reasoning tags remain hidden but literal code examples are retained',()=>{
- assert.equal(stream.visibleText('<think>private reasoning'),'');assert.equal(stream.visibleText('<think>private</think>Hello <thi'),'Hello ');assert.equal(stream.visibleText('`<think>example</think>`'),'`<think>example</think>`');
-});
-test('streaming reveals words at 80 ms cadence and finish flushes the exact answer',()=>{
- let frame;const values=[],writer=stream.create(value=>values.push(value),{schedule:fn=>{frame=fn;return 1;},cancel:()=>{frame=null;}});
- writer.update('Hello world 👋 final');frame(0);assert.equal(values.at(-1),'Hello ');
- frame(16);assert.equal(values.length,1);frame(80);assert.equal(values.at(-1),'Hello world ');
- frame(160);assert.equal(values.at(-1),'Hello world 👋 ');
- writer.finish();assert.equal(values.at(-1),'Hello world 👋 final');assert.equal(frame,null);
-});
+test('streaming displays all received text on the next frame without an artificial word queue',()=>{let frame;const values=[];const writer=stream.create(value=>values.push(value),{schedule:fn=>{frame=fn;return 1;},cancel:()=>{frame=null;}});writer.update('First');writer.update('First burst of text');frame(0);assert.equal(values.at(-1),'First burst of text');writer.update('First burst of text plus more');frame(16);assert.equal(values.at(-1),'First burst of text plus more');writer.update('Final received text');assert.equal(writer.stop(),'Final received text');assert.equal(frame,null);});
+test('reduced motion renders immediately and partial reasoning tags remain hidden',()=>{const values=[],writer=stream.create(value=>values.push(value),{schedule:()=>{throw Error('Unexpected frame');},cancel(){},reduced:()=>true});writer.update('Instant');assert.equal(values.at(-1),'Instant');assert.equal(stream.visibleText('<think>private reasoning'),'');assert.equal(stream.visibleText('<think>private</think>Hello <thi'),'Hello ');assert.equal(stream.visibleText('\`<think>example</think>\`'),'\`<think>example</think>\`');});
 test('image descriptions retain requested media, numbers and exact text instead of adding boilerplate',()=>{
  assert.equal(image.clean('Create a photo of a blue cat on a red chair'),'photo of a blue cat on a red chair');assert.equal(image.clean('Нарисуй баннер с надписью «AetherAI 1337»'),'баннер с надписью «AetherAI 1337»');
  const original='Создай баннер с надписью «AetherAI 1337»';assert.equal(image.extract('{"prompt":"A black banner with exact neon lettering AetherAI 1337"}',original),'A black banner with exact neon lettering AetherAI 1337');assert.equal(image.extract('{"prompt":"A banner with lettering AetherAI 1234"}',original),image.clean(original));assert.equal(image.extract('Sorry, I cannot help',original),image.clean(original));
  assert.ok(!image.clean('Create an image of a banana').includes('High quality'));
 });
+
+test('Reasoning stays hidden while literal think tags survive tilde and nested backtick code fences',()=>{const ticks=String.fromCharCode(96),code='<div><think>literal</think></div>';for(const fence of ['~~~',ticks.repeat(3),ticks.repeat(4)]){const text=fence+'html index.html\n'+code+'\n'+fence;assert.equal(stream.visibleText('<think>hidden</think>\n'+text),'\n'+text);}const nested=ticks.repeat(4)+'js\nconst x="'+ticks.repeat(3)+'";\n'+code+'\n'+ticks.repeat(4);assert.equal(stream.visibleText(nested),nested);});

@@ -65,7 +65,7 @@ handleIpc('plugins:call', (event, id, name, args, requestId) => {
 });
 handleIpc('plugins:cancel', (event, requestId) => plugins.cancel(`${event.sender.id}:${requestId}`));
 const projectCommands=require('./project-commands').createProjectCommands(PROJECTS_DIR,{confirm:async({command,cwd,signal,owner})=>{const contents=require('electron').webContents.fromId(owner),parent=contents&&BrowserWindow.fromWebContents(contents);if(!parent||parent.isDestroyed())return false;const result=await dialog.showMessageBox(parent,{type:'question',title:require('../interface-i18n').t('commandTitle',loadSettings().appLanguage),message:command,detail:require('../interface-i18n').t('workingFolder',loadSettings().appLanguage)+': '+cwd+'\n\n'+require('../interface-i18n').t('commandPermissions',loadSettings().appLanguage),buttons:['cancel','run'].map(key=>require('../interface-i18n').t(key,loadSettings().appLanguage)),defaultId:0,cancelId:0,noLink:true,signal});return result.response===1;}});
-handleIpc('project:run-command',(event,args,id)=>{if(loadSettings().accessMode==='plan')throw Error('Commands are disabled in Plan mode');return projectCommands.run(args,event.sender.id+':'+id,event.sender.id);});
+handleIpc('project:run-command',(event,args,id)=>{if(loadSettings().accessMode==='plan')throw Error('Commands are disabled in Plan mode');return projectCommands.run(args,event.sender.id+':'+id,event.sender.id,progress=>{if(!event.sender.isDestroyed())event.sender.send('project:command-progress',{id,...progress});});});
 handleIpc('project:cancel-command',(event,id)=>projectCommands.cancel(event.sender.id+':'+id));
 
 const discordActivity = require('./discord-activity').createDiscordActivity();

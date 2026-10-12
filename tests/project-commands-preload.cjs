@@ -1,5 +1,6 @@
 const {contextBridge,ipcRenderer}=require('electron');let listener;
 contextBridge.exposeInMainWorld('api',{
+ onProjectCommandEvent:callback=>{const listener=(_event,data)=>callback(data);ipcRenderer.on('command:progress',listener);return()=>ipcRenderer.removeListener('command:progress',listener);},
  projectRunCommand:(args,id)=>ipcRenderer.invoke('command:run',args,id),projectCancelCommand:id=>ipcRenderer.invoke('command:cancel',id),
  clipboardWrite:text=>ipcRenderer.invoke('interaction:clipboard',text),
  memoryRemember:text=>ipcRenderer.invoke('interaction:memory-remember',text),memoryFeedback:value=>ipcRenderer.invoke('interaction:memory-feedback',value),

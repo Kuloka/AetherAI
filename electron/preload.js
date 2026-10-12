@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('api', {
   pluginsToggle: (id, enabled) => ipcRenderer.invoke('plugins:toggle', id, enabled),
   pluginsRemove: id => ipcRenderer.invoke('plugins:remove', id),
   pluginsCall: (id, name, args, requestId) => ipcRenderer.invoke('plugins:call', id, name, args, requestId),
+  onProjectCommandEvent:callback=>{const listener=(_event,data)=>callback(data);ipcRenderer.on('project:command-progress',listener);return()=>ipcRenderer.removeListener('project:command-progress',listener);},
   projectRunCommand:(args,id)=>ipcRenderer.invoke('project:run-command',args,id),
   projectCancelCommand:id=>ipcRenderer.invoke('project:cancel-command',id),
   pluginsCancel: requestId => ipcRenderer.invoke('plugins:cancel', requestId),

@@ -15,3 +15,5 @@ Validation: backend tests execute real commands in disposable project folders an
 Implementation references: [Node child processes](https://nodejs.org/api/child_process.html), [Electron cancellable message boxes](https://www.electronjs.org/docs/latest/api/dialog#dialogshowmessageboxwindow-options).
 
 The current goal appears as a compact collapsed tier above the composer. Its summary shows a goal excerpt and accumulated request processing time; clicking reveals the full objective. Work time increases while generation is active and is kept with the conversation. Setting a new goal resets its time.
+
+Command stdout and stderr now update the expanded command card while the process is still running. Progress events are delivered only to the originating window and filtered by request ID; listeners are removed after completion. Output remains capped at 65,536 characters and confirmation, cancellation and project path boundaries remain in force.
