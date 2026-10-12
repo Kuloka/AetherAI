@@ -816,7 +816,7 @@ html, body {
   gap: 10px;
 }
 .panel-code-list:empty::before {
-  content: "No coding preview yet.";
+  content: none;
   color: var(--text-muted);
   font-size: 12px;
 }

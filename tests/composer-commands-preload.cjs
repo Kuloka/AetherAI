@@ -1,5 +1,6 @@
 const {contextBridge,ipcRenderer}=require('electron');let listener;
 contextBridge.exposeInMainWorld('api',{
+ windowAction:action=>ipcRenderer.invoke('interaction:window',action),
  projectRunCommand:(args,id)=>ipcRenderer.invoke('command:run',args,id),projectCancelCommand:id=>ipcRenderer.invoke('command:cancel',id),
  internetSearch:query=>ipcRenderer.invoke('interaction:web',query),
  clipboardWrite:text=>ipcRenderer.invoke('interaction:clipboard',text),

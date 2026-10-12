@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru" class="ui-loading">
+<html lang="ru" class="ui-loading startup-pending">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,7 +16,13 @@
 </head>
 <body>
 <header class="window-titlebar" id="windowTitlebar">
-  <span class="window-brand">AetherAI</span>
+  <nav class="window-navigation" aria-label="Navigation">
+    <button type="button" id="appMenuBtn" aria-label="Menu" aria-expanded="false" aria-controls="appMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 6h14M5 12h14M5 18h14"/></svg></button>
+    <button type="button" id="homeBtn" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10H3zM9 20v-7h6v7"/></svg></button>
+    <div id="chatTabs" class="chat-tabs" role="tablist"></div>
+    <button type="button" id="newChatTabBtn" aria-label="New chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+  </nav>
+  <div id="appMenu" class="app-menu" hidden></div>
   <div class="window-controls">
     <button type="button" data-window="minimize" aria-label="Minimize"><svg viewBox="0 0 12 12"><path d="M1 6h10"/></svg></button>
     <button type="button" data-window="maximize" aria-label="Maximize or restore"><svg viewBox="0 0 12 12"><rect x="2" y="2" width="8" height="8"/></svg></button>
@@ -24,7 +30,7 @@
   </div>
 </header>
 
-<div class="app">
+<div class="app top-navigation">
 
   <!-- Sidebar / tab -->
   <aside class="sidebar" id="sidebar">
@@ -76,6 +82,7 @@
         <span>More</span>
       </button>
     </nav>
+    <button class="tab-nav-item" id="newGroupBtn"><span>New project</span></button>
     <div class="tab-section-title">Recent</div>
     <div class="chat-history-list" id="chatHistoryList"></div>
     </div>
@@ -256,7 +263,7 @@
       <aside class="side-panel" id="sidePanel">
         <div class="panel-header">
           <span>AetherAI actions</span>
-          <button class="panel-close" id="closePanelBtn" title="Close panel" aria-label="Close panel" data-tooltip="Close panel">&times;</button>
+          <button class="panel-close" id="closePanelBtn" title="Close panel" aria-label="Close panel" data-tooltip="Close panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
         </div>
         <div class="panel-progress">
           <div class="panel-progress-title">Coding preview</div>
@@ -279,7 +286,7 @@
       </button>
     </div>
     <nav class="settings-nav" aria-label="Settings sections">
-      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="app">Application</span><button type="button" data-settings-tab="general" class="active">Language</button><button type="button" data-settings-tab="customization">Appearance</button><button type="button" data-settings-tab="preferences">Preferences</button></div>
+      <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="app">Application</span><button type="button" data-settings-tab="general" class="active">Language</button><button type="button" data-settings-tab="customization">Appearance</button><button type="button" data-settings-tab="preferences" hidden>Preferences</button></div>
       <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="ai">AI &amp; models</span><button type="button" data-settings-tab="cloud">Providers</button><button type="button" data-settings-tab="models">Local models &amp; agents</button><button type="button" data-settings-tab="images">Images</button><button type="button" data-settings-tab="ollama-cloud">Ollama Cloud</button></div>
       <div class="settings-nav-group"><span class="settings-nav-label" data-settings-group="tools">Tools</span><button type="button" data-settings-tab="plugins">MCP tools</button><button type="button" data-settings-tab="skills">Skills instructions</button><button type="button" data-settings-tab="discord">Discord Activity</button></div>
     </nav>
@@ -340,7 +347,7 @@
       <section class="settings-block settings-language" data-settings-panel="general">
         <div class="settings-title">Language packs</div>
         <div class="settings-desc">Download only the interface languages you want.</div>
-        <div class="language-picker"><button type="button" id="languageToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="languagePackList"><span id="languageValue"></span><span class="language-chevron">&#8964;</span></button><div class="language-pack-list" id="languagePackList" role="listbox" aria-label="Language" inert></div></div>
+        <div class="language-picker"><button type="button" id="languageToggle" aria-haspopup="listbox" aria-expanded="false" aria-controls="languagePackList"><span id="languageValue"></span><svg class="language-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16m-5-5 5 5 5-5"/></svg></button><div class="language-pack-list" id="languagePackList" role="listbox" aria-label="Language" inert></div></div>
       </section>
       <section class="settings-block agent-settings" data-settings-panel="models" hidden>
         <strong id="agentSettingsTitle">Subagent models</strong>
@@ -359,8 +366,8 @@
       <section class="settings-block image-provider-settings" data-settings-panel="images" hidden><h3 id="imageProviderTitle">Image generation</h3><p id="imageProviderHelp">Connect Pollinations for cloud images. Without a key, images use local SD Turbo. Cloud generations use your provider balance.</p><form id="imageProviderForm"><label id="imageProviderKeyLabel" for="imageProviderKey">Image API key</label><input id="imageProviderKey" type="password" autocomplete="off" placeholder="Paste your image API key" required><div><button id="imageProviderOpen" type="button" class="catalog-btn">Get image API key</button><button id="imageProviderAction" class="catalog-btn primary" type="submit">Connect</button></div></form><p id="imageProviderStatus" role="status"></p></section>
       <section class="settings-block plugins-settings" data-settings-panel="plugins" hidden>
         <h3 id="pluginsTitle">Plugins</h3><p id="pluginsHint">MCP tools for your models. Enable a connection to make its tools available in chat.</p>
-        <div class="preset-grid" id="pluginPresets"></div>
-        <form id="pluginForm">
+        <p class="mcp-explanation">Tools let the AI work with project files, keep context, and break down tasks. Connect a tool, then enable its switch to use it in chat.</p><div class="preset-grid" id="pluginPresets"></div>
+        <div id="pluginsList"></div><details class="mcp-custom"><summary>Connect your own MCP server</summary><form id="pluginForm">
           <label><span id="pluginNameLabel">Name</span><input id="pluginName" value="Workspace" maxlength="80" required></label>
           <label><span id="pluginTypeLabel">Connection</span><select id="pluginType"><option value="builtin">Built-in Workspace</option><option value="stdio">Local MCP server (stdio)</option><option value="http">Remote MCP server (HTTP)</option></select></label>
           <label id="pluginCommandRow" hidden><span id="pluginCommandLabel">Executable</span><input id="pluginCommand" placeholder="node / npx / full executable path"></label>
@@ -368,11 +375,11 @@
           <label id="pluginUrlRow" hidden><span id="pluginUrlLabel">MCP URL</span><input id="pluginUrl" placeholder="https://example.com/mcp"></label>
           <p id="pluginTransportHint">Reads project folders and text files inside your local project folder. No extra installation.</p>
           <button id="pluginAddConnection" class="catalog-btn" type="submit">Add connection</button>
-        </form>
-        <p id="pluginsError" role="status"></p><div id="pluginsList"></div>
+        </form></details>
+        <p id="pluginsError" role="status"></p>
       </section>
       <section class="settings-block discord-settings" data-settings-panel="discord" hidden>
-        <div class="discord-heading"><div><h3>Discord Activity</h3><p id="discordDescription"></p></div><button id="discordToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Discord Activity"><span></span></button></div>
+        <div class="discord-heading"><div><p id="discordDescription"></p></div><button id="discordToggle" class="activity-switch" type="button" role="switch" aria-checked="false" aria-label="Discord Activity"><span></span></button></div>
         <p id="discordStatus" role="status"></p>
       </section>
       <section class="settings-block app-skills" data-settings-panel="skills" hidden>
@@ -430,6 +437,7 @@
     </div>
     <div class="modal-body">
       <input type="text" id="groupInput" class="catalog-search" placeholder="Folder name..." style="margin-bottom:12px">
+      <p id="groupError" class="project-create-error" role="alert" hidden></p>
       <button class="catalog-btn primary" id="saveGroupBtn" style="width:100%">Create</button>
     </div>
   </div>
@@ -529,6 +537,12 @@
 <script src="resources/ui/notifications.js"></script>
 <script src="renderer.js"></script>
 <script src="composer-motion.js"></script>
+<script src="goal-panel.js"></script>
+<script src="startup-reveal.js"></script>
+<script src="home-navigation.js"></script>
+<script src="chat-tabs.js"></script>
+<script src="command-palette.js"></script>
+<script src="modal-focus.js"></script>
 <script src="prompt-examples.js"></script>
 
 </body>

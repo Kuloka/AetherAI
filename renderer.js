@@ -1113,6 +1113,7 @@
 
   function renderPanelFileTabs() {
     if (!panelFileTabsEl || !panelFileViewerEl) return;
+    renderCodingPreview();
     panelFileTabsEl.innerHTML = "";
     panelFileTabsEl.style.display = "none";
 
@@ -1176,6 +1177,7 @@
   function renderCodingPreview() {
     if (!panelProgressList) return;
     panelProgressList.innerHTML = "";
+    if(!codingPreviewItems.length&&!panelFileTabsState.length){const hint=document.createElement("p");hint.className="panel-preview-hint";hint.textContent=window.AetherAIInterface.t("emptyCodePreview");panelProgressList.append(hint);}
     codingPreviewItems.forEach(item => {
       if (item.kind === "overview") {
         const row = document.createElement("div");
@@ -1316,7 +1318,9 @@
   function updateHomeMode() {
     chatInteractions?.refresh();
     window.AetherAIStreamingUI?.busy(isGenerating);
+    window.AetherAIChatTabs?.busy(isGenerating);
     const chat = getCurrentChat();
+    window.AetherAIGoalPanel?.sync(chat,isGenerating);
     const isEmpty = !chat || !chat.messages || chat.messages.length === 0;
     mainArea?.classList.toggle("home-mode", isEmpty && !isGenerating);
     document.body.classList.toggle("is-generating", isGenerating);
@@ -1445,7 +1449,7 @@
   }
   function renderPluginPresets(entries) {
     const root=$('pluginPresets');if(!root)return;
-    root.innerHTML=PLUGIN_PRESETS.map(item=>presetCard(item,entries.some(entry=>entry.name===item.name),'plugin')).join('');
+    root.innerHTML=PLUGIN_PRESETS.map(item=>presetCard(item,entries.some(entry=>entry.name===item.name),'plugin')).join('');root.querySelectorAll('button:not(:disabled)').forEach(button=>button.textContent=window.AetherAIInterface.t('connect'));
     root.querySelectorAll('[data-preset-kind=plugin]:not(:disabled)').forEach(button=>button.onclick=async()=>{const item=PLUGIN_PRESETS.find(entry=>entry.id===button.dataset.preset);button.classList.add('installing');button.disabled=true;try{renderPlugins(await window.api.pluginsAdd(item.config));$('pluginsError').textContent='';}catch(error){button.classList.remove('installing');button.disabled=false;$('pluginsError').textContent=error.message;}});
   }
   const pluginSelect = $('pluginType');
@@ -2264,6 +2268,7 @@
     window.AetherAIModelPicker.render(modelDropdown,{models:availableModels,hiddenModels,selected:settings.selectedModel,ru:settings.appLanguage==='ru',lang:settings.appLanguage,icon:providerIconMarkup,local:settings.localAi,level:settings.thinkLevel||'medium',
       onSelect:name=>{selectModel(name);modelDropdown.classList.remove('show');modelBtn.focus({preventScroll:true});syncComposerExpanded();},
       onLevel:value=>{settings.modelThinkLevels={...(settings.modelThinkLevels||{}),[settings.selectedModel]:value};setThinkLevel(value);renderModelDropdown();modelDropdown.querySelector('.model-reasoning-picker').open=false;modelDropdown.querySelector('.model-reasoning-picker>summary').focus();},
+      onManage:()=>{modelDropdown.classList.remove('show');settingsModal.classList.add('show');renderSettings();document.querySelector('[data-settings-tab=preferences]').click();},
       onConfigure:()=>{modelDropdown.classList.remove('show');settings.localAi?openModelsModal():openProviderSettings();}
     });
   }
@@ -2569,7 +2574,7 @@
     }
     if (!res.ok) alert(`${t("openProjectsError")}: ${res.error || res.path || t("unknownError")}`);
   });
-  const projectsBrowser=window.AetherAIProjects.create({api:window.api,language:()=>settings.appLanguage,onFile:(relative,code)=>{const file=relative.split('/').at(-1);currentCodeProjectFolderName=relative.split('/')[0];openPanelFile({file,path:relative.split('/').slice(1,-1).join('/')+'/',label:file.split('.').at(-1).toUpperCase(),code,state:'edited',added:0,removed:0});},onChat:folder=>{let group=data.groups.find(item=>(item.folderName||item.name)===folder);if(!group){group={id:crypto.randomUUID(),name:folder,folderName:folder,collapsed:false};data.groups.push(group);}const chat=data.chats.find(item=>item.groupId===group.id);if(chat)loadChat(chat.id);else{createNewChat();getCurrentChat().groupId=group.id;persist();renderSidebar();}}});
+  const projectsBrowser=window.AetherAIProjects.create({api:window.api,language:()=>settings.appLanguage,onFile:(relative,code)=>{window.AetherAIHome?.close(false);const file=relative.split('/').at(-1);currentCodeProjectFolderName=relative.split('/')[0];openPanelFile({file,path:relative.split('/').slice(1,-1).join('/')+'/',label:file.split('.').at(-1).toUpperCase(),code,state:'edited',added:0,removed:0});},onChat:folder=>{if(isGenerating)return;let group=data.groups.find(item=>(item.folderName||item.name)===folder);if(!group){group={id:crypto.randomUUID(),name:folder,folderName:folder,collapsed:false};data.groups.push(group);}const chat=data.chats.find(item=>item.groupId===group.id);if(chat)loadChat(chat.id);else{createNewChat();getCurrentChat().groupId=group.id;persist();renderSidebar();}}});
   searchChatsBtn?.addEventListener("click", () => {
     const query = prompt(t("searchChats"));
     if (!query) return;
@@ -3287,6 +3292,7 @@
   }
 
   function renderAttachments() {
+    attachmentStrip.replaceChildren();
     updateSendBtn();
     if (attachments.length === 0) {
       attachmentStrip.style.display = "none";
@@ -3561,7 +3567,6 @@
 
     const textEl = document.createElement("div");
     textEl.className = "message-text";
-    if(role==='assistant'&&msg.memoryUpdated){const note=document.createElement('div');note.className='message-memory-updated';note.textContent=t('memoryUpdated');body.append(note);}
     const legacyImagePrompt=role==='assistant'&&msg.images?.length&&/^\*\*(?:Prompt|Запрос)\*\*:/i.test(msg.content||'');
     const visibleAssistantText = role==='assistant'&&(msg.imageGeneration||legacyImagePrompt)?'':msg.codeActivity&&msg.filesComplete!==false ? stripCodeBlocks(msg.content || "") : (msg.content || "");
     if(role==='assistant')window.AetherAIStreamingUI.render(textEl,{html:renderMarkdown(visibleAssistantText),done:true,citations:(msg.sources||[]).map(source=>window.AetherAIAnswerPresentation.sourceDetails(source)).filter(Boolean),labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});
@@ -3643,7 +3648,7 @@
       const props={labels:window.AetherAIStreamingUI.labels(settings.appLanguage),sources,explainFollowUp:explain,busy:isGenerating,feedback:msg.feedback,
         onCopy:()=>copyText(msg.content||''),onOpen:href=>window.api?.openExternal(href),
         onRetry:question?()=>{if(isGenerating)return;inputEl.value=question;autoResize();updateSendBtn();sendMessage();}:undefined,
-        onFeedback:async vote=>{msg.feedback=msg.feedback===vote?undefined:vote;persist();props.feedback=msg.feedback;window.AetherAIStreamingUI.render(chrome,props);try{const result=await window.api?.memoryFeedback?.({key:currentChatId+':'+position,vote:msg.feedback||null,question,answer:msg.content||''});if(result?.updated){msg.memoryUpdated=true;persist();if(!body.querySelector('.message-memory-updated')){const note=document.createElement('div');note.className='message-memory-updated';note.textContent=t('memoryUpdated');body.insertBefore(note,textEl);}}}catch(error){console.warn('Could not save response preference',error.message);}},
+        onFeedback:async vote=>{msg.feedback=msg.feedback===vote?undefined:vote;persist();props.feedback=msg.feedback;window.AetherAIStreamingUI.render(chrome,props);try{await window.api?.memoryFeedback?.({key:currentChatId+':'+position,vote:msg.feedback||null,question,answer:msg.content||''});}catch(error){console.warn('Could not save response preference',error.message);}},
         onFollowUp:question=>{inputEl.value+=(inputEl.value.trim()?'\n':'')+question;autoResize();updateSendBtn();inputEl.focus({preventScroll:true});}};
       window.AetherAIStreamingUI.render(chrome,props);
     }
@@ -4782,7 +4787,7 @@
       contextFiles:attachments.filter(a=>a.kind==='file').map(a=>({name:a.name,text:String(a.text).slice(0,12000),personalMemory:!!a.personalMemory,model:settings.selectedModel})),
       images: attachments.filter(a => a.kind === "image").map(a => a.dataUrl)
     };
-    if(slash?.name==='goal')chat.goal=slash.argument==='clear'?undefined:slash.argument;
+    if(slash?.name==='goal'){chat.goal=slash.argument==='clear'?undefined:slash.argument;chat.goalElapsedMs=0;}
     chat.messages.push(userMsg);
     if (!chat.title) chat.title = (displayText || "\u0418\u0437\u043e\u0431\u0440\u0430\u0436\u0435\u043d\u0438\u0435").slice(0, 40);
     chat.updatedAt = Date.now();
@@ -4880,7 +4885,7 @@
     updateHomeMode();
     showThinkingMessage("answer", text, shouldUseInternetSmart(text, composerSmartSearch));
 
-    try{const result=await window.api?.memoryRemember?.(displayText);if(result?.updated){userMsg.memoryUpdated=true;persist();}}catch(error){console.warn('Could not update memory',error.message);}
+    try{const result=await window.api?.memoryRemember?.(displayText);if(result?.updated&&generationId===activeGenerationId){userMsg.explicitMemorySaved=true;persist();const label=thinkingEl?.querySelector('.thinking-label');if(label){label.className='thinking-label rewriting-memory';label.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m16 3 5 5-12 12-6 1 1-6Z M13 6l5 5"/></svg><span>'+escapeHtml(t('rewritingMemory'))+'</span>';await new Promise(resolve=>setTimeout(resolve,400));if(generationId===activeGenerationId){label.className='thinking-label working-shimmer';label.textContent=t('working');}}}}catch(error){console.warn('Could not update memory',error.message);}
     if(generationId!==activeGenerationId)return;
 
     const reply = await generateResponse(text, imgs, generationId,value=>updateLiveAnswer(value,generationId));
@@ -4978,9 +4983,15 @@
   // ============================================================
   //  CHATS & GROUPS (sidebar)
   // ============================================================
-  function createNewChat() {
+  const chatDrafts=new Map();
+  function saveComposerDraft(){if(currentChatId)chatDrafts.set(currentChatId,{text:inputEl.value,attachments:[...attachments],command:document.querySelector('.composer-command-icon')?.dataset.command});}
+  function restoreComposerDraft(){const draft=chatDrafts.get(currentChatId);inputEl.dispatchEvent(new Event('composer:cleared'));inputEl.value=draft?(draft.command?'/'+draft.command+' ':'')+draft.text:'';attachments=draft?.attachments?[...draft.attachments]:[];renderAttachments();inputEl.dispatchEvent(new Event('input'));}
+  function createNewChat(options = {}) {
+    const background=options.background===true;
+    if(isGenerating&&!background)return;
+    if(!background){saveComposerDraft();window.AetherAIHome?.close(false);}
     const chat = {
-      id: "c" + Date.now(),
+      id: crypto.randomUUID(),
       groupId: null,
       title: "",
       messages: [],
@@ -4989,7 +5000,9 @@
       updatedAt: Date.now()
     };
     data.chats.unshift(chat);
+    if(background){window.AetherAIChatTabs?.add(chat.id);renderSidebar();persist();return;}
     currentChatId = chat.id;
+    restoreComposerDraft();window.AetherAIChatTabs?.open(chat.id);
     if (welcomeTitle) welcomeTitle.textContent = "";
     renderSidebar();
     renderMessages();
@@ -4999,7 +5012,8 @@
   $("newChatBtn").addEventListener("click", createNewChat);
 
   function deleteChat(id) {
-    data.chats = data.chats.filter(c => c.id !== id);
+    if(isGenerating&&id===currentChatId)return;
+    chatDrafts.delete(id);data.chats = data.chats.filter(c => c.id !== id);
     if (currentChatId === id) {
       currentChatId = data.chats.length ? data.chats[0].id : null;
       renderMessages();
@@ -5019,7 +5033,9 @@
   let editingGroupId = null;
   function openGroupModal(editId = null) {
     editingGroupId = editId;
-    $("groupModalTitle").textContent = editId ? "Переименовать папку" : "Новая папка";
+    $("groupModalTitle").textContent = editId ? t("renameProject") : window.AetherAIInterface.t("newProject");
+    $("groupError").hidden=true;
+    $("saveGroupBtn").textContent=editId?t("renameProject"):t("create");
     $("groupInput").value = editId ? (data.groups.find(g => g.id === editId) || {}).name || "" : "";
     $("groupModal").classList.add("show");
     setTimeout(() => $("groupInput").focus(), 50);
@@ -5030,30 +5046,25 @@
   $("closeGroupBtn").addEventListener("click", closeGroupModal);
   $("groupModal").addEventListener("click", e => { if (e.target === $("groupModal")) closeGroupModal(); });
   $("saveGroupBtn").addEventListener("click", async () => {
-    const name = $("groupInput").value.trim();
-    if (!name) return;
-    if (editingGroupId) {
-      const g = data.groups.find(g => g.id === editingGroupId);
-      if (g) {
-        if (window.api && window.api.renameProjectFolder) {
-          const folder = await window.api.renameProjectFolder(g.folderName || g.name, name);
-          if (folder.ok) g.folderName = folder.folderName;
-          else alert(`${t("renameFolderError")}: ${folder.error || t("unknownError")}`);
-        }
-        g.name = name;
+    const name=$("groupInput").value.trim(),button=$("saveGroupBtn"),error=$("groupError");
+    if(!name||button.disabled)return;
+    error.hidden=true;button.disabled=true;
+    try {
+      if(data.groups.some(g=>g.id!==editingGroupId&&g.name.toLocaleLowerCase()===name.toLocaleLowerCase()))throw Error(window.AetherAIInterface.t('duplicateProject'));
+      if(editingGroupId){
+        const g=data.groups.find(g=>g.id===editingGroupId);if(!g)return;
+        if(window.api?.renameProjectFolder){const folder=await window.api.renameProjectFolder(g.folderName||g.name,name);if(!folder.ok)throw Error(folder.error||t('renameFolderError'));g.folderName=folder.folderName;}
+        g.name=name;
+      }else{
+        let folderName=name;
+        if(window.api?.ensureProjectFolder){const folder=await window.api.ensureProjectFolder(name);if(!folder.ok)throw Error(folder.error||t('createFolderError'));folderName=folder.folderName;}
+        if(data.groups.some(g=>(g.folderName||g.name).toLocaleLowerCase()===folderName.toLocaleLowerCase()))throw Error(window.AetherAIInterface.t('duplicateProject'));
+        const group={id:crypto.randomUUID(),name,folderName,collapsed:false};data.groups.push(group);
+        if(!isGenerating){createNewChat();getCurrentChat().groupId=group.id;}
       }
-    } else {
-      let folderName = name;
-      if (window.api && window.api.ensureProjectFolder) {
-        const folder = await window.api.ensureProjectFolder(name);
-        if (folder.ok) folderName = folder.folderName;
-        else alert(`${t("createFolderError")}: ${folder.error || t("unknownError")}`);
-      }
-      data.groups.push({ id: "g" + Date.now(), name, folderName, collapsed: false });
-    }
-    closeGroupModal();
-    renderSidebar();
-    persist();
+      closeGroupModal();renderSidebar();persist();
+    }catch(e){error.textContent=e.message||t('createFolderError');error.hidden=false;}
+    finally{button.disabled=false;}
   });
   $("groupInput").addEventListener("keydown", e => { if (e.key === "Enter") $("saveGroupBtn").click(); });
 
@@ -5086,6 +5097,8 @@
 
   function renderSidebar() {
     window.AetherAIAccount?.setProjects(data.groups);
+    window.AetherAIChatTabs?.sync(data,currentChatId,{load:loadChat,create:createNewChat,busy:isGenerating});
+    if(window.AetherAIHome){window.AetherAIHome.refresh(data,{item:buildChatItem,rename:openGroupModal,remove:deleteGroup,assign:id=>{const chat=getCurrentChat();if(chat){chat.groupId=id;persist();renderSidebar();}}});return;}
     chatHistoryList.innerHTML = "";
 
     // "New chat" is highlighted only while the current draft has no messages.
@@ -5158,6 +5171,8 @@
     const item = document.createElement("div");
     item.className = "history-item" + (c.id === currentChatId ? " active" : "");
     item.draggable = true;
+    item.tabIndex=0;item.setAttribute('role','button');
+    item.addEventListener('keydown',event=>{if(event.target===item&&['Enter',' '].includes(event.key)){event.preventDefault();loadChat(c.id);}});
 
     const title = document.createElement("span");
     title.className = "history-item-title";
@@ -5203,7 +5218,11 @@
   }
 
   function loadChat(id) {
-    currentChatId = id;
+    if(!data.chats.some(chat=>chat.id===id)||(isGenerating&&id!==currentChatId))return;
+    if(id!==currentChatId)saveComposerDraft();
+    window.AetherAIHome?.close();
+    const changed=currentChatId!==id;currentChatId = id;
+    if(changed)restoreComposerDraft();window.AetherAIChatTabs?.open(id);
     const c = getCurrentChat();
     if (c && c.model && c.model !== settings.selectedModel && availableModels.some(model => model.name === c.model)) {
       // подгружаем модель чата
@@ -5662,8 +5681,12 @@
   // ============================================================
   //  INIT
   // ============================================================
+  document.addEventListener('aetherai:navigation-ready',()=>renderSidebar());
+
   async function init() {
     await loadData();
+    const startDraft=data.chats.find(chat=>!(chat.messages||[]).length&&!chat.title);
+    if(startDraft)loadChat(startDraft.id);else createNewChat();
     if (window.api?.skillsList) renderSkills(await window.api.skillsList());
     if (window.api?.skillsPresets) renderSkillPresets(await window.api.skillsPresets());
     await syncProjectFolders();

@@ -127,10 +127,10 @@ app.whenReady().then(async () => {
   assert.equal(await evaluate("document.querySelector('[data-settings-panel=cloud]').hidden"), true);
   assert.equal(await evaluate("document.querySelector('[data-settings-panel=ollama-cloud]').hidden"), false);
   await evaluate("document.querySelector('#closeSettingsBtn').click();document.querySelector('#userInput').focus();document.querySelector('#modelBtn').click()"); await wait();
-  assert.match(await evaluate("document.querySelector('.model-picker-header').textContent"), /Free test/);
+  assert.match(await evaluate("document.querySelector('.model-select-button[aria-pressed=true]').textContent"), /Free test/);
   assert.equal(await evaluate("document.querySelector('#composerQuotaPercent').textContent"),'50%');
   assert.ok(await evaluate("!!document.querySelector('.model-select-button[aria-pressed=true] .model-row-check')"));
-  assert.equal(await evaluate("document.querySelector('#modelDropdown input,.model-price-filters')"),null);
+  assert.ok(await evaluate("!!document.querySelector('#modelDropdown .model-picker-search')"));assert.equal(await evaluate("document.querySelector('.model-price-filters')"),null);
   assert.ok(await evaluate("document.querySelector('#modelDropdown').getBoundingClientRect().width<=270"));
   await evaluate("[...document.querySelectorAll('.model-select-button')].find(button=>button.textContent.includes('Apodex')).dispatchEvent(new PointerEvent('pointerenter'))");await wait();
   assert.match(await evaluate("document.querySelector('#modelHoverInfo').textContent"), /Input: \$1/);
@@ -158,7 +158,7 @@ app.whenReady().then(async () => {
   assert.equal(settings.selectedModel,'cloud:openrouter/apodex/apodex-1.1');
   await win.webContents.reload();await wait();await evaluate("document.querySelector('#accountClose').click()");
   assert.equal(settings.selectedModel,'cloud:openrouter/apodex/apodex-1.1');
-  assert.match(await evaluate("document.querySelector('.model-picker-header').textContent"), /Apodex/);
+  assert.match(await evaluate("document.querySelector('.model-select-button[aria-pressed=true]').textContent"), /Apodex/);
   assert.equal(await evaluate("document.querySelector('[data-price-filter]')"),null);
   assert.equal(settings.selectedModel,'cloud:openrouter/apodex/apodex-1.1');
   await evaluate("[...document.querySelectorAll('.model-select-button')].find(item=>item.textContent.includes('Free test')).click()");await wait();
@@ -182,7 +182,7 @@ app.whenReady().then(async () => {
   assert.notEqual(settings.appearance.surface,null);
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.main-area')).backgroundColor"),'rgb(18, 18, 18)');
   assert.notEqual(await evaluate("getComputedStyle(document.querySelector('.sidebar')).backgroundColor"),'rgb(23, 23, 23)');
-  assert.equal(await evaluate("getComputedStyle(document.querySelector('#accentColor')).borderRadius"),'12px');
+  assert.equal(await evaluate("getComputedStyle(document.querySelector('#accentColor')).borderRadius"),'5px');
   assert.equal(await evaluate("[...document.querySelectorAll('.background-preview img')].every(image=>image.complete&&image.naturalWidth>0)"),true);
   await evaluate("document.querySelector('#accentColor').value='#91baff';document.querySelector('#accentColor').dispatchEvent(new Event('change'));document.querySelector('[data-background=pixel]').click()");await wait();
   assert.equal(await evaluate("document.body.style.getPropertyValue('--accent')"),'#91baff');

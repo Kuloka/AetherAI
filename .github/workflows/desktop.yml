@@ -78,6 +78,8 @@ jobs:
           npx electron tests/project-commands-smoke.cjs
           npx electron tests/artifacts-smoke.cjs
           npx electron tests/interface-locales-smoke.cjs
+          npx electron tests/design-revision-smoke.cjs
+          npx electron tests/design-surface-audit.cjs
 
       - name: Check notifications and explicit update actions (Linux)
         if: runner.os == 'Linux'

@@ -13,3 +13,5 @@ The executor returns the actual exit code and bounded UTF-8 output (65,536 chara
 Validation: backend tests execute real commands in disposable project folders and cover approval, rejection, exit codes, output limits, cancellation, timeout and path boundaries. Native tests cover model-selected commands, exact /run, unique icons, upward menu placement and widths, baseline alignment, removal of @ context, /browse, /think, persistent and cleared /goal, light/dark themes and narrow windows. Paid model API calls are simulated.
 
 Implementation references: [Node child processes](https://nodejs.org/api/child_process.html), [Electron cancellable message boxes](https://www.electronjs.org/docs/latest/api/dialog#dialogshowmessageboxwindow-options).
+
+The current goal appears as a compact collapsed tier above the composer. Its summary shows a goal excerpt and accumulated request processing time; clicking reveals the full objective. Work time increases while generation is active and is kept with the conversation. Setting a new goal resets its time.
