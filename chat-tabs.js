@@ -19,7 +19,8 @@
     }
     add.disabled=false;add.setAttribute('aria-label',copy('newChat'));add.title=copy('newChat');host.setAttribute('aria-label',copy('recent'));
   }
-  function revealActive(){const tab=elements.get(active);if(!tab)return;const r=tab.getBoundingClientRect(),view=host.getBoundingClientRect();const delta=r.right>view.right?r.right-view.right:r.left<view.left?r.left-view.left:0;if(delta)host.scrollLeft+=delta;}
+  function revealActive(){const tab=elements.get(active);if(!tab)return;const r=tab.getBoundingClientRect(),view=host.getBoundingClientRect();const delta=r.width>view.width?r.left-view.left:r.right>view.right?r.right-view.right:r.left<view.left?r.left-view.left:0;if(delta)host.scrollLeft+=delta;}
+  host.addEventListener('wheel',event=>{if(host.scrollWidth<=host.clientWidth)return;const delta=Math.abs(event.deltaX)>Math.abs(event.deltaY)?event.deltaX:event.deltaY;if(delta){host.scrollLeft+=delta;event.preventDefault();}},{passive:false});
   function open(id){if(!ids.includes(id)){ids.push(id);persist();}active=id;lastActive=id;paint();requestAnimationFrame(()=>{if(active===id)revealActive();});}
   function remove(id){if(generating&&id===active)return;const index=ids.indexOf(id);if(index<0)return;ids.splice(index,1);persist();
     if(id===active){const next=ids[Math.min(index,ids.length-1)];if(next){const home=document.querySelector('.app').classList.contains('home-open');actions?.load(next);if(home)window.AetherAIHome?.open();}else window.AetherAIHome?.open();}

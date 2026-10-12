@@ -58,3 +58,8 @@ User requested fixed blocks with a close button. Removed tab entrance transforms
 ## Repeated selected-tab click correction for 1.24.13
 
 Selecting the current chat no longer rebuilds its messages or transfers focus to the composer. Closing a tab and reopening that same chat from Home still restores the tab. Native checks repeat physical clicks on the only startup tab, compare its rectangle and verify no message mutations; a populated answer retains its DOM on reselection. Publication of 1.24.12 was cancelled to include this correction in 1.24.13.
+
+
+## Full-width tab row for 1.24.14
+
+Following user clarification, tabs use intrinsic width with a 145 pixel minimum. Long titles remain on one line without truncation or flex shrink. Wheel scrolling accesses overflow, and oversized selected tabs reveal their beginning. The native navigation fixture checks a long title and its rendered width. Publication of 1.24.13 was cancelled before this final layout correction.

@@ -810,3 +810,6 @@ body,button,input,textarea,select{font-family:Arial,"Segoe UI",sans-serif}body{l
 @media(prefers-reduced-motion:reduce){.mcp-custom[open] #pluginForm{animation:none}}
 
 .window-navigation .chat-tab-select,.window-navigation .chat-tab-close{transition:none;transform:none}
+
+/* Tabs keep their full title and intrinsic width on a single horizontal line. */
+.chat-tabs{flex-wrap:nowrap}.chat-tab{flex:0 0 auto;width:max-content;min-width:145px;max-width:none}.window-navigation .chat-tab-select{width:auto;flex:1 0 auto;overflow:visible;text-overflow:clip;white-space:nowrap}.chat-tab-title{overflow:visible;text-overflow:clip;white-space:nowrap}
