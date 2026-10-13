@@ -179,7 +179,7 @@
     view.state.textContent = phase === 'checking' ? (labels.checking || 'Checking') : phase === 'writing' ? (labels.writing || 'Writing') : phase === 'done' ? (labels.done || labels.edited || 'Edited') : '';
     view.state.hidden = !phase;
     view.name.textContent = labels.groupFiles?.includes('{count}') ? labels.groupFiles.replace('{count}', entries.size) : entries.size + ' ' + (labels.groupFiles || 'files');
-    view.counts.textContent = known ? '+' + added + ' / -' + removed : knownCount ? '+' + added + ' / -' + removed + ' \u00b7 ' + (labels.partial || 'partial') : ''; 
+    view.counts.textContent = known ? '+' + added + ' / -' + removed : knownCount ? '+' + added + ' / -' + removed + ' \u00b7 ' + (labels.partial || 'partial') : '';
     view.counts.title = labels.groupChanges || 'Changes';
     view.summary.title = labels.expand || 'Show code';
     el.dataset.baselineKnown = String(known);
