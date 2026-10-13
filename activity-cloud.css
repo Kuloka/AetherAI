@@ -1,0 +1,190 @@
+﻿/* A single activity surface: files, specialists and browsing share quiet sections. */
+body {
+  --activity-fill:color-mix(in srgb,var(--bg-surface) 68%,transparent);
+  --activity-edge:color-mix(in srgb,var(--text-primary) 12%,transparent);
+  --activity-shadow:inset 0 1px 0 #ffffff09,0 5px 18px #0000000c;
+  --reading-font:Arial,"Segoe UI",sans-serif;
+}
+body.theme-light {
+  --activity-fill:color-mix(in srgb,var(--bg-surface) 76%,transparent);
+  --activity-edge:color-mix(in srgb,var(--text-primary) 10%,transparent);
+  --activity-shadow:inset 0 1px 0 #ffffffb3,0 4px 18px #17253408;
+}
+.activity-cloud {
+  width:max-content;
+  max-width:100%;
+  margin:10px 0 12px;
+  padding:3px;
+  border:1px solid var(--activity-edge);
+  border-radius:18px;
+  background:var(--activity-fill);
+  box-shadow:var(--activity-shadow);
+  backdrop-filter:blur(20px) saturate(115%);
+  color:var(--text-secondary);
+  font-size:11px;
+  overflow:hidden;
+  animation:activitySurfaceReveal 200ms ease-out;
+}
+.activity-cloud:empty { display:none; }
+.activity-cloud.has-open-section { width:min(100%,680px); }
+.activity-cloud :is(.file-capsule-group,.agent-activity,.activity-browsing) {
+  width:100%;
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+.activity-cloud :is(.file-capsule,.team-row) {
+  max-width:100%;
+  width:100%;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  backdrop-filter:none;
+}
+.activity-cloud :is(.file-capsule-group-summary,.file-capsule-summary,.agent-activity>summary,.team-row>summary,.activity-browsing-summary) {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:30px;
+  padding:5px 9px;
+  border:0;
+  border-radius:12px;
+  background:transparent;
+  box-shadow:none;
+  color:var(--text-secondary);
+  font-size:11px;
+  line-height:20px;
+  list-style:none;
+  cursor:pointer;
+  transition:background-color 200ms ease,color 200ms ease;
+}
+.activity-cloud summary::-webkit-details-marker { display:none; }
+.activity-cloud summary::before { content:none; }
+.activity-cloud summary:hover {
+  color:var(--text-primary);
+  background:color-mix(in srgb,var(--bg-hover) 45%,transparent);
+}
+.activity-cloud summary:focus-visible {
+  outline:1px solid var(--text-secondary);
+  outline-offset:-2px;
+  border-radius:12px;
+}
+.activity-cloud :is(.activity-section-icon,.activity-arrow,.file-capsule-arrow,.file-capsule-group-arrow,.agent-activity>summary>svg,.activity-browsing-summary>svg) {
+  width:14px;
+  height:14px;
+  flex:none;
+  fill:none;
+  stroke:currentColor;
+  stroke-width:1.5;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+.activity-cloud :is(.activity-arrow,.file-capsule-arrow,.file-capsule-group-arrow) {
+  margin-left:auto;
+  transition:transform 200ms ease;
+}
+.activity-cloud .activity-browsing[open]>.activity-browsing-summary .activity-arrow { transform:rotate(90deg); }
+.activity-cloud :is(.file-capsule-state,.file-capsule-group-state,.file-capsule-counts,.file-capsule-group-counts,.agent-count,.agent-row-state,.agent-task-preview,.agent-progress) {
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+  color:var(--text-muted);
+}
+.activity-cloud :is(.file-capsule-group-list,.agent-activity-rows) { padding:2px 0 5px; }
+.activity-cloud :is(.file-capsule-code,.team-row pre) {
+  margin:4px 0;
+  border:0;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  font:11px/1.7 var(--mono);
+}
+.activity-cloud .file-capsule-code { padding:5px 0; }
+.activity-cloud .agent-activity .team-row :is(p,pre,.agent-model) { margin-inline:9px; }
+.activity-cloud .agent-progress { gap:9px;padding:5px 9px; }
+.activity-cloud .activity-browser-sources { display:grid;gap:5px;padding:4px 9px 9px; }
+.activity-cloud .activity-browser-sources a {
+  min-width:0;
+  color:var(--text-secondary);
+  font-size:11px;
+  line-height:1.6;
+  text-decoration:none;
+  overflow-wrap:anywhere;
+}
+.activity-cloud .activity-browser-sources a:hover { color:var(--text-primary);text-decoration:underline;text-underline-offset:3px; }
+.activity-cloud .activity-browser-sources a:focus-visible { outline:1px solid var(--text-secondary);outline-offset:3px; }
+.activity-cloud :is(.file-capsule-group-list,.file-capsule-code,.agent-activity-rows,.activity-browser-sources) { animation:activitySurfaceReveal 200ms ease-out; }
+.thinking-exploring-icon { animation:none; }
+@keyframes activitySurfaceReveal { from{opacity:0}to{opacity:1} }
+
+/* Native disclosure height interpolation, with opacity-only fallback above. */
+@supports (interpolate-size:allow-keywords) {
+  .activity-cloud details { interpolate-size:allow-keywords; }
+  .activity-cloud details::details-content {
+    height:0;
+    opacity:0;
+    overflow:clip;
+    transition:height 200ms ease,opacity 200ms ease,content-visibility 200ms allow-discrete;
+  }
+  .activity-cloud details[open]::details-content { height:auto;opacity:1; }
+  .activity-cloud .file-capsule-group:not([open])>.file-capsule-group-list,
+  .activity-cloud .file-capsule:not([open])>.file-capsule-code { display:block; }
+}
+
+/* Answer rhythm keeps prose readable and metadata close to its response. */
+.message.assistant .message-text { font-family:var(--reading-font);font-size:15px;line-height:1.8;letter-spacing:.15px; }
+.message.assistant .message-text p { margin-bottom:16px; }
+.message.assistant .message-text p:last-child { margin-bottom:0; }
+.message.assistant .message-text li { margin-block:6px;line-height:1.75; }
+.streaming-answer .thinking-inline,.assistant-work-meta {
+  min-height:22px;
+  margin-bottom:4px;
+  gap:4px;
+  font-size:11px;
+  line-height:18px;
+}
+.assistant-work-meta .assistant-work-time,.thinking-inline .thinking-stage-time { font-size:11px; }
+
+/* The existing composer shell owns its glass; the input stays clear. */
+.composer-inner.liquid-glass-surface {
+  background:var(--activity-fill);
+  border-color:var(--activity-edge);
+  box-shadow:var(--activity-shadow);
+  backdrop-filter:blur(22px) saturate(115%);
+  transition:border-color 200ms ease,background-color 200ms ease,box-shadow 200ms ease;
+}
+body.theme-light .composer-inner.liquid-glass-surface { background:var(--activity-fill);border-color:var(--activity-edge);box-shadow:var(--activity-shadow); }
+.composer-inner.liquid-glass-surface:focus-within { border-color:color-mix(in srgb,var(--text-primary) 20%,transparent); }
+.composer-field,.composer-field:focus-within { border:0;box-shadow:none; }
+
+@media(max-width:480px) {
+  .activity-cloud :is(.file-capsule-group-summary,.file-capsule-summary,.agent-activity>summary,.activity-browsing-summary) { gap:6px;padding-inline:7px; }
+  .activity-cloud .file-capsule-group-state { max-width:9em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .activity-cloud,.activity-cloud *, .activity-cloud details::details-content { animation:none!important;transition:none!important; }
+  .composer-inner.liquid-glass-surface { transition:none; }
+}
+.activity-cloud .file-capsule-group-name { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.activity-cloud .file-capsule-group-state { min-width:0;flex-shrink:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap; }
+.activity-cloud :is(.file-capsule-group-arrow,.file-capsule-arrow) { margin-left:0; }
+
+.activity-cloud .streaming-file-status{margin:0;padding:0;width:100%;max-width:100%}
+.activity-cloud .thinking-exploring-icon svg{width:14px;height:14px;stroke-width:1.5}
+.activity-cloud .activity-browser-count{margin-left:auto;font-variant-numeric:tabular-nums;color:var(--text-muted)}
+.activity-cloud .activity-browser-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.activity-cloud .activity-browsing-summary>.activity-arrow{margin-left:0}
+
+/* Headers stay compact; reading code, rather than opening its list, expands the surface. */
+.activity-cloud,.activity-cloud.has-open-section{width:max-content;max-width:min(100%,420px)}
+.activity-cloud.has-code-open{width:min(100%,680px);max-width:100%}
+@supports(interpolate-size:allow-keywords){.activity-cloud details:not([open])::details-content{contain:inline-size}}
+
+/* A single group status; file rows show language, filename and changes. */
+.activity-cloud .file-capsule:is([data-phase=writing],[data-phase=checking],[data-phase=done]) .file-capsule-state{display:none}

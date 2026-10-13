@@ -13,3 +13,7 @@ Request token usage appears beside the Working/Done label on a shared baseline. 
 Provider references: [OpenRouter usage accounting](https://openrouter.ai/docs/cookbook/administration/usage-accounting), [Groq API](https://console.groq.com/docs/api-reference), [Ollama chat metadata](https://docs.ollama.com/api/chat).
 
 Project generation now previews partial JSON manifests and open Markdown file fences as code while tokens arrive. The current file has a localized Writing code label. Preview content is read-only; completed artifacts still pass the existing whole-manifest and save checks. Raw manifest scaffolding is not shown as the final reply after truncation.
+
+File activity is now a collapsed rounded capsule. The disclosure shows real code with line numbers and, when a baseline is known, added/removed lines. Baselines are read before writing and retained locally with the completed activity. Existing-file partial output stays neutral until its content is complete; unsaved and stopped previews retain honest labels.
+
+Files now share a collapsed summary with received file count and trusted change totals. Phases follow actual generation, file-save validation and successful persistence; they do not claim test execution. Actual specialist rows show their task, state and successful completed/total progress. Unknown file baselines and interrupted/unsaved files are never reported as complete changes.

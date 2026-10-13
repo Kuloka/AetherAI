@@ -1,0 +1,8 @@
+/* Compact shared menu rhythm; application tabs retain their existing geometry. */
+:is(.app-menu,.app-submenu,.model-dropdown,.think-dropdown,.access-dropdown,#languagePackList,#providerOptions,.worker-picker-list,.profile-menu,.model-reasoning-options){padding:6px!important;border-radius:8px!important}
+:is(.app-menu,.app-submenu,.model-dropdown,.think-dropdown,.access-dropdown,#languagePackList,#providerOptions,.worker-picker-list,.profile-menu,.model-reasoning-options) button,
+:is(.think-dropdown .think-item,.access-dropdown .access-item){border-radius:4px!important;font-size:12px;line-height:18px;padding:6px 8px!important;min-height:32px;box-shadow:none}
+.app-menu-group>button{height:32px}
+:is(.app-menu-group>button svg,#languageToggle .language-chevron,#providerPickerToggle>svg,.worker-picker-toggle>svg){width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:is(.app-menu,.app-submenu,.model-dropdown,.think-dropdown,.access-dropdown,#languagePackList,#providerOptions,.worker-picker-list,.profile-menu,.model-reasoning-options) button:focus-visible{outline:1px solid var(--text-secondary);outline-offset:-1px}
+#settingsModal .settings-nav button{border-radius:4px!important;padding:6px 8px;line-height:18px}

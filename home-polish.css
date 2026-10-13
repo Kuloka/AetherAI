@@ -1,0 +1,20 @@
+/* Home keeps aligned rows and reserves action space before hover. */
+.home-library .home-sessions{min-width:0}
+.home-library .chat-history-list{gap:3px}
+.home-library .history-item{display:grid;grid-template-columns:14px minmax(0,1fr) minmax(0,.48fr) 64px 22px 22px;gap:10px;align-items:center;min-width:0;height:36px;padding:6px 8px;border:0;background:transparent}
+.home-library .history-item.active{background:transparent}
+.home-library .history-item:hover{background:var(--bg-hover)}
+.home-library .history-item-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;line-height:20px}
+.home-library .home-chat-project{display:block;min-width:0;margin:0;font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.home-library .home-chat-date{font-size:11px;color:var(--text-muted);white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.home-library .home-session-icon,.home-library .history-item-del svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.45;stroke-linecap:round;stroke-linejoin:round}
+.home-library .home-session-icon{color:var(--text-muted)}
+.home-library .history-item-del,.home-library .history-item-del:first-of-type{display:flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0;padding:4px;opacity:0;pointer-events:none;transition:opacity var(--motion-fast),color var(--motion-fast)}
+.home-library .history-item:hover .history-item-del,.home-library .history-item:focus-within .history-item-del{opacity:.75;pointer-events:auto}
+.home-library .history-item-del:hover,.home-library .history-item-del:focus-visible{opacity:1;color:var(--text-primary)}
+.home-library .home-project-name[aria-pressed=true]{background:transparent;color:var(--text-primary);font-weight:600}
+.home-library .home-project-name:hover{background:var(--bg-hover)}
+.home-library .home-project-action:focus-visible,.home-library .history-item-del:focus-visible,.home-library .home-project-name:focus-visible{outline:1px solid var(--text-secondary);outline-offset:2px}
+@media(max-width:900px){.home-library .history-item{grid-template-columns:14px minmax(0,1fr) minmax(0,.4fr) 58px 22px 22px;gap:7px}}
+@media(max-width:720px){.home-library .history-item{grid-template-columns:14px minmax(0,1fr) 52px 22px 22px;gap:5px}.home-library .home-chat-project{display:none}.home-library .home-chat-date{font-size:10px}}
+@media(prefers-reduced-motion:reduce){.home-library .history-item-del{transition:none}}

@@ -263,6 +263,51 @@
   let activeCodeActivityEl = null;
   let lastCodeActivity = null;
   let savedCodeActivities=[];
+  let pendingProjectFiles=[];
+  let codeBaselines=new Map();
+  let browsingGeneration=0;
+  const activityFileIcon='<svg class="activity-section-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7Z M14 3v5h4 M9 12h6 M9 16h6"/></svg>';
+  function activityCloud(body){
+    let cloud=body.querySelector(':scope>.activity-cloud');
+    if(!cloud){cloud=document.createElement('div');cloud.className='activity-cloud';cloud.addEventListener('toggle',()=>{const open=[...cloud.querySelectorAll('details[open]')].filter(detail=>!detail.parentElement.closest('details:not([open])'));cloud.classList.toggle('has-open-section',open.length>0);cloud.classList.toggle('has-code-open',open.some(detail=>detail.matches('.file-capsule,.team-row')));},true);}
+    const text=body.querySelector(':scope>.message-text');if(text){if(cloud.nextElementSibling!==text)body.insertBefore(cloud,text);}else if(cloud.parentElement!==body)body.append(cloud);
+    return cloud;
+  }
+  function addFileSectionIcon(group){
+    const summary=group.querySelector(':scope>summary');if(summary&&!summary.querySelector('.activity-section-icon'))summary.insertAdjacentHTML('afterbegin',activityFileIcon);
+  }
+  function browsingActivity(body,{active=false,domain=''}={}){
+    if(!active){const cloud=body.querySelector(':scope>.activity-cloud');cloud?.querySelector(':scope>.activity-browsing')?.remove();if(cloud&&!cloud.children.length)cloud.remove();return;}
+    const cloud=activityCloud(body);let section=cloud.querySelector(':scope>.activity-browsing');
+    if(!section){section=document.createElement('div');section.className='activity-browsing is-exploring';section.innerHTML='<div class="activity-browsing-summary"><span class="thinking-exploring-icon" aria-hidden="true">'+window.AetherAIComposerCommands.icon('browse')+'</span><span class="activity-browser-label"></span></div>';cloud.append(section);}
+    const cleanDomain=String(domain||'').replace(/^www\./,'');
+    section.querySelector('.activity-browser-label').textContent=t('exploring')+(cleanDomain?' '+cleanDomain:'');
+  }
+  function capsuleLabels(){const t=window.AetherAIInterface.t;return {writing:t('codeEditing'),checking:t('codeChecking'),done:t('codeDone'),edited:t('codeEdited'),lines:t('codeLines'),expand:t('expandCode'),groupFiles:t('groupFiles'),groupChanges:t('groupChanges'),partial:t('partial')};}
+  function codeBaseline(file){const name=(file.path||'')+file.file;if(codeBaselines.has(name))return codeBaselines.get(name);const group=data.groups.find(group=>group.id===getCurrentChat()?.groupId),folder=group?.folderName||group?.name;const promise=(async()=>{if(!folder)return {known:true,before:''};if(window.api?.projectFileExists){const exists=await window.api.projectFileExists(folder,name);if(!exists?.ok)return {known:false};if(exists.exists===false)return {known:true,before:''};}if(!window.api?.projectRead)return {known:false};const value=await window.api.projectRead(folder+'/'+name);return value?.ok&&typeof value.content==='string'?{known:true,before:value.content}:{known:false};})().catch(()=>({known:false}));codeBaselines.set(name,promise);return promise;}
+  function savedFileOptions(file){
+    const labels=capsuleLabels();
+    if(file.unsaved)labels.edited=window.AetherAIInterface.t(file.stopped?'agentStopped':'codeNotSaved');
+    return {compact:true,phase:file.unsaved?(file.stopped?'stopped':'unsaved'):'done',writing:false,before:file.beforeContent,baselineKnown:file.baselineKnown===true&&(!file.unsaved||file.beforeContent===''||file.complete===true),labels};
+  }
+  function liveFileOptions(file){
+    const capsule=liveAnswer?.fileCapsules?.get((file.path||'')+file.file),baseline=capsule?.baseline||{known:false};
+    return {compact:true,phase:capsule?.phase||'writing',before:baseline.before,baselineKnown:baseline.known&&(baseline.before===''||file.complete===true),labels:capsuleLabels()};
+  }
+  function refreshLiveFiles(files){
+    if(!liveAnswer?.fileGroup)return;
+    const current=files||[...liveAnswer.fileCapsules.values()].map(capsule=>capsule.currentFile);
+    window.AetherAIFileCapsule.updateGroup(liveAnswer.fileGroup,current,{labels:capsuleLabels(),fileOptions:liveFileOptions});
+    liveAnswer.fileCapsules=window.AetherAIFileCapsule.getCapsules(liveAnswer.fileGroup);
+  }
+  function setLiveFilePhase(file,phase){
+    const capsule=liveAnswer?.fileCapsules?.get((file.path||'')+file.file);if(!capsule)return;
+    capsule.phase=phase;capsule.currentFile={...file,complete:true};
+    if(file.baselineKnown!==undefined)capsule.baseline={known:file.baselineKnown,before:file.beforeContent};
+    refreshLiveFiles();
+  }
+  function streamedFilePreviews(){return [...(liveAnswer?.fileCapsules?.values()||[])].map(capsule=>({...capsule.currentFile,baselineKnown:capsule.baseline?.known===true,beforeContent:capsule.baseline?.before,unsaved:capsule.phase!=='done'}));}
+
   let commandResults=[];
   let commandLiveHost=null;
   let liveCommandResults=new Map();
@@ -2124,22 +2169,39 @@
     }));
   }
 
-  function renderTeam(rows) {
-    teamRows = rows;
-    const panel = $("teamPanel");
-    const workers = rows.filter(row => row.id.startsWith("worker-"));
-    panel.hidden = !workers.length;
-    if (thinkingEl && workers.length) thinkingEl.querySelector(".message-body").appendChild(panel);
-    const container = $("teamRows");
-    const seen = new Set([...container.querySelectorAll("details")].map(el => el.dataset.agentId));
-    const expanded = new Set([...container.querySelectorAll("details[open]")].map(el => el.dataset.agentId));
-    const ru = settings.appLanguage === "ru";
-    const labels = ru ? { queued: "В очереди", working: "Выполняется", done: "Готово", error: "Ошибка", stopped: "Остановлен" } : { queued: "Queued", working: "Working", done: "Done", error: "Error", stopped: "Stopped" };
-    $("teamHeading").textContent = workers.some(row => ["working", "queued"].includes(row.status)) ? (ru ? "Работают сабагенты" : "Subagents working") : (ru ? "Работа сабагентов" : "Subagents finished");
-    container.innerHTML = workers.map(row => `<details class="team-row ${row.status}" data-agent-id="${escapeHtml(row.id)}" ${expanded.has(row.id) || !seen.has(row.id) ? "open" : ""}>
-      <summary><span>${escapeHtml(row.title)}</span><span>${labels[row.status]} · ${Math.round((row.elapsed || 0) / 1000)}s</span></summary>
-      <div class="agent-model">${escapeHtml(row.model)}</div><p>${escapeHtml(row.task || "")}</p><pre>${escapeHtml(row.output || "")}</pre></details>`).join("");
+  const agentIcon='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5ZM3 12l9 5 9-5M3 16l9 5 9-5"/></svg>';
+  const activityArrow='<svg class="activity-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>';
+  function agentStatus(status){return window.AetherAIInterface.t(({queued:'agentQueued',working:'working',done:'done',error:'agentFailed',stopped:'agentStopped'})[status]||'agentQueued');}
+  function updateAgentPanel(panel,rows){
+    panel.classList.add('agent-activity');
+    let summary=panel.querySelector(':scope>summary');if(!summary){summary=document.createElement('summary');panel.prepend(summary);}
+    const t=window.AetherAIInterface.t,active=rows.filter(row=>row.status==='working').length,done=rows.filter(row=>row.status==='done').length;
+    const heading=active?t('agentsWorking').replace('{count}',active):t('agentActivity');
+    summary.innerHTML=agentIcon+'<span>'+escapeHtml(heading)+'</span><span class="agent-count">'+(active?active+'/'+rows.length:rows.length)+'</span>'+activityArrow;
+    panel.classList.toggle('agents-running',active>0);
+    let progress=panel.querySelector(':scope>.agent-progress');
+    if(!progress){progress=document.createElement('div');progress.className='agent-progress';progress.innerHTML='<span class="agent-progress-label"></span><span class="agent-progress-track" role="progressbar"><span class="agent-progress-fill"></span></span>';panel.append(progress);}
+    const progressLabel=t('agentsCompleted').replace('{done}',done).replace('{total}',rows.length);
+    progress.querySelector('.agent-progress-label').textContent=progressLabel;
+    const track=progress.querySelector('.agent-progress-track');track.setAttribute('aria-label',t('agentActivity'));track.setAttribute('aria-valuemin','0');track.setAttribute('aria-valuemax',String(Math.max(1,rows.length)));track.setAttribute('aria-valuenow',String(done));track.setAttribute('aria-valuetext',progressLabel);
+    progress.querySelector('.agent-progress-fill').style.width=(rows.length?done/rows.length*100:0)+'%';
+    let list=panel.querySelector(':scope>.agent-activity-rows');if(!list){list=document.createElement('div');list.className='agent-activity-rows';panel.append(list);}
+    const seen=new Set();
+    for(const row of rows){
+      seen.add(row.id);let item=[...list.children].find(item=>item.dataset.agentId===row.id);
+      if(!item){item=document.createElement('details');item.className='team-row';item.dataset.agentId=row.id;item.innerHTML='<summary><span class="agent-row-heading"><span class="agent-title"></span><span class="agent-task-preview"></span></span><span class="agent-row-state"></span>'+activityArrow+'</summary><div class="agent-model"></div><p></p><pre></pre>';list.append(item);}
+      item.dataset.status=row.status;item.querySelector('.agent-title').textContent=row.title||'';
+      item.querySelector('.agent-task-preview').textContent=row.task||'';item.querySelector('.agent-task-preview').title=row.task||'';
+      item.querySelector('.agent-row-state').textContent=agentStatus(row.status)+' \u00b7 '+formatDuration(row.elapsed);
+      item.querySelector('.agent-model').textContent=availableModels.find(model=>model.name===row.model)?.cloudName||row.model||'';item.querySelector('p').textContent=row.task||'';
+      const pre=item.querySelector('pre'),follow=pre.scrollHeight-pre.scrollTop-pre.clientHeight<40;
+      if(pre.textContent!==(row.output||'')){pre.textContent=row.output||'';if(follow)pre.scrollTop=pre.scrollHeight;}
+    }
+    for(const item of [...list.children])if(!seen.has(item.dataset.agentId))item.remove();
   }
+
+  function parkTeamPanel(){const panel=$('teamPanel');if(panel){const cloud=panel.closest('.activity-cloud');document.querySelector('.main-area').prepend(panel);panel.hidden=true;if(cloud&&!cloud.children.length)cloud.remove();}}
+  function renderTeam(rows){teamRows=rows;const panel=$('teamPanel'),workers=rows.filter(row=>row.id.startsWith('worker-'));panel.hidden=!workers.length;updateAgentPanel(panel,workers);if(workers.length){const host=liveAnswer?.root.isConnected?liveAnswer.root.querySelector('.message-body'):thinkingEl?.isConnected?thinkingEl.querySelector('.message-body'):null;if(host){const cloud=activityCloud(host);if(panel.parentElement!==cloud)cloud.append(panel);}else panel.hidden=true;}}
 
   function localProgress(progress) {
     const ru = settings.appLanguage === "ru";
@@ -2674,12 +2736,13 @@
     if (status) imageGenerationStage = status;
     const card = thinkingEl.querySelector(".image-generation-card");
     if (!card) return;
+    const follow=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
     card.style.setProperty("--image-generation-progress", `${imageGenerationProgress}%`);
     const text = card.querySelector(".image-generation-status");
     const percent = card.querySelector(".image-generation-percent");
     if (text && imageGenerationStage) text.textContent = imageGenerationStage;
     if (percent) percent.textContent = `${imageGenerationProgress}%`;
-    chatContainer.scrollTop = chatContainer.scrollHeight;
+    if(follow)chatContainer.scrollTop = chatContainer.scrollHeight;
   }
 
   function startImageGenerationAnimation() {
@@ -2727,34 +2790,19 @@
       const reasoning = thinkingEl?.querySelector(".thinking-reasoning");
       const textEl = thinkingEl?.querySelector(".thinking-reasoning-text");
       if (!reasoning || !textEl) return;
+      const follow=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
       reasoning.classList.add("is-visible");
       textEl.textContent = thinkingReasoningText.trimStart();
-      chatContainer.scrollTop = chatContainer.scrollHeight;
+      if(follow)chatContainer.scrollTop = chatContainer.scrollHeight;
     });
   }
 
-  function setThinkingSearchingWeb(domain = "") {
-    if (!thinkingEl) return;
-    const label = thinkingEl.querySelector(".thinking-label");
-    if (!label) return;
-    const cleanDomain = String(domain || "").replace(/^www\./, "");
-    const labelText = cleanDomain ? `${t("exploring")} ${cleanDomain}` : t("exploring");
-    label.className = "thinking-label thinking-searching-web";
-    label.innerHTML = '<span class="thinking-exploring-icon" aria-hidden="true">'+window.AetherAIComposerCommands.icon('browse')+'</span><span>'+escapeHtml(labelText)+'</span><span class="thinking-search-dots" aria-hidden="true"><i></i><i></i><i></i></span>';
-    label.onclick=null;label.onkeydown=null;label.removeAttribute('role');label.removeAttribute('tabindex');label.removeAttribute('title');
-    if (cleanDomain) {
-      label.title = `Prefer ${cleanDomain} for web search`;
-      label.setAttribute("role", "button");
-      label.tabIndex = 0;
-      const prefer = () => rememberPreferredWebSource(cleanDomain);
-      label.onclick = prefer;
-      label.onkeydown = event => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          prefer();
-        }
-      };
-    }
+  function setThinkingSearchingWeb(domain = '') {
+    if(!thinkingEl)return;
+    browsingGeneration=activeGenerationId;
+    const label=thinkingEl.querySelector('.thinking-label');
+    if(label){label.className='thinking-label working-shimmer';label.textContent=t('working');label.onclick=null;label.onkeydown=null;label.removeAttribute('role');label.removeAttribute('tabindex');}
+    browsingActivity(thinkingEl.querySelector('.message-body'),{active:true,domain});
   }
 
   function formatDuration(milliseconds) {
@@ -2906,14 +2954,15 @@
     rememberPreferredWebSourcesFromText(query);
     setNeuralProgressStep(0);
     const removeProgressListener = window.api.onInternetSearchProgress?.(progress => {
-      if (progress?.domain) setThinkingExploring(progress.domain);
+      if (generationId===activeGenerationId&&progress?.domain) setThinkingExploring(progress.domain);
     });
     let result;
     try {
       result = await window.api.internetSearch(query, getPreferredWebSources());
-    } finally {
+    } catch(error){if(generationId===activeGenerationId&&thinkingEl)browsingActivity(thinkingEl.querySelector('.message-body'),{failed:true});throw error;} finally {
       removeProgressListener?.();
     }
+    if(generationId===activeGenerationId&&thinkingEl)browsingActivity(thinkingEl.querySelector('.message-body'),{sources:result?.ok&&Array.isArray(result.results)?result.results:[],failed:!result?.ok});
     if (!result?.ok || !Array.isArray(result.results) || result.results.length === 0) return "";
     if(generationId===activeGenerationId)answerSources.set(generationId,result.results.slice(0,5).map(item=>({title:String(item.title||''),url:String(item.url||'')})));
     const lines = result.results.slice(0, 5).map((item, index) => {
@@ -2957,8 +3006,7 @@
     thinkingRenderFrame = 0;
     thinkingReasoningText = "";
     if (thinkingEl) {
-      const panel = $("teamPanel");
-      if (panel && thinkingEl.contains(panel)) { document.querySelector(".main-area").prepend(panel); panel.hidden = true; }
+      const panel=$('teamPanel');if(panel&&thinkingEl.contains(panel))parkTeamPanel();
       thinkingEl.remove();
       thinkingEl = null;
     }
@@ -3181,7 +3229,8 @@
       const existing = data.groups.find(g => g.id === chat.groupId);
       return existing ? existing.folderName || existing.name : null;
     }
-    const groupName = "AetherAIProject-"+chat.id.slice(-6);
+    const prompt=chat.messages.find(message=>message.role==='user')?.content||chat.title||'';
+    const groupName=window.AetherAIProjectNaming.name({prompt,files:pendingProjectFiles,existingNames:data.groups.map(group=>group.folderName||group.name),language:settings.appLanguage});
     let folderName = groupName;
     if (window.api && window.api.ensureProjectFolder) {
       const folder = await window.api.ensureProjectFolder(groupName);
@@ -3199,17 +3248,19 @@
   }
 
   async function writeLatestCodeActivity(signal) {
+    const activity=lastCodeActivity;
     signal?.throwIfAborted();
-    if (!lastCodeActivity || !lastCodeActivity.code || !window.api || !window.api.writeProjectFile) return false;
+    if (!activity || !activity.code || !window.api || !window.api.writeProjectFile) return false;
     if(settings.accessMode==='plan'){addProgressItem('Plan mode: no files saved');return false;}
     const folderName = currentCodeProjectFolderName || await ensureCodeProjectForCurrentChat();
     if (!folderName) return;
-    const filePath = `${lastCodeActivity.path || ""}${lastCodeActivity.file || "main.txt"}`;
+    const filePath = `${activity.path || ""}${activity.file || "main.txt"}`;
     if (settings.accessMode === "plan") {
       addProgressItem(`Plan mode: prepared ${filePath}, no file edited`);
-      upsertCodingPreview(Object.assign({}, lastCodeActivity, { state: "editing" }), `Plan only: ${filePath}`);
+      upsertCodingPreview(Object.assign({}, activity, { state: "editing" }), `Plan only: ${filePath}`);
       return;
     }
+    const baseline=await codeBaseline(activity);signal?.throwIfAborted();activity.baselineKnown=baseline.known;if(baseline.known)activity.beforeContent=baseline.before;
     let fileAlreadyExists = false;
     if (window.api.projectFileExists) {
       const info = await window.api.projectFileExists(folderName, filePath);
@@ -3222,23 +3273,23 @@
       signal?.throwIfAborted();
       if (decision === "deny") {
         addProgressItem(`Denied edit ${filePath}`, "denied");
-        upsertCodingPreview(Object.assign({}, lastCodeActivity, { state: "editing" }), `Denied: ${filePath}`);
+        upsertCodingPreview(Object.assign({}, activity, { state: "editing" }), `Denied: ${filePath}`);
         return;
       }
       if (decision === "chat") acceptedChangeChatId = currentChatId;
     }
     const progressId = addProgressItem(`${fileAlreadyExists ? "Editing" : "Creating"} ${filePath}`, "pending");
     signal?.throwIfAborted();
-    const res = await window.api.writeProjectFile(folderName, filePath, lastCodeActivity.code);
+    const res = await window.api.writeProjectFile(folderName, filePath, activity.code);
     if (res && res.ok) {
       updateProgressItem(progressId, "done", `${res.existed ? "Edited" : "Created"} ${filePath}`);
-      upsertCodingPreview(Object.assign({}, lastCodeActivity, { state: "edited" }), `${res.existed ? "Edited" : "Created"} ${filePath}`);
-      await maybeInstallPythonPackages(lastCodeActivity, folderName);
-      await maybeInstallNodePackages(lastCodeActivity, folderName);
+      upsertCodingPreview(Object.assign({}, activity, { state: "edited" }), `${res.existed ? "Edited" : "Created"} ${filePath}`);
+      await maybeInstallPythonPackages(activity, folderName);
+      await maybeInstallNodePackages(activity, folderName);
       return true;
     } else {
       updateProgressItem(progressId, "denied", `Failed ${filePath}`);
-      upsertCodingPreview(Object.assign({}, lastCodeActivity, { state: "editing" }), `Failed: ${filePath}`);
+      upsertCodingPreview(Object.assign({}, activity, { state: "editing" }), `Failed: ${filePath}`);
       return false;
     }
   }
@@ -3533,12 +3584,7 @@
     const body = document.createElement("div");
     body.className = "message-body";
 
-    if (role === "assistant" && msg.workMeta?.agents?.length) {
-      const trace = document.createElement("details");
-      trace.className = "team-panel agent-history";
-      trace.innerHTML = `<summary>${settings.appLanguage === "ru" ? "Работа сабагентов" : "Subagents finished"}</summary>` + msg.workMeta.agents.map(row => `<details class="team-row ${escapeHtml(row.status)}"><summary>${escapeHtml(row.title)} · ${formatDuration(row.elapsed)}</summary><p>${escapeHtml(row.task)}</p><pre>${escapeHtml(row.output)}</pre></details>`).join("");
-      body.appendChild(trace);
-    }
+    if(role==='assistant'&&msg.workMeta?.agents?.length){const trace=document.createElement('details');trace.className='team-panel agent-history';updateAgentPanel(trace,msg.workMeta.agents);activityCloud(body).append(trace);}
 
     if (role === "assistant" && msg.workMeta) {
       const workMeta = document.createElement("div");
@@ -3559,7 +3605,7 @@
     const textEl = document.createElement("div");
     textEl.className = "message-text";
     const legacyImagePrompt=role==='assistant'&&msg.images?.length&&/^\*\*(?:Prompt|Запрос)\*\*:/i.test(msg.content||'');
-    const visibleAssistantText = role==='assistant'&&(msg.imageGeneration||legacyImagePrompt)?'':msg.codeActivity&&msg.filesComplete!==false ? stripCodeBlocks(msg.content || "") : (msg.content || "");
+    const visibleAssistantText = role==='assistant'&&(msg.imageGeneration||legacyImagePrompt)?'':(msg.codeActivity||msg.filePreviews?.length) ? stripCodeBlocks(msg.content || "") : (msg.content || "");
     if(role==='assistant')window.AetherAIStreamingUI.render(textEl,{html:renderMarkdown(visibleAssistantText),done:true,citations:(msg.sources||[]).map(source=>window.AetherAIAnswerPresentation.sourceDetails(source)).filter(Boolean),labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});
     else textEl.innerHTML=escapeHtml(msg.content);
     if (role === "assistant" && !visibleAssistantText.trim()) textEl.style.display = "none";
@@ -3580,23 +3626,7 @@
     const history=getCurrentChat()?.messages||[],position=history.indexOf(msg);
     const question=position>=0?[...history.slice(0,position)].reverse().find(entry=>entry.role==='user')?.content||'':'';
     const explain=role==='assistant'&&presentation.shouldExplain({question,answer:visibleAssistantText,interrupted:msg.interrupted,images:msg.images?.length||msg.imageGeneration});
-    if (role === "assistant" && msg.codeActivity) {
-      const activityWrap = document.createElement("div");
-      activityWrap.className = "code-activity-wrap";
-      const finalActivity = Object.assign({}, msg.codeActivity, { state: msg.codeActivity.state || "edited" });
-      activityWrap.innerHTML = renderCodeActivity(finalActivity);
-      activityWrap.addEventListener("click", () => openPanelFile(finalActivity));
-      activityWrap.setAttribute("role", "button");
-      activityWrap.tabIndex = 0;
-      activityWrap.addEventListener("keydown", e => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          openPanelFile(finalActivity);
-        }
-      });
-      body.appendChild(activityWrap);
-      for(const item of (msg.codeActivities||[]).slice(0,-1)){const card=document.createElement('div');card.className='code-activity-wrap';card.innerHTML=renderCodeActivity(item);card.tabIndex=0;card.setAttribute('role','button');card.onclick=()=>openPanelFile(item);card.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();openPanelFile(item);}};body.insertBefore(card,activityWrap);}
-    }
+    if(role==='assistant'){const files=msg.codeActivities?.length?msg.codeActivities:msg.codeActivity?[msg.codeActivity]:[];const allFiles=[...files,...(msg.filePreviews||[])];if(allFiles.length){const group=window.AetherAIFileCapsule.createGroup(allFiles,{labels:capsuleLabels(),fileOptions:savedFileOptions});addFileSectionIcon(group);activityCloud(body).prepend(group);}}
 
     // вложения (картинки/файлы пользователя)
     if (role === "user" && msg.images && msg.images.length) {
@@ -3644,11 +3674,13 @@
       window.AetherAIStreamingUI.render(chrome,props);
     }
 
+    if(body.querySelector(':scope>.activity-cloud'))activityCloud(body);
     m.appendChild(body);
     return m;
   }
 
   function renderMessages() {
+    const panel=$('teamPanel');if(panel&&messagesEl.contains(panel))parkTeamPanel();
     messagesEl.innerHTML = "";
     const chat = getCurrentChat();
     if (!chat || chat.messages.length === 0) {
@@ -3955,7 +3987,8 @@
       setNeuralProgressStep(2);
 
       if (activities.length) {
-        for(const activity of activities){requestController.signal.throwIfAborted();lastCodeActivity=activity;const saved=await writeLatestCodeActivity(requestController.signal);if(saved)savedCodeActivities.push({...activity,state:'edited'});}
+        pendingProjectFiles=activities.map(file=>({...file,complete:true}));
+        for(const activity of activities){requestController.signal.throwIfAborted();lastCodeActivity=activity;setLiveFilePhase(activity,'checking');const saved=await writeLatestCodeActivity(requestController.signal);if(saved){savedCodeActivities.push({...activity,state:'edited'});setLiveFilePhase(activity,'done');}}
         lastCodeActivity=savedCodeActivities.at(-1)||null;
         if(savedCodeActivities.length===activities.length)fullText+='\n\n'+(settings.appLanguage==='ru'?`Сохранено файлов: ${savedCodeActivities.length}.`:`Saved ${savedCodeActivities.length} files.`);
         else fullText+='\n\n'+(settings.appLanguage==='ru'?'Не все файлы сохранены. Проверь режим доступа и журнал действий.':'Some files were not saved. Check access mode and the activity log.');
@@ -4723,10 +4756,11 @@
   }
 
   let liveAnswer=null;
-  function stopLiveAnswer(){if(!liveAnswer)return '';const text=liveAnswer.writer.stop();liveAnswer.root.remove();liveAnswer=null;return text;}
+  function stopLiveAnswer(){if(!liveAnswer)return '';const text=liveAnswer.writer.stop();if(liveAnswer.root.contains($('teamPanel')))parkTeamPanel();liveAnswer.root.remove();liveAnswer=null;return text;}
   function finishLiveAnswer(message){
     if(!liveAnswer||liveAnswer.chatId!==currentChatId)return false;
     const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
+    if(liveAnswer.root.contains($('teamPanel')))parkTeamPanel();
     liveAnswer.writer.finish();const previous=liveAnswer.root,finished=createMessageElement(message);
     finished.classList.add('answer-settled');previous.replaceWith(finished);liveAnswer=null;
     if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;return true;
@@ -4735,10 +4769,29 @@
     if(generationId!==activeGenerationId)return;
     const visible=window.AetherAIStreaming.visibleText(value);if(!visible.trim())return;
     if(!liveAnswer){const message={role:'assistant',content:'',memoryUpdated:getCurrentChat()?.messages.at(-1)?.memoryUpdated},root=createMessageElement(message),body=root.querySelector('.message-body'),text=root.querySelector('.message-text');text.style.display='';root.classList.add('streaming-answer');root.dataset.generation=String(generationId);root.setAttribute('aria-busy','true');root.querySelector('.stream-answer-controls')?.remove();
-      if(thinkingEl){const status=thinkingEl.querySelector('.thinking-inline');if(status)body.prepend(status);thinkingEl.before(root);thinkingEl.hidden=true;}else messagesEl.append(root);
-      const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;window.AetherAIStreamingUI.render(text,{html:renderMarkdown(content),done:false,labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};
+      if(thinkingEl){const status=thinkingEl.querySelector('.thinking-inline');if(status)body.prepend(status);const cloud=thinkingEl.querySelector('.activity-cloud');if(cloud)body.insertBefore(cloud,text);thinkingEl.before(root);thinkingEl.hidden=true;}else messagesEl.append(root);
+      const writer=window.AetherAIStreaming.create(content=>{if(currentChatId!==liveAnswer?.chatId)return;const nearBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;if(!liveAnswer.fileStatus)window.AetherAIStreamingUI.render(text,{html:renderMarkdown(content),done:false,labels:window.AetherAIStreamingUI.labels(settings.appLanguage)});if(nearBottom)chatContainer.scrollTop=chatContainer.scrollHeight;},{schedule:requestAnimationFrame,cancel:cancelAnimationFrame,reduced:()=>matchMedia('(prefers-reduced-motion: reduce)').matches||document.hidden});liveAnswer={root,writer,message,chatId:currentChatId};if(teamRows.some(row=>row.id.startsWith('worker-')))renderTeam(teamRows);
     }
-    if(artifact?.files?.length){if(!liveAnswer.fileStatus){liveAnswer.fileStatus=document.createElement('div');liveAnswer.fileStatus.className='streaming-file-status';liveAnswer.root.querySelector('.message-text').before(liveAnswer.fileStatus);}const file=artifact.files.at(-1);const name=file.path+file.file;if(liveAnswer.fileStatus.dataset.file!==name){liveAnswer.fileStatus.dataset.file=name;liveAnswer.fileStatus.innerHTML=renderCodeActivity({...file,state:'writing'});}else{const count=liveAnswer.fileStatus.querySelector('.code-lines.added'),value='+'+file.added;if(count.textContent!==value)count.textContent=value;}}
+    if(artifact?.files?.length){
+      if(!liveAnswer.fileStatus){
+        liveAnswer.fileStatus=document.createElement('div');liveAnswer.fileStatus.className='streaming-file-status';
+        liveAnswer.fileGroup=window.AetherAIFileCapsule.createGroup([],{labels:capsuleLabels()});
+        liveAnswer.fileCapsules=window.AetherAIFileCapsule.getCapsules(liveAnswer.fileGroup);
+        addFileSectionIcon(liveAnswer.fileGroup);liveAnswer.fileStatus.append(liveAnswer.fileGroup);activityCloud(liveAnswer.root.querySelector('.message-body')).prepend(liveAnswer.fileStatus);
+      }
+      liveAnswer.root.querySelector('.message-text').style.display='none';
+      // Keep earlier received files when an adapter only emits the current file.
+      const files=new Map([...liveAnswer.fileCapsules].map(([name,capsule])=>[name,capsule.currentFile]));
+      for(const file of artifact.files)files.set((file.path||'')+file.file,file);
+      refreshLiveFiles([...files.values()]);
+      for(const capsule of liveAnswer.fileCapsules.values())if(!capsule.baselinePending){
+        capsule.baselinePending=true;
+        codeBaseline(capsule.currentFile).then(baseline=>{
+          capsule.baseline=baseline;
+          if(generationId===activeGenerationId&&capsule.isConnected)refreshLiveFiles();
+        });
+      }
+    }
     liveAnswer.message.content=visible;liveAnswer.writer.update(visible);
   }
 
@@ -4768,6 +4821,8 @@
     activeCodeActivityEl = null;
     lastCodeActivity = null;
     savedCodeActivities=[];
+    pendingProjectFiles=[];
+    codeBaselines=new Map();
     commandLiveHost?.remove();commandLiveHost=null;
     liveCommandResults=new Map();
     commandResults=[];
@@ -4902,11 +4957,12 @@
       const assistantMsg = {
         role: "assistant",
         content: reply,
+        filePreviews:streamedFilePreviews().filter(file=>!savedCodeActivities.some(saved=>saved.path===file.path&&saved.file===file.file)),
         commandResults:commandResults.length?commandResults:undefined,
         memoryUpdated:userMsg.memoryUpdated||undefined,
         sources:responseSources,
         animateOnRender: false,
-        workMeta: { thoughtDurationMs, totalDurationMs, usage:requestTokenLedger?.snapshot(), agents: teamRows.filter(row => row.id.startsWith("worker-")).map(row => ({ ...row })) }
+        workMeta: { thoughtDurationMs, totalDurationMs, browsing:browsingGeneration===generationId, usage:requestTokenLedger?.snapshot(), agents: teamRows.filter(row => row.id.startsWith("worker-")).map(row => ({ ...row })) }
       };
       if (lastCodeActivity) {
         assistantMsg.codeActivity = Object.assign({}, lastCodeActivity, { state: "edited" });
@@ -4926,8 +4982,8 @@
 
   stopBtn.addEventListener("click", () => {
     commandLiveHost?.remove();commandLiveHost=null;
-    const stoppedGeneration=activeGenerationId,streamChatId=liveAnswer?.chatId||currentChatId,partial=stopLiveAnswer(),receivedCommands=[...liveCommandResults.values()].map(result=>result.running?{...result,running:false,cancelled:true,ok:false}:result);
-    if(partial||receivedCommands.length){const chat=data.chats.find(item=>item.id===streamChatId);if(chat){const message={role:'assistant',content:partial||'Stopped.',interrupted:true,commandResults:receivedCommands.length?receivedCommands:undefined,workMeta:{totalDurationMs:Date.now()-thinkingStartedAt,usage:requestTokenLedger?.snapshot()}};chat.messages.push(message);if(receivedCommands.some(result=>result.cancelled))stoppedCommandMessages.set(stoppedGeneration,message);}renderMessages();}
+    const stoppedGeneration=activeGenerationId,filePreviews=streamedFilePreviews().map(file=>({...file,stopped:true})),streamChatId=liveAnswer?.chatId||currentChatId,partial=stopLiveAnswer(),receivedCommands=[...liveCommandResults.values()].map(result=>result.running?{...result,running:false,cancelled:true,ok:false}:result);
+    if(partial||receivedCommands.length||browsingGeneration===stoppedGeneration||teamRows.some(row=>row.id.startsWith('worker-'))){const chat=data.chats.find(item=>item.id===streamChatId);if(chat){const message={role:'assistant',content:partial||'Stopped.',interrupted:true,filePreviews,commandResults:receivedCommands.length?receivedCommands:undefined,sources:answerSources.get(stoppedGeneration)||[],workMeta:{totalDurationMs:Date.now()-thinkingStartedAt,browsing:browsingGeneration===stoppedGeneration,usage:requestTokenLedger?.snapshot(),agents:teamRows.filter(row=>row.id.startsWith('worker-')).map(row=>({...row,status:['working','queued'].includes(row.status)?'stopped':row.status}))}};chat.messages.push(message);if(receivedCommands.some(result=>result.cancelled))stoppedCommandMessages.set(stoppedGeneration,message);}renderMessages();}
     activeGenerationId = ++generationSerial;
     AetherAI.setUsageListener(null);
     if (abortController) abortController.abort();

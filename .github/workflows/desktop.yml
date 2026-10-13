@@ -77,6 +77,9 @@ jobs:
           npx electron tests/composer-commands-smoke.cjs
           npx electron tests/project-commands-smoke.cjs
           npx electron tests/artifacts-smoke.cjs
+          npx electron tests/file-capsule-smoke.cjs
+          npx electron tests/activity-status-smoke.cjs
+          npx electron tests/thinking-scroll-smoke.cjs
           npx electron tests/interface-locales-smoke.cjs
           npx electron tests/design-revision-smoke.cjs
           npx electron tests/design-surface-audit.cjs
