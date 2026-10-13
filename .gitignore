@@ -86,3 +86,6 @@ __pycache__/
 # AetherAI local data and projects
 .aetherai-data/
 AetherAIProject/
+
+# Local design working document
+DESIGN.md
