@@ -7,7 +7,7 @@ app.whenReady().then(async()=>{let w;try{
  const js=s=>w.webContents.executeJavaScript(s),wait=ms=>new Promise(r=>setTimeout(r,ms)),until=async s=>{for(let i=0;i<100;i++){if(await js(s))return;await wait(60);}throw Error('Timeout '+s);};
  const type=async value=>js("document.querySelector('#userInput').value="+JSON.stringify(value)+";document.querySelector('#userInput').focus();document.querySelector('#userInput').setSelectionRange(document.querySelector('#userInput').value.length,document.querySelector('#userInput').value.length);document.querySelector('#userInput').dispatchEvent(new Event('input'))");
  const send=async value=>{await type(value);const count=requests.length;await js("document.querySelector('#sendBtn').click()");for(let i=0;i<100&&requests.length===count;i++)await wait(60);assert.equal(requests.length,count+1);await until("document.querySelectorAll('.assistant-work-meta').length>0&&!document.body.classList.contains('is-generating')");};
- await w.loadFile(path.join(root,'index.html'));await wait(1300);
+ await w.loadFile(path.join(root,'index.html'));w.webContents.debugger.attach('1.3');await w.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});await wait(1300);
  assert.equal(await js("document.documentElement.classList.contains('startup-pending')"),true);
  assert.equal(await js("getComputedStyle(document.querySelector('footer.composer')).opacity"),'0','No finished composer before the intro starts');
  assert.equal(await js("getComputedStyle(document.querySelector('.welcome-pixel-wordmark'),'::after').opacity"),'0');
