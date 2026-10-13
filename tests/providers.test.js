@@ -196,3 +196,66 @@ for(const [id,base] of [['gemini','https://generativelanguage.googleapis.com/v1b
 });
 
 test('OpenRouter project schemas enforce structured routing and preserve file bytes',async t=>{const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-project-schema-'));t.after(()=>fs.rm(dir,{recursive:true,force:true}));const schema=require('../code-artifacts').schema;const cloud=createProviders(dir,storage,async(url,init)=>{if(url.endsWith('/key'))return Response.json({data:{}});if(url.endsWith('/models/user'))return Response.json({data:[{id:'fixture/structured',supported_parameters:['structured_outputs','response_format']}]});const body=JSON.parse(init.body);assert.deepEqual(body.response_format,{type:'json_schema',json_schema:{name:'response',strict:true,schema}});assert.deepEqual(body.provider,{require_parameters:true});assert.equal(body.max_tokens,16384);return Response.json({choices:[{message:{content:JSON.stringify({summary:'Ready',files:[{path:'start.cmd',content:'@echo off\r\n'}]})},finish_reason:'stop'}]});});await cloud.save('openrouter','fixture-key');const events=[];await cloud.chat({model:'cloud:openrouter/fixture/structured',messages:[{role:'user',content:'Create a project'}],format:schema,stream:false,options:{num_predict:16384}},undefined,e=>events.push(e));assert.ok(events.some(e=>e.type==='chunk'&&e.text.includes('start.cmd')));});
+
+
+test('unreadable provider credentials preserve ciphertext, isolate healthy catalogs and recover after reconnect', async t => {
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'aetherai-unreadable-key-'));
+  t.after(()=>fs.rm(dir,{recursive:true,force:true}));
+  const requests=[];
+  const guardedStorage={...storage,decryptString(bytes){
+    if(bytes.toString()==='foreign-encrypted-key')throw new Error('decrypt failure with secret fixture-key');
+    return storage.decryptString(bytes);
+  }};
+  const cloud=createProviders(dir,guardedStorage,async(url,init)=>{
+    requests.push({url,authorization:init.headers.Authorization});
+    if(init.headers.Authorization==='Bearer rejected-key')return new Response('invalid',{status:401});
+    if(url.endsWith('/key'))return Response.json({data:{}});
+    if(url.includes('groq'))return Response.json({data:[{id:'healthy-chat'}]});
+    return Response.json({data:[{id:'reconnected-chat'}]});
+  });
+  await cloud.save('groq','healthy-key');
+  await cloud.save('openrouter','fixture-key');
+  assert.equal((await cloud.models()).length,2);
+  const encrypted=Buffer.from('foreign-encrypted-key');
+  await fs.writeFile(path.join(dir,'openrouter.key'),encrypted);
+  requests.length=0;
+  for(let index=0;index<3;index++){
+    const states=cloud.status();
+    const broken=states.find(item=>item.id==='openrouter');
+    assert.equal(broken.configured,false);
+    assert.equal(broken.enabled,false);
+    assert.equal(broken.modelCount,null);
+    assert.equal(broken.credentialError,'credential_unreadable');
+    assert.equal(broken.reconnectRequired,true);
+    assert.equal(states.find(item=>item.id==='groq').enabled,true);
+    assert.ok(!JSON.stringify(states).includes('healthy-key'));
+    assert.ok(!JSON.stringify(states).includes('fixture-key'));
+    assert.deepEqual((await cloud.models(index===2)).map(item=>item.name),['cloud:groq/healthy-chat']);
+    await cloud.refreshUsage('openrouter');
+  }
+  await assert.rejects(cloud.chat({model:'cloud:openrouter/reconnected-chat',messages:[]},undefined,()=>{}),error=>{
+    assert.equal(error.code,'credential_unreadable');
+    assert.match(error.message,/Reconnect openrouter.*Settings > Providers/);
+    assert.ok(!error.message.includes('fixture-key'));
+    return true;
+  });
+  assert.throws(()=>cloud.setEnabled('openrouter',true),{code:'credential_unreadable'});
+  assert.ok(requests.every(item=>item.url.includes('groq')));
+  assert.deepEqual(await fs.readFile(path.join(dir,'openrouter.key')),encrypted);
+  const reopened=createProviders(dir,guardedStorage,async()=>{throw Error('No network expected');});
+  assert.equal(reopened.status().find(item=>item.id==='openrouter').reconnectRequired,true);
+  cloud.setEnabled('groq',false);
+  assert.deepEqual(await cloud.models(),[]);
+  await assert.rejects(cloud.save('openrouter','rejected-key'),/HTTP 401/);
+  assert.deepEqual(await fs.readFile(path.join(dir,'openrouter.key')),encrypted);
+  assert.equal(cloud.status().find(item=>item.id==='openrouter').reconnectRequired,true);
+  cloud.setEnabled('groq',true);
+  await cloud.save('openrouter','replacement-key');
+  const recovered=cloud.status().find(item=>item.id==='openrouter');
+  assert.equal(recovered.configured,true);assert.equal(recovered.enabled,true);
+  assert.equal(recovered.credentialError,undefined);assert.equal(recovered.reconnectRequired,undefined);
+  assert.equal(storage.decryptString(await fs.readFile(path.join(dir,'openrouter.key'))),'replacement-key');
+  assert.equal((await cloud.models()).length,2);
+  cloud.setEnabled('groq',false);
+  assert.deepEqual((await cloud.models()).map(item=>item.name),['cloud:openrouter/reconnected-chat']);
+});

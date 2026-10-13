@@ -151,7 +151,7 @@
       const status=providerCardsState.find(item=>item.id===id),connected=!!status?.configured,enabled=connected&&status.enabled!==false;
       const knownModels=allAvailableModels.filter(model=>model.provider===id).length;
       const count=Number.isInteger(status?.modelCount)&&status.modelCount>=0?status.modelCount:knownModels||null;
-      const summary=connected?(enabled?(ru?'Подключено':'Connected'):(ru?'Выключено · ключ сохранён':'Off · key saved'))+(count!==null?' · '+(ru?'Моделей: ':'Models: ')+count:''):(ru?'Не настроено':'Not configured');
+      const summary=status?.reconnectRequired?t('providerReconnect'):connected?(enabled?(ru?'Подключено':'Connected'):(ru?'Выключено · ключ сохранён':'Off · key saved'))+(count!==null?' · '+(ru?'Моделей: ':'Models: ')+count:''):(ru?'Не настроено':'Not configured');
       root.insertAdjacentHTML('beforeend',`<article class="provider-card${connected?' connected':''}" data-provider-card="${id}"><div class="provider-card-copy"><h4>${name}</h4><p>${escapeHtml(summary)}</p></div><div class="provider-card-actions"><button type="button" class="catalog-btn provider-edit" data-configure-provider="${id}" aria-label="${connected?(ru?'Изменить API-ключ: ':'Edit API key: '):configure+': '}${name}" title="${connected?(ru?'Изменить API-ключ':'Edit API key'):configure}" aria-expanded="${!$('providerEditor').hidden&&$('providerSelect').value===id}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 4 6 6M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5Z"/></svg></button><button type="button" class="activity-switch provider-enable" role="switch" data-enable-provider="${id}" aria-checked="${enabled}" aria-label="${ru?'Включить провайдера: ':'Enable provider: '}${name}" ${connected?'':'disabled'}><span></span></button></div></article>`);
     }
     root.insertAdjacentHTML('beforeend',`<article class="provider-card"><div class="provider-card-copy"><h4>Ollama Cloud</h4><p>${ru?'Отдельное подключение':'Separate connection'}</p></div><button type="button" class="catalog-btn" data-provider-ollama>${configure}</button></article>`);
@@ -201,6 +201,7 @@
     $('providerKey').placeholder=settings.appLanguage==='ru'?(configured?'Вставьте новый API-ключ':'Вставьте API-ключ'):(configured?'Paste a new API key':'Paste your API key');
     $('providerRemove').hidden=!configured;$('providerRemove').textContent=settings.appLanguage==='ru'?'Удалить API-ключ':'Remove API key';
     $('providerStatus').textContent = settings.appLanguage === 'ru' ? (configured ? 'Подключено. Бесплатные модели имеют лимиты провайдера.' : 'Добавьте свой API-ключ. Ключ хранится зашифрованным на компьютере.') : (configured ? 'Connected. Free models are subject to provider limits.' : 'Add your API key. It is stored encrypted on this computer.');
+    if(statuses.find(item=>item.id===id)?.reconnectRequired)$('providerStatus').textContent=t('providerReconnect');
     if(id==='sambanova')$('providerStatus').textContent += settings.appLanguage==='ru'?' Бесплатный тариф доступен без привязки карты. Лимиты зависят от модели и тарифа аккаунта.':' A free tier is available without a payment method. Limits depend on the model and your account tier.';
     if(configured&&statuses.find(item=>item.id===id)?.enabled===false)$('providerStatus').textContent=settings.appLanguage==='ru'?'Провайдер выключен. API-ключ сохранён; включите тумблер, чтобы использовать модели.':'Provider is off. The API key is saved; turn on the switch to use its models.';
   }
@@ -264,6 +265,7 @@
   let lastCodeActivity = null;
   let savedCodeActivities=[];
   let pendingProjectFiles=[];
+  let pendingCodeProject=null;
   let codeBaselines=new Map();
   let browsingGeneration=0;
   const activityFileIcon='<svg class="activity-section-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 3H6v18h12V7Z M14 3v5h4 M9 12h6 M9 16h6"/></svg>';
@@ -2325,7 +2327,7 @@
     window.AetherAIModelPicker.render(modelDropdown,{models:availableModels,hiddenModels,selected:settings.selectedModel,ru:settings.appLanguage==='ru',lang:settings.appLanguage,icon:providerIconMarkup,local:settings.localAi,level:settings.thinkLevel||'medium',
       onSelect:name=>{selectModel(name);modelDropdown.classList.remove('show');modelBtn.focus({preventScroll:true});syncComposerExpanded();},
       onLevel:value=>{settings.modelThinkLevels={...(settings.modelThinkLevels||{}),[settings.selectedModel]:value};setThinkLevel(value);renderModelDropdown();modelDropdown.querySelector('.model-reasoning-picker').open=false;modelDropdown.querySelector('.model-reasoning-picker>summary').focus();},
-      onManage:()=>{modelDropdown.classList.remove('show');settingsModal.classList.add('show');renderSettings();document.querySelector('[data-settings-tab=preferences]').click();},
+      onManage:()=>{modelDropdown.classList.remove('show');settingsModal.classList.add('show');renderSettings();document.querySelector('[data-settings-tab=cloud]').click();},
       onConfigure:()=>{modelDropdown.classList.remove('show');settings.localAi?openModelsModal():openProviderSettings();}
     });
   }
@@ -3229,6 +3231,7 @@
       const existing = data.groups.find(g => g.id === chat.groupId);
       return existing ? existing.folderName || existing.name : null;
     }
+    if(pendingCodeProject?.chatId===chat.id)return pendingCodeProject.folderName;
     const prompt=chat.messages.find(message=>message.role==='user')?.content||chat.title||'';
     const groupName=window.AetherAIProjectNaming.name({prompt,files:pendingProjectFiles,existingNames:data.groups.map(group=>group.folderName||group.name),language:settings.appLanguage});
     let folderName = groupName;
@@ -3237,18 +3240,20 @@
       if (!folder?.ok || !folder.folderName) { const error=new Error(folder?.error || "Could not create the project folder");error.name="ProjectFileError";throw error; }
       folderName = folder.folderName;
     }
-    const group = { id: "g" + Date.now(), name: folderName, folderName, collapsed: false };
-    data.groups.push(group);
-    chat.groupId = group.id;
-    chat.updatedAt = Date.now();
-    addProgressItem(`Created project ${folderName}`);
-    renderSidebar();
-    persist();
+    pendingCodeProject={chatId:chat.id,folderName};
     return folderName;
   }
 
+  function commitCodeProject(folderName,chatId){
+    const chat=data.chats.find(chat=>chat.id===chatId);if(!chat||chat.groupId)return;
+    let group=data.groups.find(group=>(group.folderName||group.name)===folderName);
+    if(!group){group={id:crypto.randomUUID(),name:folderName,folderName,collapsed:false};data.groups.push(group);}
+    chat.groupId=group.id;chat.updatedAt=Date.now();if(pendingCodeProject?.chatId===chatId&&pendingCodeProject.folderName===folderName)pendingCodeProject=null;
+    addProgressItem('Created project '+folderName);renderSidebar();persist();
+  }
+
   async function writeLatestCodeActivity(signal) {
-    const activity=lastCodeActivity;
+    const activity=lastCodeActivity,chatId=currentChatId;
     signal?.throwIfAborted();
     if (!activity || !activity.code || !window.api || !window.api.writeProjectFile) return false;
     if(settings.accessMode==='plan'){addProgressItem('Plan mode: no files saved');return false;}
@@ -3282,6 +3287,7 @@
     signal?.throwIfAborted();
     const res = await window.api.writeProjectFile(folderName, filePath, activity.code);
     if (res && res.ok) {
+      commitCodeProject(folderName,chatId);
       updateProgressItem(progressId, "done", `${res.existed ? "Edited" : "Created"} ${filePath}`);
       upsertCodingPreview(Object.assign({}, activity, { state: "edited" }), `${res.existed ? "Edited" : "Created"} ${filePath}`);
       await maybeInstallPythonPackages(activity, folderName);
@@ -3988,7 +3994,7 @@
 
       if (activities.length) {
         pendingProjectFiles=activities.map(file=>({...file,complete:true}));
-        for(const activity of activities){requestController.signal.throwIfAborted();lastCodeActivity=activity;setLiveFilePhase(activity,'checking');const saved=await writeLatestCodeActivity(requestController.signal);if(saved){savedCodeActivities.push({...activity,state:'edited'});setLiveFilePhase(activity,'done');}}
+        for(const activity of activities){requestController.signal.throwIfAborted();lastCodeActivity=activity;setLiveFilePhase(activity,'checking');const saved=await writeLatestCodeActivity(requestController.signal);requestController.signal.throwIfAborted();if(saved){savedCodeActivities.push({...activity,state:'edited'});setLiveFilePhase(activity,'done');}}
         lastCodeActivity=savedCodeActivities.at(-1)||null;
         if(savedCodeActivities.length===activities.length)fullText+='\n\n'+(settings.appLanguage==='ru'?`Сохранено файлов: ${savedCodeActivities.length}.`:`Saved ${savedCodeActivities.length} files.`);
         else fullText+='\n\n'+(settings.appLanguage==='ru'?'Не все файлы сохранены. Проверь режим доступа и журнал действий.':'Some files were not saved. Check access mode and the activity log.');
@@ -4822,6 +4828,7 @@
     lastCodeActivity = null;
     savedCodeActivities=[];
     pendingProjectFiles=[];
+    pendingCodeProject=null;
     codeBaselines=new Map();
     commandLiveHost?.remove();commandLiveHost=null;
     liveCommandResults=new Map();
@@ -5260,15 +5267,14 @@
     return item;
   }
 
-  function showMoveMenu(chatId, anchor) {
-    // простой prompt-список групп
-    const options = [t("movePromptNone"), ...data.groups.map(g => g.name)];
-    const choice = prompt(t("movePromptTitle") + "\n" + options.map((o, i) => `${i}: ${o}`).join("\n"), "0");
-    if (choice === null) return;
-    const idx = parseInt(choice);
-    if (isNaN(idx)) return;
-    if (idx === 0) moveToGroup(chatId, null);
-    else moveToGroup(chatId, data.groups[idx - 1].id);
+  function showMoveMenu(chatId,anchor){
+    let dialog=$('moveProjectDialog');
+    if(!dialog){dialog=document.createElement('dialog');dialog.id='moveProjectDialog';dialog.className='move-project-dialog';dialog.innerHTML='<header><h2 id="moveProjectTitle"></h2><button type="button" data-close aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></header><div class="move-project-options"></div>';dialog.setAttribute('aria-labelledby','moveProjectTitle');document.body.append(dialog);dialog.querySelector('[data-close]').onclick=()=>dialog.close();dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});}
+    dialog.querySelector('h2').textContent=t('movePromptTitle');dialog.querySelector('[data-close]').setAttribute('aria-label',t('cancel'));
+    const list=dialog.querySelector('.move-project-options');list.replaceChildren();
+    const current=data.chats.find(chat=>chat.id===chatId)?.groupId||null;
+    for(const group of [{id:null,name:t('movePromptNone')},...data.groups]){const button=document.createElement('button');button.type='button';button.textContent=group.name;button.dataset.projectId=group.id||'';button.setAttribute('aria-pressed',String(current===group.id));button.onclick=()=>{moveToGroup(chatId,group.id);dialog.close();};list.append(button);}
+    dialog.onclose=()=>{const row=document.querySelector('.home-library .history-item');(anchor?.isConnected?anchor:row)?.focus({preventScroll:true});};if(!dialog.open)dialog.showModal();
   }
 
   function loadChat(id) {

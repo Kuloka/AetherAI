@@ -72,6 +72,8 @@ jobs:
       - name: Check composer scrolling and text-only Working
         if: runner.os == 'Windows'
         run: |
+          $ErrorActionPreference = "Stop"
+          $PSNativeCommandUseErrorActionPreference = $true
           npx electron tests/composer-picker-smoke.cjs
           npx electron tests/working-status-smoke.cjs
           npx electron tests/composer-commands-smoke.cjs

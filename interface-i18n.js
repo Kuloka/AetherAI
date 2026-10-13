@@ -1,6 +1,7 @@
 (function(root){
  const copy={
   "en": {
+    "providerReconnect": "Saved API key cannot be unlocked. Connect this provider again.",
     "settings": "Settings",
     "theme": "Theme",
     "themeDesc": "Choose the visual theme.",
@@ -326,6 +327,7 @@
     "codeNotSaved": "Not saved"
   },
   "ru": {
+    "providerReconnect": "Сохранённый API-ключ не расшифровывается. Подключите провайдера заново.",
     "settings": "Настройки",
     "theme": "Тема",
     "themeDesc": "Выберите внешний вид приложения.",
@@ -650,6 +652,7 @@
     "codeNotSaved": "Не сохранён"
   },
   "es": {
+    "providerReconnect": "No se puede desbloquear la clave API guardada. Conecta este proveedor de nuevo.",
     "settings": "Configuracion",
     "theme": "Tema",
     "themeDesc": "Elige el tema visual.",
@@ -972,6 +975,7 @@
     "codeNotSaved": "Sin guardar"
   },
   "pt": {
+    "providerReconnect": "Não foi possível desbloquear a chave API salva. Conecte o provedor novamente.",
     "settings": "Configuracoes",
     "theme": "Tema",
     "themeDesc": "Escolha o tema visual.",
@@ -1294,6 +1298,7 @@
     "codeNotSaved": "Não salvo"
   },
   "fr": {
+    "providerReconnect": "La clé API enregistrée ne peut pas être déverrouillée. Reconnectez ce fournisseur.",
     "settings": "Paramètres",
     "theme": "Thème",
     "themeDesc": "Choisissez le thème visuel.",
@@ -1616,6 +1621,7 @@
     "codeNotSaved": "Non enregistré"
   },
   "de": {
+    "providerReconnect": "Der gespeicherte API-Schlüssel kann nicht entschlüsselt werden. Verbinde den Anbieter erneut.",
     "settings": "Einstellungen",
     "theme": "Design",
     "themeDesc": "Wahle das visuelle Design.",
@@ -1938,6 +1944,7 @@
     "codeNotSaved": "Nicht gespeichert"
   },
   "it": {
+    "providerReconnect": "Impossibile decifrare la chiave API salvata. Ricollega il provider.",
     "settings": "Impostazioni",
     "theme": "Tema",
     "themeDesc": "Scegli il tema visivo.",
@@ -2260,6 +2267,7 @@
     "codeNotSaved": "Non salvato"
   },
   "tr": {
+    "providerReconnect": "Kaydedilen API anahtarı çözülemiyor. Sağlayıcıyı yeniden bağlayın.",
     "settings": "Ayarlar",
     "theme": "Tema",
     "themeDesc": "Gorsel temayi sec.",
@@ -2582,6 +2590,7 @@
     "codeNotSaved": "Kaydedilmedi"
   },
   "pl": {
+    "providerReconnect": "Nie można odszyfrować zapisanego klucza API. Połącz dostawcę ponownie.",
     "settings": "Ustawienia",
     "theme": "Motyw",
     "themeDesc": "Wybierz wyglad aplikacji.",
@@ -2904,6 +2913,7 @@
     "codeNotSaved": "Nie zapisano"
   },
   "uk": {
+    "providerReconnect": "Збережений API-ключ не розшифровується. Підключіть провайдера знову.",
     "settings": "Налаштування",
     "theme": "Тема",
     "themeDesc": "Оберіть візуальну тему.",

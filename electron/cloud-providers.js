@@ -14,6 +14,7 @@ const PROVIDERS = {
 
 function createProviders(directory, safeStorage, request = fetch) {
   const cache = new Map();
+  const credentialErrors = new Set();
   const stateFile = path.join(directory, 'providers-state.json');
   let disabled = new Set();
   try { const saved=JSON.parse(fs.readFileSync(stateFile,'utf8'));if(Array.isArray(saved.disabled))disabled=new Set(saved.disabled.filter(id=>Object.hasOwn(PROVIDERS,id))); } catch {}
@@ -37,8 +38,10 @@ function createProviders(directory, safeStorage, request = fetch) {
     persistUsage();
   }
   async function refreshUsage(id) {
-    if (id !== 'openrouter' || disabled.has(id) || !key(id)) return usage();
-    const response = await request(config(id).base + '/key', { headers: { Authorization: 'Bearer ' + key(id) }, signal: AbortSignal.timeout(10000), redirect: 'error' });
+    if (id !== 'openrouter' || disabled.has(id)) return usage();
+    const token=key(id);
+    if (!token) return usage();
+    const response = await request(config(id).base + '/key', { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(10000), redirect: 'error' });
     if (!response.ok) return usage();
     const { data } = await response.json();
     recordKeyUsage(data);
@@ -46,9 +49,32 @@ function createProviders(directory, safeStorage, request = fetch) {
   }
   function config(id) { if (!Object.hasOwn(PROVIDERS, id)) throw new Error('Unknown provider'); return PROVIDERS[id]; }
   function file(id) { config(id); return path.join(directory, id + '.key'); }
-  function key(id) { return fs.existsSync(file(id)) ? safeStorage.decryptString(fs.readFileSync(file(id))) : ''; }
-  function status() { return Object.keys(PROVIDERS).map(id => ({ id, configured: fs.existsSync(file(id)), enabled:fs.existsSync(file(id))&&!disabled.has(id), modelCount: cache.has(id) ? cache.get(id).models.length : null })); }
-  function setEnabled(id, enabled){config(id);if(typeof enabled!=='boolean')throw Error('Invalid provider state');if(enabled&&!fs.existsSync(file(id)))throw Error('Connect the provider first');if(enabled)disabled.delete(id);else disabled.add(id);persistState();return status();}
+  function key(id) {
+    const filename=file(id);
+    if (!fs.existsSync(filename)) { credentialErrors.delete(id); return ''; }
+    try {
+      const token=safeStorage.decryptString(fs.readFileSync(filename));
+      if (typeof token!=='string' || !token.trim()) throw new Error('Empty credential');
+      credentialErrors.delete(id);
+      return token;
+    } catch {
+      // Keep the encrypted bytes for recovery; never expose the storage error or use stale models.
+      credentialErrors.add(id);
+      cache.delete(id);
+      return '';
+    }
+  }
+  function reconnectError(id) {
+    const error=new Error('Reconnect '+id+' in Settings > Providers: the saved API key cannot be read on this device.');
+    error.code='credential_unreadable';
+    return error;
+  }
+  function status() { return Object.keys(PROVIDERS).map(id => {
+    const configured=Boolean(key(id));
+    return {id, configured, enabled:configured&&!disabled.has(id), modelCount:cache.has(id)?cache.get(id).models.length:null,
+      ...(credentialErrors.has(id)?{credentialError:'credential_unreadable',reconnectRequired:true}:{})};
+  }); }
+  function setEnabled(id, enabled){config(id);if(typeof enabled!=='boolean')throw Error('Invalid provider state');if(enabled&&!key(id)){if(credentialErrors.has(id))throw reconnectError(id);throw Error('Connect the provider first');}if(enabled)disabled.delete(id);else disabled.add(id);persistState();return status();}
   async function list(id, token) {
     const response = await request(config(id).base + (id==='openrouter'?'/models/user':'/models'), { headers: { Authorization: 'Bearer ' + token }, signal: AbortSignal.timeout(15000), redirect: 'error' });
     if (!response.ok) throw new Error(id + ' models: HTTP ' + response.status);
@@ -76,6 +102,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     if (token !== key(id)) for (const name of quota.keys()) if (name === id || name.startsWith('cloud:' + id + '/')) quota.delete(name);
     fs.mkdirSync(directory, { recursive: true });
     fs.writeFileSync(file(id), safeStorage.encryptString(token),{mode:0o600});
+    credentialErrors.delete(id);
     disabled.delete(id);persistState();
     if (keyData) recordKeyUsage(keyData); else persistUsage();
     cache.set(id, { time: Date.now(), models });
@@ -83,7 +110,7 @@ function createProviders(directory, safeStorage, request = fetch) {
   }
   function disconnect(id) {
     if (fs.existsSync(file(id))) fs.unlinkSync(file(id)); cache.delete(id);
-    disabled.delete(id);persistState();
+    disabled.delete(id);credentialErrors.delete(id);persistState();
     for (const name of quota.keys()) if (name === id || name.startsWith('cloud:' + id + '/')) quota.delete(name);
     persistUsage();
     return status();
@@ -91,7 +118,8 @@ function createProviders(directory, safeStorage, request = fetch) {
   async function models(force = false) {
     const results = await Promise.allSettled(status().filter(item => item.enabled).map(async ({ id }) => {
       if (!force && cache.has(id) && Date.now() - cache.get(id).time < 300000) return cache.get(id).models;
-      const found = await list(id, key(id)); cache.set(id, { time: Date.now(), models: found }); return found;
+      const token=key(id);if(!token)return [];
+      const found = await list(id, token); cache.set(id, { time: Date.now(), models: found }); return found;
     }));
     const successful = results.filter(result => result.status === 'fulfilled');
     if (results.length && !successful.length) throw results[0].reason;
@@ -101,6 +129,7 @@ function createProviders(directory, safeStorage, request = fetch) {
     const match = /^cloud:(openrouter|groq|gemini|cerebras|sambanova)\/(.+)$/.exec(body?.model || '');
     if (!match || !Array.isArray(body.messages)) throw new Error('Invalid provider request');
     const [, id, model] = match, token = key(id);
+    if (!token && credentialErrors.has(id)) throw reconnectError(id);
     if (!token) throw new Error('Connect ' + id + ' in Settings → Providers');
     if(disabled.has(id))throw new Error('Enable ' + id + ' in Settings → Providers');
     const selected=(await models()).find(item=>item.name===body.model);if(!selected)throw new Error('This model is no longer available');if(body.messages.some(message=>message.images?.length)&&!selected.capabilities.includes('vision'))throw new Error('This model does not support images. Choose a model marked Vision.');
