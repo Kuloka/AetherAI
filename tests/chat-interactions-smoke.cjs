@@ -10,7 +10,7 @@ app.whenReady().then(async()=>{let w;try{
  w=new BrowserWindow({width:1200,height:900,show:false,webPreferences:{offscreen:true,preload:path.join(__dirname,'chat-interactions-preload.cjs')}});const errors=[];
  w.webContents.on('console-message',(_event,level,message)=>{if(level===3&&!/ERR_|Content Security|Failed to load resource/.test(message))errors.push(message);});
  const js=code=>w.webContents.executeJavaScript(code).catch(error=>{throw Error(code+': '+error.message)}),wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));const until=async(expression)=>{for(let i=0;i<70;i++){if(await js(expression))return;await wait(100);}throw Error('Timeout: '+expression);};
- await w.loadFile(path.join(root,'index.html'));await wait(900);await js("document.querySelector('#accountClose').click();document.querySelector('.history-item').click()");
+ await w.loadFile(path.join(root,'index.html'));w.webContents.debugger.attach('1.3');await w.webContents.debugger.sendCommand('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'no-preference'}]});await wait(900);await js("document.querySelector('#accountClose').click();document.querySelector('.history-item').click()");
  await clipboard.write([new ClipboardItem({'image/png':new Blob([fs.readFileSync(path.join(root,'resources/model-icons/aetherai-logo.png'))],{type:'image/png'})})]);
  await js("document.querySelector('#userInput').focus()");w.webContents.paste();
  await until("document.querySelector('.attachment-item img')?.naturalWidth > 0");
